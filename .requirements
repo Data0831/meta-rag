@@ -1,0 +1,5 @@
+qdrant-client
+google-generativeai
+openai
+pydantic
+sqlite-utils
