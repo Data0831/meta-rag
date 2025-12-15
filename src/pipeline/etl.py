@@ -1,9 +1,16 @@
 import json
 import os
+import sys
 import glob
+import time
 from typing import List, Dict, Any
 from datetime import datetime
 import uuid
+
+# Add project root to sys.path
+project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "../.."))
+if project_root not in sys.path:
+    sys.path.insert(0, project_root)
 
 # Import local modules
 from src.llm.client import LLMClient
@@ -122,7 +129,9 @@ class ETLPipeline:
         ]
 
         # 3. Call LLM
-        response_text = self.llm_client.call_gemini(messages)
+        response_text = self.llm_client.call_gemini(
+            messages, response_format={"type": "json_object"}
+        )
         if not response_text:
             print("No response from LLM.")
             return
@@ -141,12 +150,53 @@ class ETLPipeline:
         output_path = os.path.join(self.output_dir, filename)
 
         # Convert Pydantic models to dicts for JSON serialization
-        docs_json = [doc.dict(mode="json") for doc in docs]
+        docs_json = [doc.model_dump(mode="json") for doc in docs]
 
         with open(output_path, "w", encoding="utf-8") as f:
             json.dump(docs_json, f, ensure_ascii=False, indent=2)
 
         print(f"Saved {len(docs)} documents to {output_path}")
+        time.sleep(1)  # Rate limit protection
+
+    def merge_processed_files(self, output_filename: str = "processed.json"):
+        """Merge all processed separate JSON files into one."""
+        json_files = glob.glob(os.path.join(self.output_dir, "*.json"))
+
+        # Filter only numeric filenames to ensure we are merging the batches
+        # and not merging the output file itself if it exists.
+        batch_files = []
+        for f in json_files:
+            basename = os.path.basename(f)
+            if basename == output_filename:
+                continue
+            # Check if it looks like a batch file (digits.json)
+            name_part = os.path.splitext(basename)[0]
+            if name_part.isdigit():
+                batch_files.append(f)
+
+        # Sort numerically
+        batch_files.sort(key=lambda x: int(os.path.splitext(os.path.basename(x))[0]))
+
+        all_docs = []
+        print(f"Found {len(batch_files)} batch files to merge.")
+
+        for file_path in batch_files:
+            print(f"Merging {file_path}...")
+            try:
+                with open(file_path, "r", encoding="utf-8") as f:
+                    docs = json.load(f)
+                    if isinstance(docs, list):
+                        all_docs.extend(docs)
+                    else:
+                        print(f"Warning: {file_path} is not a list. Skipping.")
+            except Exception as e:
+                print(f"Error reading {file_path}: {e}")
+
+        output_path = os.path.join(self.output_dir, output_filename)
+        with open(output_path, "w", encoding="utf-8") as f:
+            json.dump(all_docs, f, ensure_ascii=False, indent=2)
+
+        print(f"Successfully merged {len(all_docs)} documents into {output_path}")
 
     def run(self):
         """Run the pipeline on all files in data/split."""
@@ -156,7 +206,10 @@ class ETLPipeline:
         for file in files:
             self.process_file(file)
 
+        self.merge_processed_files()
+
 
 if __name__ == "__main__":
     pipeline = ETLPipeline()
-    pipeline.run()
+    # pipeline.run()
+    pipeline.merge_processed_files()

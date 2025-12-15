@@ -7,9 +7,7 @@ load_dotenv()
 
 
 class LLMClient:
-    def __init__(
-        self, base_url: str = None, api_key: str = None, model: str = "gemini-1.5-flash"
-    ):
+    def __init__(self, base_url: str = None, api_key: str = None, model: str = None):
         """
         Initialize the LLM Client.
 
@@ -20,10 +18,12 @@ class LLMClient:
             model: The Gemini model name to use (e.g., "gemini-1.5-flash").
         """
         self.base_url = base_url or os.getenv(
-            "OPENAI_BASE_URL", "http://localhost:8000/openai/v1"
+            "PROXY_BASE_URL", "http://localhost:8000/openai/v1"
         )
-        self.api_key = api_key or os.getenv("OPENAI_API_KEY", "sk-mysecrettoken123")
-        self.model = model
+        # Using PROXY_API_KEY to distinguish from actual OpenAI key if needed, or stick to a convention
+        # The user request implies reading from env.
+        self.api_key = api_key or os.getenv("PROXY_API_KEY", "sk-mysecrettoken123")
+        self.model = model or os.getenv("PROXY_MODEL_NAME", "gemini-2.5-flash")
 
         print(
             f"Initializing LLMClient with base_url={self.base_url}, model={self.model}"
@@ -31,23 +31,32 @@ class LLMClient:
 
         self.client = OpenAI(base_url=self.base_url, api_key=self.api_key)
 
-    def call_gemini(self, messages: list, temperature: float = 0.0) -> str:
+    def call_gemini(
+        self,
+        messages: list,
+        temperature: float = 0.0,
+        response_format: dict = None,
+        model: str = None,
+    ) -> str:
         """
         Send a request to the Gemini model via the local proxy.
 
         Args:
             messages: A list of message dictionaries (role, content).
             temperature: Sampling temperature.
+            response_format: Optional dict, e.g., {"type": "json_object"}
+            model: Optional model name override.
 
         Returns:
             The content of the response message.
         """
         try:
             response = self.client.chat.completions.create(
-                model=self.model,
+                model=model or self.model,
                 messages=messages,
                 temperature=temperature,
                 stream=False,
+                response_format=response_format,
             )
             return response.choices[0].message.content
         except Exception as e:

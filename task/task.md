@@ -62,18 +62,18 @@ def call_gemini(messages, model="gemini-1.5-flash"):
 
 ### 執行任務 (Tasks)
 
-*   [ ] **Task 2.1: LLM Client 封裝 (`src/llm_client.py`)**
+*   [x] **Task 2.1: LLM Client 封裝 (`src/llm_client.py`)**
     *   安裝 `openai` 套件：`pip install openai`。
     *   根據上述範例，實作 `LLMClient` 類別或函式庫。
     *   *驗證點*：撰寫一小段測試程式，確認能成功呼叫本地 API 並收到回應。
-*   [ ] **Task 2.2: 定義 ETL Prompt (`src/prompts.py`)**
+*   [x] **Task 2.2: 定義 ETL Prompt (`src/prompts.py`)**
     *   將 System Prompt 定義為常數字串。
     *   Prompt 重點回顧：
         *   **Role**: Data Extraction Agent.
         *   **Input**: JSON List of announcements.
         *   **Output Rules**: Strict JSON Array, Traditional Chinese summary.
         *   **Fields**: `meta_date_effective`, `meta_products` (normalized), `meta_category`, `meta_impact_level`, `meta_summary` etc.
-*   [ ] **Task 2.3: 實作批次處理流程 (`src/etl_pipeline.py`)**
+*   [x] **Task 2.3: 實作批次處理流程 (`src/etl_pipeline.py`)**
     *   **Input**: 引用 Phase 1 解析出的 `raw_data` (List of Dicts)。
     *   **Batching**: 將資料切分為每組 5-10 筆 (Batch Size 可調整)。
     *   **Execution**: 
