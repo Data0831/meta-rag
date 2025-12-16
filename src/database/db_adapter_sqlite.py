@@ -135,12 +135,20 @@ def search_keyword(
     
     where_clauses = ["announcements_fts MATCH :query"]
     params = {"query": query}
-    
+
     if filters:
-        if filters.month:
-            where_clauses.append("month = :month")
-            params["month"] = filters.month
-        
+        # Support multiple months (OR condition)
+        if filters.months:
+            if len(filters.months) == 1:
+                where_clauses.append("month = :month")
+                params["month"] = filters.months[0]
+            else:
+                # Multiple months: month IN (...)
+                month_placeholders = ", ".join([f":month_{i}" for i in range(len(filters.months))])
+                where_clauses.append(f"month IN ({month_placeholders})")
+                for i, month in enumerate(filters.months):
+                    params[f"month_{i}"] = month
+
         if filters.category:
             where_clauses.append("category = :category")
             params["category"] = filters.category.value if hasattr(filters.category, 'value') else filters.category
@@ -148,22 +156,6 @@ def search_keyword(
         if filters.impact_level:
             where_clauses.append("impact_level = :impact_level")
             params["impact_level"] = filters.impact_level.value if hasattr(filters.impact_level, 'value') else filters.impact_level
-
-        # Note: 'products' filter is tricky in SQLite since it's a JSON string.
-        # We might skip it here and rely on Qdrant or post-filtering, 
-        # OR use LIKE %product%. Let's try simple LIKE if provided.
-        if filters.products:
-            # For simplicity, just check if ANY of the requested products appear in the json string
-            # This is a bit naive but works for basic filtering.
-            # Building (products LIKE %p1% OR products LIKE %p2%)
-            prod_clauses = []
-            for i, prod in enumerate(filters.products):
-                key = f"prod_{i}"
-                prod_clauses.append(f"products LIKE :{key}")
-                params[key] = f"%{prod}%"
-            
-            if prod_clauses:
-                where_clauses.append(f"({' OR '.join(prod_clauses)})")
 
     where_str = " AND ".join(where_clauses)
     

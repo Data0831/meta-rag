@@ -48,25 +48,28 @@
 
 ---
 
-## Phase 4: Hybrid Search Service (進行中)
+## Phase 4: Hybrid Search Service (已完成)
 > 實作「意圖識別 + 混合搜尋」邏輯，提供精確檢索能力。
 
-- [ ] **Task 4.1: Search Intent Parsing (`src/llm/prompts.py` & `src/services/search_service.py`)**
-    - [ ] **Prompt Design**: 新增 `SEARCH_INTENT_PROMPT`，指示 LLM 將使用者口語轉換為結構化查詢物件。
+- [x] **Task 4.1: Search Intent Parsing (`src/llm/search_prompts.py` & `src/services/search_service.py`)**
+    - [x] **Prompt Design**: 新增 `SEARCH_INTENT_PROMPT`，指示 LLM 將使用者口語轉換為結構化查詢物件。
         - Output Format: `{ "filters": {"month": "...", "category": "..."}, "keyword_query": "...", "semantic_query": "..." }`
-    - [ ] **Implementation**: 在 `SearchService` 中新增 `parse_intent(user_query)` 方法，呼叫 LLM 進行解析。
+    - [x] **Implementation**: 在 `SearchService` 中新增 `parse_intent(user_query)` 方法，呼叫 LLM 進行解析。
 
-- [ ] **Task 4.2: Filter Implementation**
-    - [ ] **SQLite**: 更新 `src/database/db_adapter_sqlite.py` 的 `search_keyword`，將 `filters` 轉換為 SQL `WHERE` 子句。
-    - [ ] **Qdrant**: 更新 `src/database/db_adapter_qdrant.py` 的 `search_semantic`，將 `filters` 轉換為 Qdrant `Filter` 物件 (Payload Filtering)。
+- [x] **Task 4.2: Filter Implementation**
+    - [x] **SQLite**: 更新 `src/database/db_adapter_sqlite.py` 的 `search_keyword`，將 `filters` 轉換為 SQL `WHERE` 子句。
+    - [x] **Qdrant**: 更新 `src/database/db_adapter_qdrant.py` 的 `search_semantic`，將 `filters` 轉換為 Qdrant `Filter` 物件 (Payload Filtering)。
 
-- [ ] **Task 4.3: RRF Fusion Logic (`src/services/search_service.py`)**
-    - [ ] 實作 `search(user_query)` 主流程：
+- [x] **Task 4.3: RRF Fusion Logic (`src/services/search_service.py`)**
+    - [x] 實作 `search(user_query)` 主流程：
         1. 呼叫 `parse_intent` 取得過濾條件與改寫後的查詢詞。
         2. 並行執行 `search_keyword` (SQLite) 與 `search_semantic` (Qdrant)。
         3. **RRF Algorithm**: 實作 Reciprocal Rank Fusion，合併兩邊結果並重新排序。
            - 邏輯：若 UUID 同時存在，分數疊加；若僅單邊存在，分數較低。
         4. 根據排序後的 UUIDs，從 SQLite 撈取 `original_content`。
+
+- [x] **Task 4.4: Month Format Compatibility**
+    - [x] 實作月份格式轉換機制 (YYYY-MM → YYYY-monthname)，確保 Intent Parsing 結果與資料庫格式一致。
 
 ---
 

@@ -102,17 +102,23 @@ class BatchMetaExtraction(BaseModel):
 
 
 class SearchFilters(BaseModel):
-    """Search filters extracted from user query"""
+    """Search filters extracted from user query (STRICT filters only)"""
 
-    month: Optional[str] = Field(None, description="Month (YYYY-MM)")
+    months: List[str] = Field(
+        default_factory=list,
+        description="List of months (YYYY-MM format). For ranges like 'past 3 months', include all months."
+    )
     category: Optional[Category] = Field(None, description="Category")
     impact_level: Optional[ImpactLevel] = Field(None, description="Impact Level")
-    products: List[str] = Field(default_factory=list, description="Product names")
 
 
 class SearchIntent(BaseModel):
     """Structured search intent parsed from user query"""
 
-    filters: SearchFilters = Field(..., description="Filters to apply")
+    filters: SearchFilters = Field(..., description="Strict filters to apply")
     keyword_query: str = Field(..., description="Optimized keyword query for FTS")
     semantic_query: str = Field(..., description="Optimized semantic query for Vector DB")
+    boost_keywords: List[str] = Field(
+        default_factory=list,
+        description="Soft-match keywords (e.g., product names) to boost relevance, not filter"
+    )

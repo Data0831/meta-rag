@@ -118,35 +118,31 @@ def search_semantic(
     query_filter = None
     if filters:
         conditions = []
-        
-        if filters.month:
-            conditions.append(
-                FieldCondition(key="month", match=MatchValue(value=filters.month))
-            )
-        
+
+        # Support multiple months (match ANY of the months)
+        if filters.months:
+            if len(filters.months) == 1:
+                conditions.append(
+                    FieldCondition(key="month", match=MatchValue(value=filters.months[0]))
+                )
+            else:
+                # Multiple months: use MatchAny
+                conditions.append(
+                    FieldCondition(key="month", match=MatchAny(any=filters.months))
+                )
+
         if filters.category:
             cat_val = filters.category.value if hasattr(filters.category, 'value') else filters.category
             conditions.append(
                 FieldCondition(key="meta_category", match=MatchValue(value=cat_val))
             )
-            
+
         if filters.impact_level:
             impact_val = filters.impact_level.value if hasattr(filters.impact_level, 'value') else filters.impact_level
             conditions.append(
                 FieldCondition(key="meta_impact_level", match=MatchValue(value=impact_val))
             )
-            
-        if filters.products:
-            # Check if ANY of the requested products match ANY of the meta_products list in payload
-            # Qdrant match_any checks if payload field value (which can be list) contains any of the provided values.
-            # But wait, meta_products is a list in payload. 'match_any' checks if the field value is one of the provided values.
-            # If the field is a list, 'match_any' checks intersection?
-            # Documentation says: "MatchAny - filter for keyword field. Matches if field value is one of the given values."
-            # If field is array, it matches if at least one element equals to one of the values.
-            conditions.append(
-                FieldCondition(key="meta_products", match=MatchAny(any=filters.products))
-            )
-            
+
         if conditions:
             query_filter = Filter(must=conditions)
 

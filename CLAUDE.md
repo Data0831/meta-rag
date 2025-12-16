@@ -25,7 +25,7 @@
     *   `db_adapter_qdrant.py`: 處理向量 Upsert 與 Payload Filtering。
 4.  **基礎設施層 (Infrastructure)**
     *   LLM Client (Gemini 2.5 Flash)。
-    *   Embedding Model (bge-m3 / OpenAI)。
+    *   Embedding Model (bge-m3)。
 
 ### 2.2 關鍵資料流 (Data Flow)
 *   **寫入 (ETL)**: Raw Data -> Chunking -> LLM Extraction -> Text Enrichment -> (SQLite + Qdrant)。
@@ -42,7 +42,8 @@ project_root/
 ├── database/                   # 實體資料庫檔案
 ├── src/
 │   ├── config.py               # 全域設定
-│   ├── main.py                 # CLI 入口點
+│   ├── dataPreprocessing.py    # 資料前處理，可以選擇 etl 功能
+│   ├── vectorPreprocessing.py  # 向量前處理，可以選擇 資料庫/向量庫 reset 功能
 │   ├── app.py                  # [Future] Flask 入口點
 │   ├── services/               # [核心] 業務邏輯服務層
 │   │   ├── __init__.py
@@ -62,13 +63,12 @@ project_root/
 ## 4. 程式開發規範 (Engineering Conventions)
 
 ### 4.1 風格與格式
-*   **Python 版本**: 3.10+
-*   **Formatter**: 嚴格使用 `Black`。
+*   **Python 版本**: anaconda 
 *   **Imports**: 絕對路徑導入 (e.g., `from src.database import ...`)。
 
 ### 4.2 類型系統 (Typing)
 *   全面使用 Python **Type Hints**。
-*   資料交換強制使用 **Pydantic Models** (`src/schema/schemas.py`)，禁止傳遞裸字典 (Dict)。
+*   資料交換使用 **Pydantic Models** (`src/schema/schemas.py`)，禁止傳遞裸字典 (Dict)。
 
 ### 4.3 資料庫設計原則
 *   **Payload Strategy**: Qdrant Payload **不儲存內文**，僅儲存 Filter 用 Metadata。
