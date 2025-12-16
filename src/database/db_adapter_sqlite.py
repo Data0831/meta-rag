@@ -1,5 +1,5 @@
 from sqlite_utils import Database
-from src.models.schemas import AnnouncementDoc
+from src.schema.schemas import AnnouncementDoc
 from typing import List
 import json
 import os
@@ -36,6 +36,19 @@ def init_db(db_path: str = DB_PATH):
         # python-sqlite-utils handles creating the virtual table and triggers
         db["announcements"].enable_fts(["title", "content"], create_triggers=True)
         print(f"Initialized SQLite database at {db_path} with FTS enabled.")
+
+
+def reset_db(db_path: str = DB_PATH):
+    """
+    Delete and re-initialize the SQLite database.
+    """
+    if os.path.exists(db_path):
+        try:
+            os.remove(db_path)
+            print(f"Removed database file: {db_path}")
+        except Exception as e:
+            print(f"Error removing database file: {e}")
+    init_db(db_path)
 
 
 def insert_documents(docs: List[AnnouncementDoc], db_path: str = DB_PATH):

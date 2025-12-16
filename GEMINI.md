@@ -1,7 +1,7 @@
 # 技術規格書：Microsoft 公告混合檢索系統
 
 ## 1. 專案目標 (Objectives)
-本專案旨在建構一套針對 Microsoft 公告資料（如 `result.example.json`）的高效能混合檢索系統。核心目標如下：
+本專案旨在建構一套針對 Microsoft 公告資料（如 `page.example.json`）的高效能混合檢索系統。核心目標如下：
 *   **精確與語意並重**：結合 SQLite FTS5 的關鍵字精確過濾（如日期、價格）與 Qdrant 的語意模糊搜尋（如「緊急變更」），解決單一檢索技術的不足。
 *   **智慧資料處理**：透過 LLM ETL Pipeline 自動化提取高價值 Metadata，並進行文本增強（Text Enrichment），提升向量檢索的準確度。
 *   **成本效益優化**：利用批次處理（Batch Processing）降低 LLM 呼叫成本與時間。
@@ -114,9 +114,9 @@ Content: {original_content}
 │      announcements.db
 │
 ├─src
-│  │  config.py
-│  │  dataPreprocessing.py
-│  │  main.py
+│  │  config.py # 相關參數與路徑
+│  │  dataPreprocessing.py # 資料預處理主函式
+│  │  main.py # 暫時放棄
 │  │
 │  ├─database
 │  │      db_adapter_qdrant.py
@@ -133,8 +133,6 @@ Content: {original_content}
 │  ├─llm
 │  │  │  client.py
 │  │  │  metadata_prompts.py
-│  │  │  
-│  │  │
 │  ├─schema
 │  │  │  schemas.py
 ``` ps: 維護時請寫重點，不要過度展開

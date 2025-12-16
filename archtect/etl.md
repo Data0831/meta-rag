@@ -234,9 +234,14 @@ ETLPipeline(
 
 **核心方法**：
 - `prepare_llm_input()`：標準化輸入格式
-- `extract_metadata()`：呼叫 LLM
+- `extract_metadata()`：呼叫 LLM，支援 Model 自動切換
 - `merge_data()`：合併原始資料與 Metadata
 - `process_batch()`：完整批次處理流程
+- `get_next_model()`：切換至下一個可用模型
+- `reset_model_index()`：重置模型索引至初始值
+
+**Model 自動切換機制**：
+`extract_metadata()` 捕獲 429/500 錯誤時自動切換模型（gemini-2.5-flash → lite → latest → lite-latest），每次切換等待 3 秒。三重安全機制（計數器、模型用盡檢查、循環退出）確保最多嘗試 4 次。每批次開始時 `reset_model_index()` 重置至初始模型，保持 `LLMClient` 通用性。
 
 ### 4.3 ErrorHandler (`src/ETL/etl_pipe/error_handler.py`)
 

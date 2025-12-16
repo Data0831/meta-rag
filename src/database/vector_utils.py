@@ -2,7 +2,7 @@ import os
 from typing import List
 import ollama
 from dotenv import load_dotenv
-from models.schemas import AnnouncementMetadata, AnnouncementDoc
+from src.schema.schemas import AnnouncementMetadata, AnnouncementDoc
 from uuid import uuid4
 from datetime import date
 import sys
@@ -70,7 +70,7 @@ def get_embedding(text: str, model: str = "bge-m3") -> List[float]:
 
 
 if __name__ == "__main__":
-    from src.models.schemas import AnnouncementMetadata, AnnouncementDoc
+    from src.schema.schemas import AnnouncementMetadata, AnnouncementDoc
     from uuid import uuid4
     from datetime import date
 

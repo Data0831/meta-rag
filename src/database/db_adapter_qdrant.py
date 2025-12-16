@@ -2,7 +2,7 @@ import os
 from typing import List
 from qdrant_client import QdrantClient
 from qdrant_client.models import Distance, VectorParams, PointStruct
-from src.models.schemas import AnnouncementDoc
+from src.schema.schemas import AnnouncementDoc
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -35,6 +35,17 @@ def init_collection(
         print(f"Created Qdrant collection: {collection_name} with dim={vector_size}")
     else:
         print(f"Qdrant collection {collection_name} already exists.")
+
+
+def reset_collection(collection_name: str = COLLECTION_NAME):
+    """
+    Delete and re-create Qdrant collection.
+    """
+    client = get_client()
+    if client.collection_exists(collection_name):
+        client.delete_collection(collection_name)
+        print(f"Deleted collection: {collection_name}")
+    init_collection(collection_name)
 
 
 def upsert_documents(
