@@ -18,8 +18,8 @@
     *   *理由*：輕量級、無需伺服器，FTS5 模組足以處理精確關鍵字檢索與 Metadata 過濾。
 *   **Vector Database**: **Qdrant**。
     *   *理由*：支援 Payload Filtering，適合混合檢索場景。
-*   **Embedding Model**: **OpenAI `text-embedding-3-small`** 或本地 **`bge-m3`**。
-    *   *理由*：支援 500-1000 字元的黃金長度，能有效捕捉公告內文語意。
+*   **Embedding Model**: **本地 **`bge-m3`**。
+    *   *理由*：本地呼叫容易。
 
 ### 2.2 資料流架構
 1.  **Raw Data Input**: 讀取 Markdown 原始檔。

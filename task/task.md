@@ -22,7 +22,7 @@
 由於 `gemini-balance` 專案的核心功能是將 Google Gemini API 封裝成 **OpenAI 兼容格式** ，因此最簡單且推薦的方式是直接使用 Python 的 `openai` 官方套件。
 您不需要學習 Google 的原生 SDK，只需將 `base_url` 指向您的本地服務即可。
 
-**Python 程式碼範例 (`src/llm_client.py` 參考)**：
+**Python 程式碼範例 (`src/llm/client.py` 參考)**：
 
 ```python
 from openai import OpenAI
@@ -38,10 +38,10 @@ client = OpenAI(
     api_key=os.getenv("GEMINI_API_KEY", "sk-mysecrettoken123") 
 )
 
-def call_gemini(messages, model="gemini-1.5-flash"):
+def call_gemini(messages, model="gemini-2.5-flash"):
     try:
         response = client.chat.completions.create(
-            # 模型名稱需對應 Gemini 的實際模型名稱，例如 gemini-1.5-flash
+            # 模型名稱需對應 Gemini 的實際模型名稱，例如 gemini-2.5-flash
             model=model, 
             messages=messages,
             stream=False # ETL 通常不需要串流
@@ -56,24 +56,24 @@ def call_gemini(messages, model="gemini-1.5-flash"):
 
 1.  **Base URL**: 必須是 `http://localhost:8000/openai/v1`（標準）。不要使用 Google 原廠的 URL。
 2.  **API Key**: 程式碼中的 `api_key` **不是** Google 的 `AIzaSy...`，而是您在 `.env` 檔案中自定義的 `ALLOWED_TOKENS`。
-3.  **Model Name**: 依然要填寫 Gemini 的模型名稱（如 `gemini-1.5-flash`）。
+3.  **Model Name**: 依然要填寫 Gemini 的模型名稱（如 `gemini-2.5-flash`）。
 
 ---
 
 ### 執行任務 (Tasks)
 
-*   [x] **Task 2.1: LLM Client 封裝 (`src/llm_client.py`)**
+*   [x] **Task 2.1: LLM Client 封裝 (`src/llm/client.py`)**
     *   安裝 `openai` 套件：`pip install openai`。
     *   根據上述範例，實作 `LLMClient` 類別或函式庫。
     *   *驗證點*：撰寫一小段測試程式，確認能成功呼叫本地 API 並收到回應。
-*   [x] **Task 2.2: 定義 ETL Prompt (`src/prompts.py`)**
+*   [x] **Task 2.2: 定義 ETL Prompt (`src/llm/prompts.py`)**
     *   將 System Prompt 定義為常數字串。
     *   Prompt 重點回顧：
         *   **Role**: Data Extraction Agent.
         *   **Input**: JSON List of announcements.
         *   **Output Rules**: Strict JSON Array, Traditional Chinese summary.
         *   **Fields**: `meta_date_effective`, `meta_products` (normalized), `meta_category`, `meta_impact_level`, `meta_summary` etc.
-*   [x] **Task 2.3: 實作批次處理流程 (`src/etl_pipeline.py`)**
+*   [x] **Task 2.3: 實作批次處理流程 (`src/pipeline/etl.py`)**
     *   **Input**: 引用 Phase 1 解析出的 `raw_data` (List of Dicts)。
     *   **Batching**: 將資料切分為每組 5-10 筆 (Batch Size 可調整)。
     *   **Execution**: 
@@ -88,9 +88,9 @@ def call_gemini(messages, model="gemini-1.5-flash"):
 ## 階段三：向量處理與儲存層 (Vector & Storage)
 **目標**：實作「文本增強」，並將資料分別寫入 SQLite 與 Qdrant。
 
-*   [ ] **Task 3.1: 向量增強實作 (`src/vector_utils.py`)**
+*   [x] **Task 3.1: 向量增強實作 (`src/vector_utils.py`)**
     *   實作 `create_enriched_text(doc)`：依照 spec 將 metadata 與 content 拼裝成字串。
-    *   實作 `get_embedding(text)`：串接 Embedding API (OpenAI 或 Local)。
+    *   實作 `get_embedding(text)`：串接 Embedding API (Local ollama bge-m3)。
 *   [ ] **Task 3.2: SQLite 適配器 (`src/db_adapter_sqlite.py`)**
     *   實作 `init_db()`：建立 FTS5 Virtual Table。
     *   實作 `insert_documents(docs)`：將 `title`, `content` (Index) 與 Metadata (Unindexed) 寫入。

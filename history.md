@@ -14,3 +14,6 @@
 1.  **配置管理**：更新 `client.py` 優先讀取 `PROXY_` 環境變數，提升安全性。
 2.  **穩定性增強**：API 呼叫強制啟用 `response_format={"type": "json_object"}` 確保 JSON 格式正確；批次處理增加 1 秒延遲避免 Rate Limit。
 3.  **輸出聚合**：重構 Pipeline，將所有批次結果合併寫入單一 `data/processed/metadata.json`，簡化後續檢索流程。
+
+## 2025-12-16
+完成 Phase 3 向量功能。將 Embeddings 遷移至 Ollama (bge-m3)，實作 `vector_utils.py` 並加入測試。更新 `task.md` 與文件，修正 Enum 驗證錯誤。
