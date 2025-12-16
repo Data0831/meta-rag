@@ -16,7 +16,7 @@
     *   *職責*：接收請求、呼叫 Service 層、格式化輸出。
 2.  **服務層 (Service Layer)**
     *   核心業務邏輯所在，協調不同的資料來源。
-    *   **SearchService**: 執行「兩階段檢索」(Query Qdrant -> Get UUIDs -> Fetch SQLite)。
+    *   **SearchService**: 執行「兩階段檢索」(Query Qdrant -> Get ids -> Fetch SQLite)。
     *   **RAGService**: 負責 Prompt 組裝與 LLM 對話生成。
     *   **ETLPipeline**: 負責資料清洗、Metadata 提取與寫入。
 3.  **資料存取層 (Data Access Layer / DAL)**
@@ -29,7 +29,7 @@
 
 ### 2.2 關鍵資料流 (Data Flow)
 *   **寫入 (ETL)**: Raw Data -> Chunking -> LLM Extraction -> Text Enrichment -> (SQLite + Qdrant)。
-*   **讀取 (Search)**: User Query -> Embedding -> **Qdrant (Top-K UUIDs)** -> **SQLite (Full Content)** -> Result。
+*   **讀取 (Search)**: User Query -> Embedding -> **Qdrant (Top-K ids)** -> **SQLite (Full Content)** -> Result。
 
 ## 3. 專案檔案結構 (Project Structure)
 
@@ -72,8 +72,8 @@ project_root/
 
 ### 4.3 資料庫設計原則
 *   **Payload Strategy**: Qdrant Payload **不儲存內文**，僅儲存 Filter 用 Metadata。
-*   **Lookup Pattern**: 所有詳細內文展示必須透過 UUID 回查 SQLite。
-*   **Idempotency**: ETL 流程須具備冪等性 (Idempotent)，重複執行不應產生重複資料 (透過 UUID 檢查)。
+*   **Lookup Pattern**: 所有詳細內文展示必須透過 id 回查 SQLite。
+*   **Idempotency**: ETL 流程須具備冪等性 (Idempotent)，重複執行不應產生重複資料 (透過 id 檢查)。
 
 ### 4.4 擴充指南 (Flask Migration)
 未來遷移至 Web App 時，應保持 `src/services` 與 `src/database` 不變，僅需新增 Flask Route 呼叫 `src/services` 中的方法即可。

@@ -11,7 +11,7 @@
 
 | 欄位 (Field) | 類型 (Type) | 說明 (Description) |
 | :--- | :--- | :--- |
-| `uuid` | `str` | 唯一識別碼 (Primary Key) |
+| `id` | `str` | 唯一識別碼 (Primary Key) |
 | `month` | `str` | 資料歸屬月份 (e.g., "2025-12") |
 | `title` | `str` | 公告標題 |
 | `link` | `Optional[str]` | 原始連結 |
@@ -46,7 +46,7 @@
 
 | Column Name | SQLite Type | Source Field | Description |
 | :--- | :--- | :--- | :--- |
-| `uuid` | `TEXT` | `doc.uuid` | Primary Key |
+| `id` | `TEXT` | `doc.id` | Primary Key |
 | `month` | `TEXT` | `doc.month` | Partition Key (Logical) |
 | `title` | `TEXT` | `doc.title` | **Indexed by FTS5** |
 | `content` | `TEXT` | `doc.original_content` | **Indexed by FTS5** |
@@ -93,7 +93,7 @@ Payload 儲存完整 Metadata，支援 Qdrant 內部的 Filter 運算。
 
 | Key | Type | Description |
 | :--- | :--- | :--- |
-| `uuid` | String | 與 SQLite UUID 一致 |
+| `id` | String | 與 SQLite id 一致 |
 | `month` | String | |
 | `title` | String | |
 | `meta_impact_level` | String | Filterable Field |
@@ -113,8 +113,8 @@ Payload 儲存完整 Metadata，支援 Qdrant 內部的 Filter 運算。
 *   **檢索影響 (Retrieval Implication)**：
     *   **準確度**：**不受影響**。向量 (`Vector`) 已包含內文語意，檢索依然精準。
     *   **兩階段檢索 (Two-Stage Retrieval)**：程式邏輯需執行兩個步驟：
-        1.  **Step 1 (Search)**：向 Qdrant 查詢，取得 Top-K 的 `uuid`。
-        2.  **Step 2 (Lookup)**：使用 `uuid` 向 SQLite 查詢完整的 `title` 與 `content` 以呈現給使用者。
+        1.  **Step 1 (Search)**：向 Qdrant 查詢，取得 Top-K 的 `id`。
+        2.  **Step 2 (Lookup)**：使用 `id` 向 SQLite 查詢完整的 `title` 與 `content` 以呈現給使用者。
 
 ---
 

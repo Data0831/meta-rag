@@ -1,6 +1,6 @@
 [
   {
-    "uuid": "331e2081-d0d1-4500-846e-35b873dabbae",
+    "id": "331e2081-d0d1-4500-846e-35b873dabbae",
     "month": "2025-december",
     "title": "介紹 Microsoft Sentinel 預購計畫",
     "link": "https://learn.microsoft.com/zh-tw/partner-center/announcements/2025-december#9",
@@ -18,7 +18,7 @@
     }
   },
   {
-    "uuid": "b0f53f59-380d-4da1-969e-c4ee99ed3e5f",
+    "id": "b0f53f59-380d-4da1-969e-c4ee99ed3e5f",
     "month": "2025-december",
     "title": "更聰明的推薦投稿在這裡",
     "link": "https://learn.microsoft.com/zh-tw/partner-center/announcements/2025-december#2",
@@ -36,7 +36,7 @@
     }
   },
   {
-    "uuid": "5508cb6e-2dd1-4d77-94c6-95dcafa4ad78",
+    "id": "5508cb6e-2dd1-4d77-94c6-95dcafa4ad78",
     "month": "2025-december",
     "title": "市場意圖欄位是透過 API 和連接器進行共售推薦的必備條件",
     "link": "https://learn.microsoft.com/zh-tw/partner-center/announcements/2025-december#8",
@@ -54,7 +54,7 @@
     }
   },
   {
-    "uuid": "168bb485-0240-4c4e-a14b-32989d57d9a5",
+    "id": "168bb485-0240-4c4e-a14b-32989d57d9a5",
     "month": "2025-december",
     "title": "強化您的安全態勢並維持CSP授權",
     "link": "https://learn.microsoft.com/zh-tw/partner-center/announcements/2025-december#7",
@@ -72,7 +72,7 @@
     }
   },
   {
-    "uuid": "0075353e-c6d5-442a-9b91-a68e5efc9f01",
+    "id": "0075353e-c6d5-442a-9b91-a68e5efc9f01",
     "month": "2025-december",
     "title": "每月Microsoft AI Cloud Partner 計劃更新",
     "link": "https://learn.microsoft.com/zh-tw/partner-center/announcements/2025-december#6",
@@ -90,7 +90,7 @@
     }
   },
   {
-    "uuid": "73e840c0-ebf3-4478-aab9-962e886be15b",
+    "id": "73e840c0-ebf3-4478-aab9-962e886be15b",
     "month": "2025-december",
     "title": "現已上線：Microsoft 365 Copilot 商業版 SKU、套裝與促銷活動",
     "link": "https://learn.microsoft.com/zh-tw/partner-center/announcements/2025-december#5",
@@ -108,7 +108,7 @@
     }
   },
   {
-    "uuid": "71d0b575-05b6-4aec-b80f-aa4b195f4119",
+    "id": "71d0b575-05b6-4aec-b80f-aa4b195f4119",
     "month": "2025-december",
     "title": "2026 年即將推出的商用 Microsoft 365 套件價格與包裝更新",
     "link": "https://learn.microsoft.com/zh-tw/partner-center/announcements/2025-december#4",
@@ -126,7 +126,7 @@
     }
   },
   {
-    "uuid": "45629081-8e6b-4efc-9fdd-0fbbe1327eda",
+    "id": "45629081-8e6b-4efc-9fdd-0fbbe1327eda",
     "month": "2025-december",
     "title": "Access Security Copilot 與 Microsoft 365 E5",
     "link": "https://learn.microsoft.com/zh-tw/partner-center/announcements/2025-december#3",
@@ -144,7 +144,7 @@
     }
   },
   {
-    "uuid": "481bcf69-46a2-4476-8457-04f182228967",
+    "id": "481bcf69-46a2-4476-8457-04f182228967",
     "month": "2025-december",
     "title": "Microsoft Entra 政府社群雲端網際網路存取",
     "link": "https://learn.microsoft.com/zh-tw/partner-center/announcements/2025-december#1",
@@ -162,7 +162,7 @@
     }
   },
   {
-    "uuid": "d0ac074c-8c1c-48f4-9a24-5a8b70993fe5",
+    "id": "d0ac074c-8c1c-48f4-9a24-5a8b70993fe5",
     "month": "2025-november",
     "title": "介紹啟動啟用指南",
     "link": "https://learn.microsoft.com/zh-tw/partner-center/announcements/2025-november#6",
@@ -180,7 +180,7 @@
     }
   },
   {
-    "uuid": "a665ff63-587a-4352-8117-13487b66658b",
+    "id": "a665ff63-587a-4352-8117-13487b66658b",
     "month": "2025-november",
     "title": "Copilot 中小企業合作夥伴中心公告",
     "link": "https://learn.microsoft.com/zh-tw/partner-center/announcements/2025-november#5",
@@ -198,7 +198,7 @@
     }
   },
   {
-    "uuid": "3bced19a-4af9-498a-833f-19b9b7d73024",
+    "id": "3bced19a-4af9-498a-833f-19b9b7d73024",
     "month": "2025-november",
     "title": "11 月每月 Microsoft AI Cloud Partner Program 更新",
     "link": "https://learn.microsoft.com/zh-tw/partner-center/announcements/2025-november#4",
@@ -216,7 +216,7 @@
     }
   },
   {
-    "uuid": "5102ebef-e408-482d-a5a7-203a9c178713",
+    "id": "5102ebef-e408-482d-a5a7-203a9c178713",
     "month": "2025-november",
     "title": "11 月 雲端解決方案提供者 （CSP） 每月更新和社群提醒",
     "link": "https://learn.microsoft.com/zh-tw/partner-center/announcements/2025-november#3",
@@ -234,7 +234,7 @@
     }
   },
   {
-    "uuid": "38c51437-67af-4d8c-8538-ab5f874a11d8",
+    "id": "38c51437-67af-4d8c-8538-ab5f874a11d8",
     "month": "2025-november",
     "title": "CSP 合作夥伴：自 11 月 1 日起 Microsoft 365 和 Teams 的全域變更提醒",
     "link": "https://learn.microsoft.com/zh-tw/partner-center/announcements/2025-november#2",
@@ -252,7 +252,7 @@
     }
   },
   {
-    "uuid": "3a86af6b-79aa-4c55-b974-5fc0172f39d0",
+    "id": "3a86af6b-79aa-4c55-b974-5fc0172f39d0",
     "month": "2025-november",
     "title": "沙箱和 11 月價目表中的延長服務條款 （EST）",
     "link": "https://learn.microsoft.com/zh-tw/partner-center/announcements/2025-november#1",
@@ -270,7 +270,7 @@
     }
   },
   {
-    "uuid": "b97f5e37-8be5-4f3a-a809-ac3ef2b12e04",
+    "id": "b97f5e37-8be5-4f3a-a809-ac3ef2b12e04",
     "month": "2025-october",
     "title": "每月更新：保護合作夥伴生態系統的重要行動",
     "link": "https://learn.microsoft.com/zh-tw/partner-center/announcements/2025-october#15",
@@ -288,7 +288,7 @@
     }
   },
   {
-    "uuid": "6a64e76a-2e5f-4a39-9f51-bc39322186d7",
+    "id": "6a64e76a-2e5f-4a39-9f51-bc39322186d7",
     "month": "2025-october",
     "title": "更新的銷售合規資源現已上線 partner.microsoft.com",
     "link": "https://learn.microsoft.com/zh-tw/partner-center/announcements/2025-october#14",
@@ -306,7 +306,7 @@
     }
   },
   {
-    "uuid": "4b552489-741d-4163-9885-1bea21ba12ba",
+    "id": "4b552489-741d-4163-9885-1bea21ba12ba",
     "month": "2025-october",
     "title": "雲端解決方案提供者 （CSP） 訂用帳戶的新延長服務期限",
     "link": "https://learn.microsoft.com/zh-tw/partner-center/announcements/2025-october#13",
@@ -324,7 +324,7 @@
     }
   },
   {
-    "uuid": "2f50dd62-5ee8-4e9e-964d-922ba0514257",
+    "id": "2f50dd62-5ee8-4e9e-964d-922ba0514257",
     "month": "2025-october",
     "title": "Windows 365 促銷：所有新客戶可享受 20% 的折扣，即日起至 2026 年 4 月 30 日",
     "link": "https://learn.microsoft.com/zh-tw/partner-center/announcements/2025-october#12",
@@ -342,7 +342,7 @@
     }
   },
   {
-    "uuid": "f59122d9-aa0b-4066-80bb-d25c1644c1b9",
+    "id": "f59122d9-aa0b-4066-80bb-d25c1644c1b9",
     "month": "2025-october",
     "title": "立即上線！ 合作夥伴中心部落格系列：2025 年 10 月版",
     "link": "https://learn.microsoft.com/zh-tw/partner-center/announcements/2025-october#11",
@@ -360,7 +360,7 @@
     }
   },
   {
-    "uuid": "74e8ea22-aac7-4bd9-a616-713ec2aaa71f",
+    "id": "74e8ea22-aac7-4bd9-a616-713ec2aaa71f",
     "month": "2025-october",
     "title": "每月Microsoft AI Cloud Partner 計劃更新",
     "link": "https://learn.microsoft.com/zh-tw/partner-center/announcements/2025-october#10",
@@ -378,7 +378,7 @@
     }
   },
   {
-    "uuid": "905560a2-729e-413c-a8d0-950339415a1d",
+    "id": "905560a2-729e-413c-a8d0-950339415a1d",
     "month": "2025-october",
     "title": "新的記錄合作夥伴 （POR） 整備資源可協助散佈者和間接轉銷商為驗證變更做好準備",
     "link": "https://learn.microsoft.com/zh-tw/partner-center/announcements/2025-october#9",
@@ -396,7 +396,7 @@
     }
   },
   {
-    "uuid": "b86b4949-e275-49df-9420-8f0cf1ed5792",
+    "id": "b86b4949-e275-49df-9420-8f0cf1ed5792",
     "month": "2025-october",
     "title": "Microsoft 365 和 Teams 定價和封裝的全域變更",
     "link": "https://learn.microsoft.com/zh-tw/partner-center/announcements/2025-october#8",
@@ -414,7 +414,7 @@
     }
   },
   {
-    "uuid": "a8d9b4d2-6a3a-4909-b913-658f708f574c",
+    "id": "a8d9b4d2-6a3a-4909-b913-658f708f574c",
     "month": "2025-october",
     "title": "CSP 合作夥伴的兩項令人興奮的公告：新的目標 Microsoft 365 E3 年度雲解決方案提供商促銷和延長 Microsoft 365 E5 15% Off 加速年度促銷",
     "link": "https://learn.microsoft.com/zh-tw/partner-center/announcements/2025-october#7",
@@ -432,7 +432,7 @@
     }
   },
   {
-    "uuid": "9951647a-3d8e-41ed-92c6-bb5e3ed16efd",
+    "id": "9951647a-3d8e-41ed-92c6-bb5e3ed16efd",
     "month": "2025-october",
     "title": "合作夥伴中心中的強制多重要素驗證在這裡",
     "link": "https://learn.microsoft.com/zh-tw/partner-center/announcements/2025-october#6",
@@ -450,7 +450,7 @@
     }
   },
   {
-    "uuid": "26f7b2ab-8fc5-48a9-a59b-204491171d46",
+    "id": "26f7b2ab-8fc5-48a9-a59b-204491171d46",
     "month": "2025-october",
     "title": "10 月 雲端解決方案提供者 （CSP） 每月更新和社群提醒",
     "link": "https://learn.microsoft.com/zh-tw/partner-center/announcements/2025-october#5",
@@ -468,7 +468,7 @@
     }
   },
   {
-    "uuid": "ddea4091-7f29-4ded-a3a6-480695ddc650",
+    "id": "ddea4091-7f29-4ded-a3a6-480695ddc650",
     "month": "2025-october",
     "title": "請確定您的合作夥伴中心資料正確無誤，以避免限制",
     "link": "https://learn.microsoft.com/zh-tw/partner-center/announcements/2025-october#4",
@@ -486,7 +486,7 @@
     }
   },
   {
-    "uuid": "1b0cc547-fc3e-4c64-972b-f974fd0885cd",
+    "id": "1b0cc547-fc3e-4c64-972b-f974fd0885cd",
     "month": "2025-october",
     "title": "為安全合作夥伴提供四個新的部署加速器研討會",
     "link": "https://learn.microsoft.com/zh-tw/partner-center/announcements/2025-october#3",
@@ -504,7 +504,7 @@
     }
   },
   {
-    "uuid": "10e2b309-c51a-413d-8966-0b4bacf67627",
+    "id": "10e2b309-c51a-413d-8966-0b4bacf67627",
     "month": "2025-october",
     "title": "Microsoft Sentinel 50GB 承諾層公開預覽版",
     "link": "https://learn.microsoft.com/zh-tw/partner-center/announcements/2025-october#2",
@@ -522,7 +522,7 @@
     }
   },
   {
-    "uuid": "30ff6232-4f1e-4cab-87b1-3d0ee1439520",
+    "id": "30ff6232-4f1e-4cab-87b1-3d0ee1439520",
     "month": "2025-october",
     "title": "Microsoft 重命名其 Microsoft 365 E5 迷你套件",
     "link": "https://learn.microsoft.com/zh-tw/partner-center/announcements/2025-october#1",
@@ -540,7 +540,7 @@
     }
   },
   {
-    "uuid": "e325dc3c-93ac-4a0d-8dcb-a09b4719b192",
+    "id": "e325dc3c-93ac-4a0d-8dcb-a09b4719b192",
     "month": "2025-september",
     "title": "立即上線！ 合作夥伴中心技術角部落格系列：2025 年 9 月版",
     "link": "https://learn.microsoft.com/zh-tw/partner-center/announcements/2025-september#15",
@@ -558,7 +558,7 @@
     }
   },
   {
-    "uuid": "f1228ae8-8727-4ce2-b400-0216f3cde465",
+    "id": "f1228ae8-8727-4ce2-b400-0216f3cde465",
     "month": "2025-september",
     "title": "簡介：Microsoft Marketplace — 推動成長的新投資",
     "link": "https://learn.microsoft.com/zh-tw/partner-center/announcements/2025-september#14",
@@ -576,7 +576,7 @@
     }
   },
   {
-    "uuid": "3d94967c-1b40-4402-a796-61099c055be9",
+    "id": "3d94967c-1b40-4402-a796-61099c055be9",
     "month": "2025-september",
     "title": "宣布 Microsoft 365 Copilot 的兩項新 CSP 促銷活動",
     "link": "https://learn.microsoft.com/zh-tw/partner-center/announcements/2025-september#13",
@@ -594,7 +594,7 @@
     }
   },
   {
-    "uuid": "15703d36-385f-4e8f-9694-d3ed8c2cf62d",
+    "id": "15703d36-385f-4e8f-9694-d3ed8c2cf62d",
     "month": "2025-september",
     "title": "每月更新：合作夥伴需要採取的重要動作來保護合作夥伴生態系統",
     "link": "https://learn.microsoft.com/zh-tw/partner-center/announcements/2025-september#12",
@@ -612,7 +612,7 @@
     }
   },
   {
-    "uuid": "491ef536-6f99-4ec8-9cb1-38e1b8c3632b",
+    "id": "491ef536-6f99-4ec8-9cb1-38e1b8c3632b",
     "month": "2025-september",
     "title": "Microsoft 365 15% 折扣促銷延長",
     "link": "https://learn.microsoft.com/zh-tw/partner-center/announcements/2025-september#11",
@@ -630,7 +630,7 @@
     }
   },
   {
-    "uuid": "1279f524-f478-40ba-9fd2-6091409018c3",
+    "id": "1279f524-f478-40ba-9fd2-6091409018c3",
     "month": "2025-september",
     "title": "One-Click 商機轉化中的機會體驗",
     "link": "https://learn.microsoft.com/zh-tw/partner-center/announcements/2025-september#10",
@@ -648,7 +648,7 @@
     }
   },
   {
-    "uuid": "8be09b29-a0ac-4523-b736-c49093fea75d",
+    "id": "8be09b29-a0ac-4523-b736-c49093fea75d",
     "month": "2025-september",
     "title": "提醒：定價工作區 UX 即將變更，自 2025 年 10 月起生效",
     "link": "https://learn.microsoft.com/zh-tw/partner-center/announcements/2025-september#9",
@@ -666,7 +666,7 @@
     }
   },
   {
-    "uuid": "94797b71-b379-4675-8512-e0faa02d274b",
+    "id": "94797b71-b379-4675-8512-e0faa02d274b",
     "month": "2025-september",
     "title": "[定價] 工作區中的任何位置的合作夥伴中心 AI 助理 （預覽版）",
     "link": "https://learn.microsoft.com/zh-tw/partner-center/announcements/2025-september#8",
@@ -684,7 +684,7 @@
     }
   },
   {
-    "uuid": "f8942f55-227c-4b36-b9cf-4c051d9c3bde",
+    "id": "f8942f55-227c-4b36-b9cf-4c051d9c3bde",
     "month": "2025-september",
     "title": "在合作夥伴中心移轉未計費發票對帳 API",
     "link": "https://learn.microsoft.com/zh-tw/partner-center/announcements/2025-september#7",
@@ -702,7 +702,7 @@
     }
   },
   {
-    "uuid": "c42748b7-37e8-48da-84ed-e3d329bc1b57",
+    "id": "c42748b7-37e8-48da-84ed-e3d329bc1b57",
     "month": "2025-september",
     "title": "日期變更：Dynamics 365 Business Central 定價更新",
     "link": "https://learn.microsoft.com/zh-tw/partner-center/announcements/2025-september#6",
@@ -720,7 +720,7 @@
     }
   },
   {
-    "uuid": "baf320e2-9cd9-4360-acd2-27729cab8a15",
+    "id": "baf320e2-9cd9-4360-acd2-27729cab8a15",
     "month": "2025-september",
     "title": "9 月每月 Microsoft AI Cloud Partner Program 更新",
     "link": "https://learn.microsoft.com/zh-tw/partner-center/announcements/2025-september#5",
@@ -738,7 +738,7 @@
     }
   },
   {
-    "uuid": "607c81d4-6214-4326-8a9e-d8932927299d",
+    "id": "607c81d4-6214-4326-8a9e-d8932927299d",
     "month": "2025-september",
     "title": "在計費工作區中的任何位置引進合作夥伴中心 AI 助理 （預覽版）",
     "link": "https://learn.microsoft.com/zh-tw/partner-center/announcements/2025-september#4",
@@ -756,7 +756,7 @@
     }
   },
   {
-    "uuid": "98eaba18-de6f-4cc9-91fc-2838237e4035",
+    "id": "98eaba18-de6f-4cc9-91fc-2838237e4035",
     "month": "2025-september",
     "title": "重新發布 9 月基於許可證的價目表以糾正差異",
     "link": "https://learn.microsoft.com/zh-tw/partner-center/announcements/2025-september#3",
@@ -774,7 +774,7 @@
     }
   },
   {
-    "uuid": "f11e4ee4-6309-4684-aecf-60c980233f7b",
+    "id": "f11e4ee4-6309-4684-aecf-60c980233f7b",
     "month": "2025-september",
     "title": "新的 SMB 安全 SKU 為 Business Premium 提供 XDR 和數據保護",
     "link": "https://learn.microsoft.com/zh-tw/partner-center/announcements/2025-september#2",
@@ -792,7 +792,7 @@
     }
   },
   {
-    "uuid": "ec31caae-0eed-4e3e-97cc-6cd1257f315e",
+    "id": "ec31caae-0eed-4e3e-97cc-6cd1257f315e",
     "month": "2025-september",
     "title": "9 月 雲端解決方案提供者 （CSP） 每月更新和社群提醒",
     "link": "https://learn.microsoft.com/zh-tw/partner-center/announcements/2025-september#1",
@@ -810,7 +810,7 @@
     }
   },
   {
-    "uuid": "8f2bf57b-504a-49b5-9c2c-545f3a4761bc",
+    "id": "8f2bf57b-504a-49b5-9c2c-545f3a4761bc",
     "month": "2025-august",
     "title": "Microsoft 發行者合約已更新",
     "link": "https://learn.microsoft.com/zh-tw/partner-center/announcements/2025-august#12",
@@ -828,7 +828,7 @@
     }
   },
   {
-    "uuid": "05895252-cc70-467b-ac1c-2c12f6653e8c",
+    "id": "05895252-cc70-467b-ac1c-2c12f6653e8c",
     "month": "2025-august",
     "title": "現已推出：透過淨付費授權新增報告更了解客戶成長",
     "link": "https://learn.microsoft.com/zh-tw/partner-center/announcements/2025-august#11",
@@ -846,7 +846,7 @@
     }
   },
   {
-    "uuid": "a0b97ed6-5d04-47b2-bb5f-36f675734dcd",
+    "id": "a0b97ed6-5d04-47b2-bb5f-36f675734dcd",
     "month": "2025-august",
     "title": "CSP 轉銷商實作記錄合作夥伴 （POR） 變更的重要更新",
     "link": "https://learn.microsoft.com/zh-tw/partner-center/announcements/2025-august#10",
@@ -864,7 +864,7 @@
     }
   },
   {
-    "uuid": "f98d71b2-4a9a-418c-8aab-19b860098ed3",
+    "id": "f98d71b2-4a9a-418c-8aab-19b860098ed3",
     "month": "2025-august",
     "title": "Microsoft AI 雲端合作夥伴計畫合約正在更新中",
     "link": "https://learn.microsoft.com/zh-tw/partner-center/announcements/2025-august#9",
@@ -882,7 +882,7 @@
     }
   },
   {
-    "uuid": "9a684acd-49d9-4ef8-a8a1-e13e95ca8024",
+    "id": "9a684acd-49d9-4ef8-a8a1-e13e95ca8024",
     "month": "2025-august",
     "title": "合作夥伴中心 AI 助理 （預覽版） 現已當地語系化，並提供其他語言版本",
     "link": "https://learn.microsoft.com/zh-tw/partner-center/announcements/2025-august#8",
@@ -900,7 +900,7 @@
     }
   },
   {
-    "uuid": "55dfbc75-ae18-42d0-9a46-4db4011e148e",
+    "id": "55dfbc75-ae18-42d0-9a46-4db4011e148e",
     "month": "2025-august",
     "title": "每月更新：合作夥伴需要採取的重要動作來保護合作夥伴生態系統",
     "link": "https://learn.microsoft.com/zh-tw/partner-center/announcements/2025-august#7",
@@ -918,7 +918,7 @@
     }
   },
   {
-    "uuid": "1f5b2ca7-d2e2-4e3d-8a25-2997a9fb5955",
+    "id": "1f5b2ca7-d2e2-4e3d-8a25-2997a9fb5955",
     "month": "2025-august",
     "title": "Windows 10 擴充安全性更新 （ESU） 計劃",
     "link": "https://learn.microsoft.com/zh-tw/partner-center/announcements/2025-august#6",
@@ -936,7 +936,7 @@
     }
   },
   {
-    "uuid": "870fbd78-326c-4a66-ba69-b4985285affc",
+    "id": "870fbd78-326c-4a66-ba69-b4985285affc",
     "month": "2025-august",
     "title": "CSP 中提供的 Windows 10 擴充安全性更新將於 2025 年 9 月 1 日開始提供",
     "link": "https://learn.microsoft.com/zh-tw/partner-center/announcements/2025-august#5",
@@ -954,7 +954,7 @@
     }
   },
   {
-    "uuid": "7bb82c74-c7d6-45cd-9c4c-ab5e87e5d6a3",
+    "id": "7bb82c74-c7d6-45cd-9c4c-ab5e87e5d6a3",
     "month": "2025-august",
     "title": "即將強制執行 POR API：支援合作夥伴整備的新資源",
     "link": "https://learn.microsoft.com/zh-tw/partner-center/announcements/2025-august#4",
@@ -972,7 +972,7 @@
     }
   },
   {
-    "uuid": "55f51246-cdb1-4ffb-bb15-b5b466f4af38",
+    "id": "55f51246-cdb1-4ffb-bb15-b5b466f4af38",
     "month": "2025-august",
     "title": "8 月 雲端解決方案提供者 （CSP） 每月更新和社群提醒",
     "link": "https://learn.microsoft.com/zh-tw/partner-center/announcements/2025-august#3",
@@ -990,7 +990,7 @@
     }
   },
   {
-    "uuid": "0bbe2c2a-b1cd-4893-af22-541f568a3ba2",
+    "id": "0bbe2c2a-b1cd-4893-af22-541f568a3ba2",
     "month": "2025-august",
     "title": "需要採取動作：Microsoft客戶合約重新接受",
     "link": "https://learn.microsoft.com/zh-tw/partner-center/announcements/2025-august#2",
@@ -1008,7 +1008,7 @@
     }
   },
   {
-    "uuid": "d40d46ef-71bc-4099-9403-cf89edab5cd0",
+    "id": "d40d46ef-71bc-4099-9403-cf89edab5cd0",
     "month": "2025-august",
     "title": "8 月價目表不包含 NCE 授權型服務的 9 月預覽版",
     "link": "https://learn.microsoft.com/zh-tw/partner-center/announcements/2025-august#1",
@@ -1026,7 +1026,7 @@
     }
   },
   {
-    "uuid": "8625febe-c23c-4e00-a3eb-8646a01b4d3c",
+    "id": "8625febe-c23c-4e00-a3eb-8646a01b4d3c",
     "month": "2025-july",
     "title": "新的 API 可供協助合作夥伴進行即將變更的記錄合作夥伴",
     "link": "https://learn.microsoft.com/zh-tw/partner-center/announcements/2025-july#9",
@@ -1044,7 +1044,7 @@
     }
   },
   {
-    "uuid": "b24f2045-ef6d-4378-849c-1b84fac89a40",
+    "id": "b24f2045-ef6d-4378-849c-1b84fac89a40",
     "month": "2025-july",
     "title": "2025 年 7 月 / 8 月推出的內部部署生產力伺服器產品的授權和定價更新",
     "link": "https://learn.microsoft.com/zh-tw/partner-center/announcements/2025-july#8",
@@ -1062,7 +1062,7 @@
     }
   },
   {
-    "uuid": "34b2d249-2fda-431c-9cf8-b5d28bec4de0",
+    "id": "34b2d249-2fda-431c-9cf8-b5d28bec4de0",
     "month": "2025-july",
     "title": "每月更新：合作夥伴需要採取的重要動作來保護合作夥伴生態系統",
     "link": "https://learn.microsoft.com/zh-tw/partner-center/announcements/2025-july#7",
@@ -1080,7 +1080,7 @@
     }
   },
   {
-    "uuid": "97ccf4ed-5750-4c04-a177-7602fbb7b754",
+    "id": "97ccf4ed-5750-4c04-a177-7602fbb7b754",
     "month": "2025-july",
     "title": "Windows Server 2022 外部連接器錯誤地在 7 月價目表上發佈",
     "link": "https://learn.microsoft.com/zh-tw/partner-center/announcements/2025-july#6",
@@ -1098,7 +1098,7 @@
     }
   },
   {
-    "uuid": "7f0664e0-7e9a-4b3c-8a76-46587e70a0a2",
+    "id": "7f0664e0-7e9a-4b3c-8a76-46587e70a0a2",
     "month": "2025-july",
     "title": "更新：2025 年 7 月和 8 月推出的內部部署生產力伺服器產品的授權和定價更新",
     "link": "https://learn.microsoft.com/zh-tw/partner-center/announcements/2025-july#5",
@@ -1116,7 +1116,7 @@
     }
   },
   {
-    "uuid": "b670d573-1825-4412-ba82-c2c79e49f947",
+    "id": "b670d573-1825-4412-ba82-c2c79e49f947",
     "month": "2025-july",
     "title": "Microsoft客戶合約 （MCA） 合作夥伴證明封鎖變更時程表的重要更新 - 延長至 2026 年 1 月 5 日",
     "link": "https://learn.microsoft.com/zh-tw/partner-center/announcements/2025-july#4",
@@ -1134,7 +1134,7 @@
     }
   },
   {
-    "uuid": "1be76aa0-bbaf-4c6c-8c39-ef9e4ff316a2",
+    "id": "1be76aa0-bbaf-4c6c-8c39-ef9e4ff316a2",
     "month": "2025-july",
     "title": "2025年7月每月 Microsoft AI 雲端合作夥伴計畫更新",
     "link": "https://learn.microsoft.com/zh-tw/partner-center/announcements/2025-july#3",
@@ -1152,7 +1152,7 @@
     }
   },
   {
-    "uuid": "95221f76-11e7-4d0c-aaba-669ab1bdcac1",
+    "id": "95221f76-11e7-4d0c-aaba-669ab1bdcac1",
     "month": "2025-july",
     "title": "7 月 雲端解決方案提供者 （CSP） 每月更新和社群提醒",
     "link": "https://learn.microsoft.com/zh-tw/partner-center/announcements/2025-july#2",
@@ -1170,7 +1170,7 @@
     }
   },
   {
-    "uuid": "0e4d62ee-5db0-4b22-9368-78182e205d0a",
+    "id": "0e4d62ee-5db0-4b22-9368-78182e205d0a",
     "month": "2025-july",
     "title": "Microsoft 商業雲端的當地貨幣價格調整",
     "link": "https://learn.microsoft.com/zh-tw/partner-center/announcements/2025-july#1",
@@ -1188,7 +1188,7 @@
     }
   },
   {
-    "uuid": "9a4120fa-0863-4532-8ab1-97e8c0cf366d",
+    "id": "9a4120fa-0863-4532-8ab1-97e8c0cf366d",
     "month": "2025-june",
     "title": "Microsoft 365 E3 和 E5 的三年期訂閱條款即將推出 CSP",
     "link": "https://learn.microsoft.com/zh-tw/partner-center/announcements/2025-june#18",
@@ -1206,7 +1206,7 @@
     }
   },
   {
-    "uuid": "293a2be5-33e2-40b9-8ddd-7c23efa8b0ac",
+    "id": "293a2be5-33e2-40b9-8ddd-7c23efa8b0ac",
     "month": "2025-june",
     "title": "重新整理的授權資源頁面現已推出",
     "link": "https://learn.microsoft.com/zh-tw/partner-center/announcements/2025-june#17",
@@ -1224,7 +1224,7 @@
     }
   },
   {
-    "uuid": "fa16e5cf-73b7-4dd0-b260-af7920e124cb",
+    "id": "fa16e5cf-73b7-4dd0-b260-af7920e124cb",
     "month": "2025-june",
     "title": "合作夥伴中心必須在 8 月要求多重要素驗證",
     "link": "https://learn.microsoft.com/zh-tw/partner-center/announcements/2025-june#16",
@@ -1242,7 +1242,7 @@
     }
   },
   {
-    "uuid": "c8209bc3-a32c-4336-bc03-700faa323d97",
+    "id": "c8209bc3-a32c-4336-bc03-700faa323d97",
     "month": "2025-june",
     "title": "合作夥伴回報 Azure 使用量營收 vNext 已重新排程至 2025 年 7 月 11 日",
     "link": "https://learn.microsoft.com/zh-tw/partner-center/announcements/2025-june#15",
@@ -1260,7 +1260,7 @@
     }
   },
   {
-    "uuid": "43d12a7b-a572-4f0e-8bfd-105f72edec30",
+    "id": "43d12a7b-a572-4f0e-8bfd-105f72edec30",
     "month": "2025-june",
     "title": "FY26 雲端解決方案提供者促銷延伸模組",
     "link": "https://learn.microsoft.com/zh-tw/partner-center/announcements/2025-june#14",
@@ -1278,7 +1278,7 @@
     }
   },
   {
-    "uuid": "4bf5163a-2ae5-4b87-b104-459f4ed2bd1a",
+    "id": "4bf5163a-2ae5-4b87-b104-459f4ed2bd1a",
     "month": "2025-june",
     "title": "新的商務體驗授權型價目表改善",
     "link": "https://learn.microsoft.com/zh-tw/partner-center/announcements/2025-june#13",
@@ -1296,7 +1296,7 @@
     }
   },
   {
-    "uuid": "8b3a926e-a5f1-4e25-89b8-3315123b3906",
+    "id": "8b3a926e-a5f1-4e25-89b8-3315123b3906",
     "month": "2025-june",
     "title": "銷售結束 NCE 授權型價目表 API 的正式上市",
     "link": "https://learn.microsoft.com/zh-tw/partner-center/announcements/2025-june#12",
@@ -1314,7 +1314,7 @@
     }
   },
   {
-    "uuid": "ab8f102f-05a0-49da-bd9e-24d8a1e13fb7",
+    "id": "ab8f102f-05a0-49da-bd9e-24d8a1e13fb7",
     "month": "2025-june",
     "title": "2025年7月和8月推出的內部部署生產力伺服器產品的授權和定價更新",
     "link": "https://learn.microsoft.com/zh-tw/partner-center/announcements/2025-june#11",
@@ -1332,7 +1332,7 @@
     }
   },
   {
-    "uuid": "95da20cc-0390-4c6e-a2f8-8274b6b23b26",
+    "id": "95da20cc-0390-4c6e-a2f8-8274b6b23b26",
     "month": "2025-june",
     "title": "Azure IP 共同銷售交易提交的重要更新",
     "link": "https://learn.microsoft.com/zh-tw/partner-center/announcements/2025-june#10",
@@ -1350,7 +1350,7 @@
     }
   },
   {
-    "uuid": "48865d4c-b728-42bc-8f30-1cc1b8523743",
+    "id": "48865d4c-b728-42bc-8f30-1cc1b8523743",
     "month": "2025-june",
     "title": "每月更新：合作夥伴需要採取的重要動作來保護合作夥伴生態系統",
     "link": "https://learn.microsoft.com/zh-tw/partner-center/announcements/2025-june#8",
@@ -1368,7 +1368,7 @@
     }
   },
   {
-    "uuid": "ce2bab52-d375-4b2e-8d69-3e3d69de37f8",
+    "id": "ce2bab52-d375-4b2e-8d69-3e3d69de37f8",
     "month": "2025-june",
     "title": "計費使用量和對帳檔案的加速檔案下載",
     "link": "https://learn.microsoft.com/zh-tw/partner-center/announcements/2025-june#7",
@@ -1386,7 +1386,7 @@
     }
   },
   {
-    "uuid": "5fb94bac-cd2e-4206-96df-2eaab3e96adc",
+    "id": "5fb94bac-cd2e-4206-96df-2eaab3e96adc",
     "month": "2025-june",
     "title": "6 月 雲端解決方案提供者 （CSP） 每月更新和社群提醒",
     "link": "https://learn.microsoft.com/zh-tw/partner-center/announcements/2025-june#6",
@@ -1404,7 +1404,7 @@
     }
   },
   {
-    "uuid": "103c73d7-5524-4593-b822-ac4191fdfa82",
+    "id": "103c73d7-5524-4593-b822-ac4191fdfa82",
     "month": "2025-june",
     "title": "立即上線！ 合作夥伴中心技術角部落格系列：2025 年 6 月版本",
     "link": "https://learn.microsoft.com/zh-tw/partner-center/announcements/2025-june#5",
@@ -1422,7 +1422,7 @@
     }
   },
   {
-    "uuid": "1db7b008-5eb4-47b9-8e23-ddeaf3b7081a",
+    "id": "1db7b008-5eb4-47b9-8e23-ddeaf3b7081a",
     "month": "2025-june",
     "title": "現已提供延長多年合約持續時間",
     "link": "https://learn.microsoft.com/zh-tw/partner-center/announcements/2025-june#4",
@@ -1440,7 +1440,7 @@
     }
   },
   {
-    "uuid": "0e18a923-e4b0-4c78-8694-c5a0f09f9d9d",
+    "id": "0e18a923-e4b0-4c78-8694-c5a0f09f9d9d",
     "month": "2025-june",
     "title": "共同作業、CPOR 和工作坊宣告的 AI 助理支援",
     "link": "https://learn.microsoft.com/zh-tw/partner-center/announcements/2025-june#3",
@@ -1458,7 +1458,7 @@
     }
   },
   {
-    "uuid": "2e582da4-ff2f-495e-bc7c-dc5d7ff510c6",
+    "id": "2e582da4-ff2f-495e-bc7c-dc5d7ff510c6",
     "month": "2025-june",
     "title": "每月Microsoft AI Cloud Partner 計劃更新",
     "link": "https://learn.microsoft.com/zh-tw/partner-center/announcements/2025-june#2",
@@ -1476,7 +1476,7 @@
     }
   },
   {
-    "uuid": "1bc9d6b6-a33c-43f1-a739-4fdddf4fcf82",
+    "id": "1bc9d6b6-a33c-43f1-a739-4fdddf4fcf82",
     "month": "2025-june",
     "title": "提醒：CSP 轉銷商的記錄合作夥伴 （POR） 指派變更即將推出",
     "link": "https://learn.microsoft.com/zh-tw/partner-center/announcements/2025-june#1",
@@ -1494,7 +1494,7 @@
     }
   },
   {
-    "uuid": "b1102737-ac0d-44ab-aa0a-858a94e86c76",
+    "id": "b1102737-ac0d-44ab-aa0a-858a94e86c76",
     "month": "2025-may",
     "title": "Microsoft 365 商務進階版和 Office 365 E1 授與中止",
     "link": "https://learn.microsoft.com/zh-tw/partner-center/announcements/2025-may#10",
@@ -1512,7 +1512,7 @@
     }
   },
   {
-    "uuid": "12f9023e-80e8-45f9-a531-a7a5ea6a59ec",
+    "id": "12f9023e-80e8-45f9-a531-a7a5ea6a59ec",
     "month": "2025-may",
     "title": "建議與歐盟委員會達成和解：對Microsoft 365 和Microsoft Teams 的影響",
     "link": "https://learn.microsoft.com/zh-tw/partner-center/announcements/2025-may#9",
@@ -1530,7 +1530,7 @@
     }
   },
   {
-    "uuid": "24a68cd7-4227-4b1d-994a-606ddee1600c",
+    "id": "24a68cd7-4227-4b1d-994a-606ddee1600c",
     "month": "2025-may",
     "title": "每月更新：合作夥伴需要採取的重要動作來保護合作夥伴生態系統",
     "link": "https://learn.microsoft.com/zh-tw/partner-center/announcements/2025-may#8",
@@ -1548,7 +1548,7 @@
     }
   },
   {
-    "uuid": "24dd3f6d-c45a-4467-b2e2-173312ae774b",
+    "id": "24dd3f6d-c45a-4467-b2e2-173312ae774b",
     "month": "2025-may",
     "title": "提醒：CSP 轉銷商的記錄合作夥伴 （POR） 指派變更即將推出",
     "link": "https://learn.microsoft.com/zh-tw/partner-center/announcements/2025-may#7",
@@ -1566,7 +1566,7 @@
     }
   },
   {
-    "uuid": "0d8b0be6-48de-449f-ab3d-22fc68395ea7",
+    "id": "0d8b0be6-48de-449f-ab3d-22fc68395ea7",
     "month": "2025-may",
     "title": "Microsoft客戶合約合作夥伴證明封鎖 2025 年 10 月 7 日變更",
     "link": "https://learn.microsoft.com/zh-tw/partner-center/announcements/2025-may#6",
@@ -1584,7 +1584,7 @@
     }
   },
   {
-    "uuid": "72158f78-fb78-4e9c-b0f9-5bfe22f02302",
+    "id": "72158f78-fb78-4e9c-b0f9-5bfe22f02302",
     "month": "2025-may",
     "title": "5 月 雲端解決方案提供者 （CSP） 每月更新和社群提醒",
     "link": "https://learn.microsoft.com/zh-tw/partner-center/announcements/2025-may#5",
@@ -1602,7 +1602,7 @@
     }
   },
   {
-    "uuid": "e0c1dd36-6760-459c-a682-c2caeef1853b",
+    "id": "e0c1dd36-6760-459c-a682-c2caeef1853b",
     "month": "2025-may",
     "title": "通過專用產品/服務提供的靈活計費計劃現已正式發佈",
     "link": "https://learn.microsoft.com/zh-tw/partner-center/announcements/2025-may#4",
@@ -1620,7 +1620,7 @@
     }
   },
   {
-    "uuid": "12531c2b-0ad1-405b-8a6d-54f9e55cf5ba",
+    "id": "12531c2b-0ad1-405b-8a6d-54f9e55cf5ba",
     "month": "2025-may",
     "title": "每月Microsoft AI Cloud Partner 計劃更新",
     "link": "https://learn.microsoft.com/zh-tw/partner-center/announcements/2025-may#3",
@@ -1638,7 +1638,7 @@
     }
   },
   {
-    "uuid": "07a3741b-9973-4ffe-8e3d-f29497974a35",
+    "id": "07a3741b-9973-4ffe-8e3d-f29497974a35",
     "month": "2025-may",
     "title": "Microsoft 365 E3 和 E5 的三年期訂閱條款",
     "link": "https://learn.microsoft.com/zh-tw/partner-center/announcements/2025-may#2",
@@ -1656,7 +1656,7 @@
     }
   },
   {
-    "uuid": "d52b6e31-970e-4a39-ad5e-9376e3659461",
+    "id": "d52b6e31-970e-4a39-ad5e-9376e3659461",
     "month": "2025-may",
     "title": "CSP 合作夥伴的需求更新",
     "link": "https://learn.microsoft.com/zh-tw/partner-center/announcements/2025-may#1",
@@ -1674,7 +1674,7 @@
     }
   },
   {
-    "uuid": "8ba7ef21-625b-4420-9ffc-42b169461055",
+    "id": "8ba7ef21-625b-4420-9ffc-42b169461055",
     "month": "2025-april",
     "title": "活動記錄保留限制通知",
     "link": "https://learn.microsoft.com/zh-tw/partner-center/announcements/2025-april#12",
@@ -1692,7 +1692,7 @@
     }
   },
   {
-    "uuid": "69655b85-6468-4184-a295-b4cabc75f43b",
+    "id": "69655b85-6468-4184-a295-b4cabc75f43b",
     "month": "2025-april",
     "title": "授權上限已擴大至 2400！ Microsoft 365 Copilot CSP 用戶入門 15% 已擴充促銷",
     "link": "https://learn.microsoft.com/zh-tw/partner-center/announcements/2025-april#11",
@@ -1710,7 +1710,7 @@
     }
   },
   {
-    "uuid": "3b62df03-a980-4dae-a312-7266d42c340e",
+    "id": "3b62df03-a980-4dae-a312-7266d42c340e",
     "month": "2025-april",
     "title": "每月更新：合作夥伴需要採取的重要動作來保護合作夥伴生態系統",
     "link": "https://learn.microsoft.com/zh-tw/partner-center/announcements/2025-april#10",
@@ -1728,7 +1728,7 @@
     }
   },
   {
-    "uuid": "90bcd201-8a12-4c56-9f9c-bf6d63cb01d6",
+    "id": "90bcd201-8a12-4c56-9f9c-bf6d63cb01d6",
     "month": "2025-april",
     "title": "Microsoft客戶合約 （MCA） 合作夥伴證明封鎖變更",
     "link": "https://learn.microsoft.com/zh-tw/partner-center/announcements/2025-april#9",
@@ -1746,7 +1746,7 @@
     }
   },
   {
-    "uuid": "caab47b3-481c-41ef-af15-d3e376ff4797",
+    "id": "caab47b3-481c-41ef-af15-d3e376ff4797",
     "month": "2025-april",
     "title": "Microsoft合作夥伴合約已更新，自 2025 年 10 月 4 日起生效",
     "link": "https://learn.microsoft.com/zh-tw/partner-center/announcements/2025-april#8",
@@ -1764,7 +1764,7 @@
     }
   },
   {
-    "uuid": "7718c5ce-829a-4766-864a-9716e218bf19",
+    "id": "7718c5ce-829a-4766-864a-9716e218bf19",
     "month": "2025-april",
     "title": "4 月 雲端解決方案提供者 （CSP） 每月更新和社群提醒",
     "link": "https://learn.microsoft.com/zh-tw/partner-center/announcements/2025-april#7",
@@ -1782,7 +1782,7 @@
     }
   },
   {
-    "uuid": "34116652-cf51-4a1b-828f-a8670f743e87",
+    "id": "34116652-cf51-4a1b-828f-a8670f743e87",
     "month": "2025-april",
     "title": "4 月授權型價目表重新發佈，以更正 Microsoft 365 Copilot 的價格錯誤",
     "link": "https://learn.microsoft.com/zh-tw/partner-center/announcements/2025-april#6",
@@ -1800,7 +1800,7 @@
     }
   },
   {
-    "uuid": "4d2c5254-b3d4-4c25-8a76-65bbff5d9738",
+    "id": "4d2c5254-b3d4-4c25-8a76-65bbff5d9738",
     "month": "2025-april",
     "title": "NCE 授權型價目表 4 月 1 日更新",
     "link": "https://learn.microsoft.com/zh-tw/partner-center/announcements/2025-april#5",
@@ -1818,7 +1818,7 @@
     }
   },
   {
-    "uuid": "865eaf2f-a06c-4113-b190-720cf0cb2fd2",
+    "id": "865eaf2f-a06c-4113-b190-720cf0cb2fd2",
     "month": "2025-april",
     "title": "每月Microsoft AI Cloud Partner 計劃更新",
     "link": "https://learn.microsoft.com/zh-tw/partner-center/announcements/2025-april#4",
@@ -1836,7 +1836,7 @@
     }
   },
   {
-    "uuid": "f3164059-744e-4f12-95cd-ae47f085b704",
+    "id": "f3164059-744e-4f12-95cd-ae47f085b704",
     "month": "2025-april",
     "title": "讓更新、在 CSP 中升級更容易的程序改進",
     "link": "https://learn.microsoft.com/zh-tw/partner-center/announcements/2025-april#3",
@@ -1854,7 +1854,7 @@
     }
   },
   {
-    "uuid": "3c929738-5576-40f8-86cc-3a2467a8d6b9",
+    "id": "3c929738-5576-40f8-86cc-3a2467a8d6b9",
     "month": "2025-april",
     "title": "Microsoft 365 Copilot CSP 用戶入門 15% 促銷延伸！",
     "link": "https://learn.microsoft.com/zh-tw/partner-center/announcements/2025-april#2",
@@ -1872,7 +1872,7 @@
     }
   },
   {
-    "uuid": "65ef0cc1-7de6-4b05-a54d-fa2437386547",
+    "id": "65ef0cc1-7de6-4b05-a54d-fa2437386547",
     "month": "2025-april",
     "title": "提醒：使用定價更新標準化計費結構、Microsoft Teams 電話和 Power BI 的定價更新",
     "link": "https://learn.microsoft.com/zh-tw/partner-center/announcements/2025-april#1",
@@ -1890,7 +1890,7 @@
     }
   },
   {
-    "uuid": "db6ea24b-19ef-499d-b635-634b05f7263b",
+    "id": "db6ea24b-19ef-499d-b635-634b05f7263b",
     "month": "2025-march",
     "title": "雲端解決方案提供者 （CSP） 計劃指南更新現已推出",
     "link": "https://learn.microsoft.com/zh-tw/partner-center/announcements/2025-march#14",
@@ -1908,7 +1908,7 @@
     }
   },
   {
-    "uuid": "64f154e1-6424-497f-833a-2ddcdddaff45",
+    "id": "64f154e1-6424-497f-833a-2ddcdddaff45",
     "month": "2025-march",
     "title": "Microsoft合作夥伴合約已更新，自 2025 年 10 月 4 日起生效",
     "link": "https://learn.microsoft.com/zh-tw/partner-center/announcements/2025-march#13",
@@ -1926,7 +1926,7 @@
     }
   },
   {
-    "uuid": "c6887ad3-eb80-414f-ba6b-09d9054d44cf",
+    "id": "c6887ad3-eb80-414f-ba6b-09d9054d44cf",
     "month": "2025-march",
     "title": "2025 年 3 月重新發布 NCE 授權型價目表預覽，以取得 2025 年 4 月的預期價格變更",
     "link": "https://learn.microsoft.com/zh-tw/partner-center/announcements/2025-march#12",
@@ -1944,7 +1944,7 @@
     }
   },
   {
-    "uuid": "33436c13-2f11-4a0f-8939-42305ef59296",
+    "id": "33436c13-2f11-4a0f-8939-42305ef59296",
     "month": "2025-march",
     "title": "共同銷售和合作夥伴主導的商機增強功能",
     "link": "https://learn.microsoft.com/zh-tw/partner-center/announcements/2025-march#11",
@@ -1962,7 +1962,7 @@
     }
   },
   {
-    "uuid": "371d4ca9-91ca-4251-852c-db77d56991f6",
+    "id": "371d4ca9-91ca-4251-852c-db77d56991f6",
     "month": "2025-march",
     "title": "CSP 轉銷商記錄合作夥伴指派的重要變更",
     "link": "https://learn.microsoft.com/zh-tw/partner-center/announcements/2025-march#10",
@@ -1980,7 +1980,7 @@
     }
   },
   {
-    "uuid": "66e6518a-57e1-46d5-9eca-8d3cc85865d1",
+    "id": "66e6518a-57e1-46d5-9eca-8d3cc85865d1",
     "month": "2025-march",
     "title": "每月更新：合作夥伴需要採取的重要動作來保護合作夥伴生態系統",
     "link": "https://learn.microsoft.com/zh-tw/partner-center/announcements/2025-march#9",
@@ -1998,7 +1998,7 @@
     }
   },
   {
-    "uuid": "02564799-e225-4b0e-bc6b-d6b93fad0b46",
+    "id": "02564799-e225-4b0e-bc6b-d6b93fad0b46",
     "month": "2025-march",
     "title": "3 月 雲端解決方案提供者 （CSP） 每月更新和社群提醒",
     "link": "https://learn.microsoft.com/zh-tw/partner-center/announcements/2025-march#8",
@@ -2016,7 +2016,7 @@
     }
   },
   {
-    "uuid": "b0caf207-fecb-44cf-99ae-742e60981b0c",
+    "id": "b0caf207-fecb-44cf-99ae-742e60981b0c",
     "month": "2025-march",
     "title": "合作夥伴中心 UI 和 API 中計費頻率變更的銷售結束排程現在可供使用",
     "link": "https://learn.microsoft.com/zh-tw/partner-center/announcements/2025-march#7",
@@ -2034,7 +2034,7 @@
     }
   },
   {
-    "uuid": "12c2609b-506f-487c-a60a-92fa4be614b5",
+    "id": "12c2609b-506f-487c-a60a-92fa4be614b5",
     "month": "2025-march",
     "title": "Microsoft E5 安全性和 E5 合規性套件現在可以新增至 0365 E3 + EMS E3 客戶",
     "link": "https://learn.microsoft.com/zh-tw/partner-center/announcements/2025-march#6",
@@ -2052,7 +2052,7 @@
     }
   },
   {
-    "uuid": "fd553ec1-b956-496e-b9ff-71394ca4f5be",
+    "id": "fd553ec1-b956-496e-b9ff-71394ca4f5be",
     "month": "2025-march",
     "title": "Microsoft 365 E5 安全性套件現在可作為商務進階版客戶的附加元件",
     "link": "https://learn.microsoft.com/zh-tw/partner-center/announcements/2025-march#5",
@@ -2070,7 +2070,7 @@
     }
   },
   {
-    "uuid": "23454c10-4a87-450e-a304-066446332d0a",
+    "id": "23454c10-4a87-450e-a304-066446332d0a",
     "month": "2025-march",
     "title": "沙箱中可供測試的新購買和訂用帳戶管理功能",
     "link": "https://learn.microsoft.com/zh-tw/partner-center/announcements/2025-march#4",
@@ -2088,7 +2088,7 @@
     }
   },
   {
-    "uuid": "7962909c-33fa-4fe4-bc06-76188fd463fe",
+    "id": "7962909c-33fa-4fe4-bc06-76188fd463fe",
     "month": "2025-march",
     "title": "AI 助理回答合作夥伴獎勵合作指南相關問題",
     "link": "https://learn.microsoft.com/zh-tw/partner-center/announcements/2025-march#3",
@@ -2106,7 +2106,7 @@
     }
   },
   {
-    "uuid": "5bd2d9b7-31ac-42c5-9aa9-d77e856808a4",
+    "id": "5bd2d9b7-31ac-42c5-9aa9-d77e856808a4",
     "month": "2025-march",
     "title": "緊急：CSP 計費對帳 V1 API 淘汰 2025 年 4 月",
     "link": "https://learn.microsoft.com/zh-tw/partner-center/announcements/2025-march#2",
@@ -2124,7 +2124,7 @@
     }
   },
   {
-    "uuid": "1229c790-3002-4ee8-b710-0f0d27efc78e",
+    "id": "1229c790-3002-4ee8-b710-0f0d27efc78e",
     "month": "2025-march",
     "title": "使用定價更新來標準化計費結構;Microsoft Teams 電話和 Power BI的定價更新",
     "link": "https://learn.microsoft.com/zh-tw/partner-center/announcements/2025-march#1",
@@ -2142,7 +2142,7 @@
     }
   },
   {
-    "uuid": "a218fa37-5df8-4e8a-9681-ab71464f6722",
+    "id": "a218fa37-5df8-4e8a-9681-ab71464f6722",
     "month": "2025-february",
     "title": "雲端解決方案提供者 （CSP） 計劃指南更新現已推出",
     "link": "https://learn.microsoft.com/zh-tw/partner-center/announcements/2025-february#10",
@@ -2160,7 +2160,7 @@
     }
   },
   {
-    "uuid": "e3afd08f-f8a5-4c6f-9ba8-e4b3c7b2c5bc",
+    "id": "e3afd08f-f8a5-4c6f-9ba8-e4b3c7b2c5bc",
     "month": "2025-february",
     "title": "NCE 授權型價目表預覽版 4 月",
     "link": "https://learn.microsoft.com/zh-tw/partner-center/announcements/2025-february#9",
@@ -2178,7 +2178,7 @@
     }
   },
   {
-    "uuid": "622ba50b-2666-431d-a148-3e1e65594adf",
+    "id": "622ba50b-2666-431d-a148-3e1e65594adf",
     "month": "2025-february",
     "title": "自 2025 年 4 月 1 日起，System Center 2025 的 CSP 合作夥伴可以使用",
     "link": "https://learn.microsoft.com/zh-tw/partner-center/announcements/2025-february#8",
@@ -2196,7 +2196,7 @@
     }
   },
   {
-    "uuid": "889e169f-b049-4d74-9786-b8597ad6f5fc",
+    "id": "889e169f-b049-4d74-9786-b8597ad6f5fc",
     "month": "2025-february",
     "title": "2 月 雲端解決方案提供者 （CSP） 每月更新和社群提醒",
     "link": "https://learn.microsoft.com/zh-tw/partner-center/announcements/2025-february#7",
@@ -2214,7 +2214,7 @@
     }
   },
   {
-    "uuid": "11ab5a16-42b7-46fa-bf2f-8e54a1617a3d",
+    "id": "11ab5a16-42b7-46fa-bf2f-8e54a1617a3d",
     "month": "2025-february",
     "title": "合作夥伴移轉產品類型可用",
     "link": "https://learn.microsoft.com/zh-tw/partner-center/announcements/2025-february#6",
@@ -2232,7 +2232,7 @@
     }
   },
   {
-    "uuid": "9a81a468-bd4e-4373-a064-2fb8e309cf11",
+    "id": "9a81a468-bd4e-4373-a064-2fb8e309cf11",
     "month": "2025-february",
     "title": "每月更新：合作夥伴需要採取的重要動作來保護合作夥伴生態系統",
     "link": "https://learn.microsoft.com/zh-tw/partner-center/announcements/2025-february#5",
@@ -2250,7 +2250,7 @@
     }
   },
   {
-    "uuid": "9a280966-163a-4571-8870-242df6002272",
+    "id": "9a280966-163a-4571-8870-242df6002272",
     "month": "2025-february",
     "title": "每月Microsoft AI Cloud Partner 計劃更新",
     "link": "https://learn.microsoft.com/zh-tw/partner-center/announcements/2025-february#4",
@@ -2268,7 +2268,7 @@
     }
   },
   {
-    "uuid": "1ffd2e93-4eb5-462a-ba6e-8c39ee38d45d",
+    "id": "1ffd2e93-4eb5-462a-ba6e-8c39ee38d45d",
     "month": "2025-february",
     "title": "更新的時間軸：增強Microsoft雲端解決方案提供者計費對帳 API 移轉延伸至 2025 年 4 月 21 日",
     "link": "https://learn.microsoft.com/zh-tw/partner-center/announcements/2025-february#3",
@@ -2286,7 +2286,7 @@
     }
   },
   {
-    "uuid": "bb02eb72-4bce-4c4e-b645-7bccdb59b9f3",
+    "id": "bb02eb72-4bce-4c4e-b645-7bccdb59b9f3",
     "month": "2025-february",
     "title": "合作夥伴中心 UI 和 API 中計費頻率變更的終止銷售排程即將推出",
     "link": "https://learn.microsoft.com/zh-tw/partner-center/announcements/2025-february#2",
@@ -2304,7 +2304,7 @@
     }
   },
   {
-    "uuid": "9c018ba3-7360-4ea2-a1c8-ba6bc13e8bef",
+    "id": "9c018ba3-7360-4ea2-a1c8-ba6bc13e8bef",
     "month": "2025-february",
     "title": "E5 合規性Microsoft折扣",
     "link": "https://learn.microsoft.com/zh-tw/partner-center/announcements/2025-february#1",
@@ -2322,7 +2322,7 @@
     }
   },
   {
-    "uuid": "2391ec5f-e651-46cd-af47-5b15e115bdb6",
+    "id": "2391ec5f-e651-46cd-af47-5b15e115bdb6",
     "month": "2025-january",
     "title": "NCE 授權型變更指標和銷售結束價目表更新",
     "link": "https://learn.microsoft.com/zh-tw/partner-center/announcements/2025-january#12",
@@ -2340,7 +2340,7 @@
     }
   },
   {
-    "uuid": "3d1e6c47-a2a2-4d84-805c-9185426b45a6",
+    "id": "3d1e6c47-a2a2-4d84-805c-9185426b45a6",
     "month": "2025-january",
     "title": "從 Power BI Premium 轉換至 Microsoft Fabric",
     "link": "https://learn.microsoft.com/zh-tw/partner-center/announcements/2025-january#11",
@@ -2358,7 +2358,7 @@
     }
   },
   {
-    "uuid": "a632c1cc-8e42-41ac-b8ae-148eb472c97f",
+    "id": "a632c1cc-8e42-41ac-b8ae-148eb472c97f",
     "month": "2025-january",
     "title": "Microsoft 365 系統管理中心的Copilot 現已正式推出",
     "link": "https://learn.microsoft.com/zh-tw/partner-center/announcements/2025-january#10",
@@ -2376,7 +2376,7 @@
     }
   },
   {
-    "uuid": "775c9932-22a4-4bcb-bcdb-e210322c61b4",
+    "id": "775c9932-22a4-4bcb-bcdb-e210322c61b4",
     "month": "2025-january",
     "title": "新的合作夥伴中心 AI 助理 （預覽） 收益工作區中的任何案例",
     "link": "https://learn.microsoft.com/zh-tw/partner-center/announcements/2025-january#9",
@@ -2394,7 +2394,7 @@
     }
   },
   {
-    "uuid": "24d94a59-3de6-41c2-a1d3-6fc79fc03650",
+    "id": "24d94a59-3de6-41c2-a1d3-6fc79fc03650",
     "month": "2025-january",
     "title": "新的訂用帳戶續約儀錶板",
     "link": "https://learn.microsoft.com/zh-tw/partner-center/announcements/2025-january#8",
@@ -2412,7 +2412,7 @@
     }
   },
   {
-    "uuid": "6072ef39-6be6-458c-be49-0e9a109dd104",
+    "id": "6072ef39-6be6-458c-be49-0e9a109dd104",
     "month": "2025-january",
     "title": "D-U-N-S 到穆迪的客戶查閱共同銷售和合作夥伴主導的交易建立程式",
     "link": "https://learn.microsoft.com/zh-tw/partner-center/announcements/2025-january#7",
@@ -2430,7 +2430,7 @@
     }
   },
   {
-    "uuid": "d8580fd9-8923-4d01-b4d8-e1970cf9a684",
+    "id": "d8580fd9-8923-4d01-b4d8-e1970cf9a684",
     "month": "2025-january",
     "title": "每月更新：合作夥伴需要採取的重要動作來保護合作夥伴生態系統",
     "link": "https://learn.microsoft.com/zh-tw/partner-center/announcements/2025-january#6",
@@ -2448,7 +2448,7 @@
     }
   },
   {
-    "uuid": "b0b01596-4928-46b9-83bb-f54c4092ee3a",
+    "id": "b0b01596-4928-46b9-83bb-f54c4092ee3a",
     "month": "2025-january",
     "title": "每月Microsoft AI Cloud Partner 計劃更新",
     "link": "https://learn.microsoft.com/zh-tw/partner-center/announcements/2025-january#5",
@@ -2466,7 +2466,7 @@
     }
   },
   {
-    "uuid": "4539c476-9aaf-40a2-a08b-9a433fa50866",
+    "id": "4539c476-9aaf-40a2-a08b-9a433fa50866",
     "month": "2025-january",
     "title": "在 2025 年 2 月 17 日提供公司帳戶資訊，以維護您在歐盟市場 & 遊戲產品",
     "link": "https://learn.microsoft.com/zh-tw/partner-center/announcements/2025-january#4",
@@ -2484,7 +2484,7 @@
     }
   },
   {
-    "uuid": "5749fdbe-8968-43eb-ba21-ed494ad22ae2",
+    "id": "5749fdbe-8968-43eb-ba21-ed494ad22ae2",
     "month": "2025-january",
     "title": "全球促銷整備指南的 1 月更新",
     "link": "https://learn.microsoft.com/zh-tw/partner-center/announcements/2025-january#3",
@@ -2502,7 +2502,7 @@
     }
   },
   {
-    "uuid": "ae0f8505-cd8e-4540-b0fd-e472d1c14ca7",
+    "id": "ae0f8505-cd8e-4540-b0fd-e472d1c14ca7",
     "month": "2025-january",
     "title": "1 月雲端解決方案提供者 （CSP） 每月更新和社群提醒",
     "link": "https://learn.microsoft.com/zh-tw/partner-center/announcements/2025-january#2",
@@ -2520,7 +2520,7 @@
     }
   },
   {
-    "uuid": "13f8160b-ca03-40cf-8321-e5d03dfaa4b2",
+    "id": "13f8160b-ca03-40cf-8321-e5d03dfaa4b2",
     "month": "2025-january",
     "title": "擴大中國 ISV 的全球市場機會",
     "link": "https://learn.microsoft.com/zh-tw/partner-center/announcements/2025-january#1",

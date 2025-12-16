@@ -5,7 +5,7 @@
 ETL Pipeline 負責將原始公告資料（`page.json`）透過 LLM 提取 Metadata，轉換為結構化的 `processed.json`。
 
 **核心特性**：
-- ✅ **增量處理**：自動追蹤已處理的 UUID，避免重複
+- ✅ **增量處理**：自動追蹤已處理的 id，避免重複
 - ✅ **批次處理**：可配置批次大小（預設 10），降低 API 成本
 - ✅ **容錯恢復**：中斷後可從未處理的文件繼續
 - ✅ **追加寫入**：成功批次立即追加，不覆蓋已有資料
@@ -18,9 +18,9 @@ ETL Pipeline 負責將原始公告資料（`page.json`）透過 LLM 提取 Metad
 flowchart TD
     Start([開始 ETL]) --> LoadParsed[載入 parse.json]
     LoadParsed --> LoadProcessed[載入 processed.json]
-    LoadProcessed --> FilterUUID[過濾已處理的 UUID]
+    LoadProcessed --> Filterid[過濾已處理的 id]
 
-    FilterUUID --> CheckUnprocessed{有未處理<br/>的文件?}
+    Filterid --> CheckUnprocessed{有未處理<br/>的文件?}
     CheckUnprocessed -- 否 --> End1([全部已處理])
     CheckUnprocessed -- 是 --> BatchLoop[分批處理<br/>每批 N 個]
 
@@ -60,17 +60,17 @@ all_docs = self.load_parsed_data()
 
 **職責**：
 - 讀取 `parse.json`（由 parser.py 產生）
-- 每個文件包含 `uuid`, `title`, `original_content` 等欄位
+- 每個文件包含 `id`, `title`, `original_content` 等欄位
 
 #### 1.2 載入已處理資料 (`load_processed_data()`)
 ```python
 # 從 data/processed/processed.json 載入已處理的文件
 processed_docs = self.load_processed_data()
-processed_uuids = {doc.get("uuid") for doc in processed_docs}
+processed_ids = {doc.get("id") for doc in processed_docs}
 ```
 
 **職責**：
-- 提取所有已處理文件的 UUID
+- 提取所有已處理文件的 id
 - 用於後續去重
 
 ---
@@ -81,12 +81,12 @@ processed_uuids = {doc.get("uuid") for doc in processed_docs}
 ```python
 unprocessed_docs = [
     doc for doc in all_docs
-    if doc.get("uuid") not in processed_uuids
+    if doc.get("id") not in processed_ids
 ]
 ```
 
 **邏輯**：
-- 比對 UUID，只保留未處理的文件
+- 比對 id，只保留未處理的文件
 - 如果全部已處理，直接結束
 
 #### 2.2 分批處理
@@ -109,7 +109,7 @@ for i in range(0, len(unprocessed_docs), self.batch_size):
 ```python
 llm_input = [
     {
-        "id": item.get("uuid"),
+        "id": item.get("id"),
         "month": item.get("month"),
         "title": item.get("title"),
         "content": item.get("original_content")
@@ -119,7 +119,7 @@ llm_input = [
 ```
 
 **標準化欄位**：
-- `id`：使用 UUID 作為唯一識別
+- `id`：使用 id 作為唯一識別
 - `content`：統一使用 `original_content`
 
 #### 3.2 呼叫 LLM 提取 Metadata (`extract_metadata()`)
@@ -144,7 +144,7 @@ docs = self.merge_data(raw_batch, batch_result.results)
 ```
 
 **合併邏輯**：
-- 根據 `id`（UUID）匹配原始資料與 Metadata
+- 根據 `id`（id）匹配原始資料與 Metadata
 - 建立 `AnnouncementDoc` Pydantic 物件
 - 包含完整的 `AnnouncementMetadata`
 
@@ -188,7 +188,7 @@ if result_docs is not None:
 ```json
 {
     "batch_file": "batch_1",
-    "uuids": ["uuid1", "uuid2", ...],
+    "ids": ["id1", "id2", ...],
     "error_type": "LLMValidationError",
     "error_message": "...",
     "llm_input": {...},
@@ -202,7 +202,7 @@ if result_docs is not None:
 - `data/process_log/batch_1.error.json`（詳細錯誤）
 
 **錯誤列表**：
-- `data/errorlist.json`（失敗的 UUID 列表）
+- `data/errorlist.json`（失敗的 id 列表）
 
 ---
 
@@ -282,7 +282,7 @@ ETLPipeline(
 
 **批次層級**：
 - 失敗的批次不會寫入 `processed.json`
-- 下次執行時自動重試（因為 UUID 不在 processed 中）
+- 下次執行時自動重試（因為 id 不在 processed 中）
 
 ### 5.3 錯誤恢復
 
@@ -291,7 +291,7 @@ ETLPipeline(
 # 查看錯誤
 cat data/errorlist.json
 
-# 重新執行 ETL（自動跳過已處理的 UUID）
+# 重新執行 ETL（自動跳過已處理的 id）
 python src/main.py
 ```
 
@@ -317,7 +317,7 @@ DEFAULT_BATCH_SIZE = 10  # 每批處理 10 個文件
 | `PARSE_JSON` | `data/parse.json` | 解析後的輸入資料 |
 | `PROCESSED_OUTPUT` | `data/processed/processed.json` | 處理後的輸出資料 |
 | `LOG_DIR` | `data/process_log` | 錯誤日誌目錄 |
-| `ERROR_LIST_OUTPUT` | `data/errorlist.json` | 錯誤 UUID 列表 |
+| `ERROR_LIST_OUTPUT` | `data/errorlist.json` | 錯誤 id 列表 |
 
 ---
 
@@ -385,12 +385,12 @@ python src/main.py
 
 ## 8. 技術細節
 
-### 8.1 UUID 生成
+### 8.1 id 生成
 
 **時機**：在 `parser.py` 解析時生成
 ```python
-import uuid
-doc["uuid"] = str(uuid.uuid4())
+import id
+doc["id"] = str(id.id4())
 ```
 
 ### 8.2 Pydantic Schema
@@ -439,7 +439,7 @@ python src/main.py
 
 **方法 1**（推薦）：
 ```bash
-# 直接重新執行，系統會自動跳過已處理的 UUID
+# 直接重新執行，系統會自動跳過已處理的 id
 python src/main.py
 ```
 
@@ -455,7 +455,7 @@ python src/main.py
 cat data/process_log/batch_5.error.json
 ```
 
-**查看錯誤 UUID 列表**：
+**查看錯誤 id 列表**：
 ```bash
 cat data/errorlist.json
 ```

@@ -1,6 +1,6 @@
 erDiagram
     announcements {
-        TEXT uuid PK
+        TEXT id PK
         TEXT month
         TEXT title
         TEXT content

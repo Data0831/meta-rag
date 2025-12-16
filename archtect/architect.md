@@ -37,7 +37,7 @@ python src/main.py [mode]
 ### A. 資料解析 (`src/ETL/etl_pipe/parser.py`)
 負責將原始 JSON 資料解析為標準化格式。
 *   **輸入**: `data/page.json`
-*   **處理**: 讀取原始資料，以單一 List Item 為最小單位 (Natural Split)，並生成 UUID。
+*   **處理**: 讀取原始資料，以單一 List Item 為最小單位 (Natural Split)，並生成 id。
 *   **輸出**: `data/parse.json`
 *   **執行指令**: `python src/ETL/etl_pipe/parser.py`
 
@@ -46,7 +46,7 @@ python src/main.py [mode]
 *   **輸入**: `data/parse.json`
 *   **處理**:
     *   從 `parse.json` 載入所有資料
-    *   自動追蹤已處理的 UUID，避免重複處理
+    *   自動追蹤已處理的 id，避免重複處理
     *   按批次大小（預設 10，可透過 `config.py` 的 `DEFAULT_BATCH_SIZE` 調整）分批呼叫 LLM
     *   每批成功後立即追加到 `processed.json`（增量寫入，不覆蓋）
     *   提取 Metadata (日期、產品、影響等級、摘要等)
@@ -102,7 +102,7 @@ python src/main.py [mode]
 *   **SQLite**: 儲存 **原始完整內文 (Content)** 與 Metadata。用於最終顯示詳細資料與 FTS5 精確關鍵字搜尋。
 
 **Q4: ETL Pipeline 的增量處理如何運作？**
-*   **UUID 追蹤**: 每個文件都有唯一的 UUID，系統會自動比對 `processed.json` 中已處理的 UUID。
+*   **id 追蹤**: 每個文件都有唯一的 id，系統會自動比對 `processed.json` 中已處理的 id。
 *   **避免重複**: 只處理尚未在 `processed.json` 中的文件，節省 API 成本與時間。
 *   **追加寫入**: 每批次處理成功後立即追加到 `processed.json`，不會覆蓋已有資料。
 *   **容錯恢復**: 若中途中斷，重新執行時會自動從未處理的文件繼續，已成功的批次不會重複處理。

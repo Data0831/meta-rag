@@ -72,7 +72,7 @@ project_root/
 
 ### 4.3 資料庫與索引設計原則 (Meilisearch Specific)
 *   **Document Structure**: 
-    *   `id`: 唯一識別碼 (原 UUID)。
+    *   `id`: 唯一識別碼 (原 id)。
     *   `title`, `content`: 全文檢索欄位。
     *   `metadata`: 巢狀物件，Meilisearch 自動攤平供過濾 (e.g., `metadata.category = 'Pricing'`)。
     *   `_vectors`: 儲存 Embedding 向量，啟用 Hybrid Search。

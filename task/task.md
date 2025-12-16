@@ -45,7 +45,7 @@ class MeiliAdapter:
     def upsert_documents(self, documents: List[Dict[str, Any]]):
         """
         documents 格式需包含:
-        - id (原 uuid)
+        - id (原 id)
         - _vectors (原 vector, Meilisearch 要求的格式)
         - title, content, metadata...
         """
@@ -77,14 +77,14 @@ class MeiliAdapter:
 
 您需要調整資料輸出的格式，以符合 Meilisearch 的要求：
 
-1.  **欄位更名：** 將 `uuid` 改為 `id`。
+1.  **欄位更名：** 將 `id` 改為 `id`。
 2.  **向量格式：** Meilisearch 接受 `_vectors` 欄位（注意是複數且有底線）。
 
 ```python
 # 在 ETL 處理完 metadata 和 embedding 後
 def transform_for_meilisearch(doc, embedding_vector):
     return {
-        "id": doc["uuid"],  # 關鍵修改
+        "id": doc["id"],  # 關鍵修改
         "title": doc["title"],
         "content": doc["content"], # 原始 Markdown
         "month": doc["month"],

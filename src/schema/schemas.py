@@ -44,7 +44,7 @@ class AnnouncementMetadata(BaseModel):
 
 
 class AnnouncementDoc(BaseModel):
-    uuid: str = Field(..., description="Unique identifier")
+    id: str = Field(..., description="Unique identifier")
     month: str = Field(..., description="Month of the announcement e.g. 2025-12")
     title: str = Field(..., description="Announcement title")
     link: Optional[str] = Field(None, description="Source URL")
@@ -106,7 +106,7 @@ class SearchFilters(BaseModel):
 
     months: List[str] = Field(
         default_factory=list,
-        description="List of months (YYYY-MM format). For ranges like 'past 3 months', include all months."
+        description="List of months (YYYY-MM format). For ranges like 'past 3 months', include all months.",
     )
     category: Optional[Category] = Field(None, description="Category")
     impact_level: Optional[ImpactLevel] = Field(None, description="Impact Level")
@@ -117,8 +117,10 @@ class SearchIntent(BaseModel):
 
     filters: SearchFilters = Field(..., description="Strict filters to apply")
     keyword_query: str = Field(..., description="Optimized keyword query for FTS")
-    semantic_query: str = Field(..., description="Optimized semantic query for Vector DB")
+    semantic_query: str = Field(
+        ..., description="Optimized semantic query for Vector DB"
+    )
     boost_keywords: List[str] = Field(
         default_factory=list,
-        description="Soft-match keywords (e.g., product names) to boost relevance, not filter"
+        description="Soft-match keywords (e.g., product names) to boost relevance, not filter",
     )

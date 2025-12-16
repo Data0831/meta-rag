@@ -11,7 +11,7 @@ import json
 import os
 import sys
 import time
-import uuid as uuid_lib
+import id as id_lib
 from typing import List, Dict, Any, Optional
 from openai import APIStatusError
 
@@ -48,7 +48,7 @@ class BatchProcessor:
         self.current_model_index = 0
 
         # Set initial model from llm_client
-        if hasattr(llm_client, 'model') and llm_client.model in self.available_models:
+        if hasattr(llm_client, "model") and llm_client.model in self.available_models:
             self.current_model_index = self.available_models.index(llm_client.model)
 
     def get_next_model(self) -> Optional[str]:
@@ -63,7 +63,11 @@ class BatchProcessor:
 
     def reset_model_index(self):
         """重置 model index 到初始值（用於新的 batch）"""
-        initial_model = self.llm_client.model if hasattr(self.llm_client, 'model') else self.available_models[0]
+        initial_model = (
+            self.llm_client.model
+            if hasattr(self.llm_client, "model")
+            else self.available_models[0]
+        )
         if initial_model in self.available_models:
             self.current_model_index = self.available_models.index(initial_model)
         else:
@@ -76,7 +80,7 @@ class BatchProcessor:
         llm_input = []
         for idx, item in enumerate(raw_batch):
             llm_item = {
-                "id": item.get("uuid") or str(idx),
+                "id": item.get("id") or str(idx),
                 "month": item.get("month"),
                 "title": item.get("title"),
                 "content": item.get("original_content") or item.get("content", ""),
@@ -104,7 +108,9 @@ class BatchProcessor:
             attempt_count += 1
 
             try:
-                print(f"📡 使用 model: {current_model} (嘗試 {attempt_count}/{max_attempts})")
+                print(
+                    f"📡 使用 model: {current_model} (嘗試 {attempt_count}/{max_attempts})"
+                )
                 batch_result = self.llm_client.call_with_schema(
                     messages=messages,
                     response_model=BatchMetaExtraction,
@@ -152,20 +158,20 @@ class BatchProcessor:
         """Merge raw items with extracted metadata (Pydantic objects)."""
         merged_docs = []
 
-        # Create a lookup for metadata by ID (ID 是 uuid 或索引)
+        # Create a lookup for metadata by ID (ID 是 id 或索引)
         metadata_by_id = {meta.id: meta for meta in metadata_items}
 
         for idx, raw in enumerate(raw_items):
-            # 找出對應的 metadata (使用 uuid 或索引)
-            lookup_id = raw.get("uuid") or str(idx)
+            # 找出對應的 metadata (使用 id 或索引)
+            lookup_id = raw.get("id") or str(idx)
             meta = metadata_by_id.get(lookup_id)
 
             if not meta:
                 print(f"Warning: No metadata found for ID {lookup_id}, skipping.")
                 continue
 
-            # 使用原始的 uuid 或生成新的
-            doc_uuid = raw.get("uuid") or str(uuid_lib.uuid4())
+            # 使用原始的 id 或生成新的
+            doc_id = raw.get("id") or str(id_lib.id4())
 
             # Construct Metadata object from Pydantic MetadataExtraction
             try:
@@ -183,7 +189,7 @@ class BatchProcessor:
 
                 # Construct Document object
                 doc = AnnouncementDoc(
-                    uuid=doc_uuid,
+                    id=doc_id,
                     month=raw.get("month", "Unknown"),
                     title=raw.get("title", ""),
                     link=raw.get("link"),
@@ -212,7 +218,7 @@ class BatchProcessor:
         """
         print(f"Processing batch {batch_index} ({len(raw_batch)} items)...")
         llm_input = None
-        uuids = []
+        ids = []
 
         try:
             # 1. Validate batch
@@ -220,8 +226,8 @@ class BatchProcessor:
                 print("Empty batch, skipping.")
                 return []  # Empty is not an error
 
-            # Extract UUIDs for error tracking
-            uuids = [item.get("uuid") or str(idx) for idx, item in enumerate(raw_batch)]
+            # Extract ids for error tracking
+            ids = [item.get("id") or str(idx) for idx, item in enumerate(raw_batch)]
 
             # Reset model index for new batch
             self.reset_model_index()
@@ -232,7 +238,7 @@ class BatchProcessor:
                 print(f"WARNING: {error_msg}")
                 self.error_handler.log_error(
                     batch_file=f"batch_{batch_index}",
-                    uuids=uuids,
+                    ids=ids,
                     error_type="ConfigError",
                     error_message=error_msg,
                 )
@@ -251,7 +257,7 @@ class BatchProcessor:
                 print(f"✗ {error_msg}")
                 self.error_handler.log_error(
                     batch_file=f"batch_{batch_index}",
-                    uuids=uuids,
+                    ids=ids,
                     error_type="LLMValidationError",
                     error_message=error_msg,
                     llm_input=llm_input,
@@ -270,7 +276,7 @@ class BatchProcessor:
                 print(f"✗ {error_msg}")
                 self.error_handler.log_error(
                     batch_file=f"batch_{batch_index}",
-                    uuids=uuids,
+                    ids=ids,
                     error_type="MergeError",
                     error_message=error_msg,
                     llm_input=llm_input,
@@ -290,7 +296,7 @@ class BatchProcessor:
             print(f"✗ {error_msg}")
             self.error_handler.log_error(
                 batch_file=f"batch_{batch_index}",
-                uuids=uuids,
+                ids=ids,
                 error_type="UnexpectedError",
                 error_message=error_msg,
                 llm_input=llm_input,

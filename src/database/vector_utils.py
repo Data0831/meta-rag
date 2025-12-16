@@ -3,7 +3,7 @@ from typing import List
 import ollama
 from dotenv import load_dotenv
 from src.schema.schemas import AnnouncementMetadata, AnnouncementDoc
-from uuid import uuid4
+from id import id4
 from datetime import date
 import sys
 
@@ -71,7 +71,7 @@ def get_embedding(text: str, model: str = "bge-m3") -> List[float]:
 
 if __name__ == "__main__":
     from src.schema.schemas import AnnouncementMetadata, AnnouncementDoc
-    from uuid import uuid4
+    from id import id4
     from datetime import date
 
     # Create a dummy AnnouncementMetadata
@@ -88,7 +88,7 @@ if __name__ == "__main__":
 
     # Create a dummy AnnouncementDoc
     dummy_doc = AnnouncementDoc(
-        uuid=str(uuid4()),
+        id=str(id4()),
         month="2023-01",
         title="Introducing New Collaboration Features in Teams",
         original_content="Microsoft is rolling out new features to enhance collaboration in Microsoft Teams and Microsoft 365.",

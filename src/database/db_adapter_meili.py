@@ -71,7 +71,9 @@ class MeiliAdapter:
                 ]
             )
 
-            print(f"✓ Meilisearch index '{self.collection_name}' configured successfully.")
+            print(
+                f"✓ Meilisearch index '{self.collection_name}' configured successfully."
+            )
 
         except Exception as e:
             print(f"Warning: Error configuring Meilisearch index: {e}")
@@ -83,7 +85,7 @@ class MeiliAdapter:
 
         Expected document format:
         {
-            "id": "uuid-string",
+            "id": "id-string",
             "title": "...",
             "content": "...",
             "month": "YYYY-monthname",
@@ -183,7 +185,7 @@ class MeiliAdapter:
         Fetch full documents by a list of IDs.
 
         Args:
-            ids: List of document IDs (UUIDs)
+            ids: List of document IDs (ids)
 
         Returns:
             List of document dictionaries
@@ -221,6 +223,11 @@ class MeiliAdapter:
         """
         try:
             stats = self.index.get_stats()
+            # Convert Pydantic model to dict if needed
+            if hasattr(stats, "model_dump"):
+                return stats.model_dump()
+            elif hasattr(stats, "dict"):
+                return stats.dict()
             return stats
 
         except Exception as e:
@@ -252,7 +259,11 @@ def build_meili_filter(filters: SearchFilters) -> Optional[str]:
 
     # Category filter
     if filters.category:
-        cat_val = filters.category.value if hasattr(filters.category, "value") else filters.category
+        cat_val = (
+            filters.category.value
+            if hasattr(filters.category, "value")
+            else filters.category
+        )
         conditions.append(f"metadata.meta_category = '{cat_val}'")
 
     # Impact level filter
@@ -286,7 +297,11 @@ def transform_doc_for_meilisearch(
     metadata_dict = meta.model_dump() if hasattr(meta, "model_dump") else meta.dict()
 
     # Convert dates to strings for JSON compatibility
-    for date_field in ["meta_date_effective", "meta_action_deadline", "meta_date_announced"]:
+    for date_field in [
+        "meta_date_effective",
+        "meta_action_deadline",
+        "meta_date_announced",
+    ]:
         if metadata_dict.get(date_field):
             metadata_dict[date_field] = str(metadata_dict[date_field])
 
@@ -306,13 +321,11 @@ def transform_doc_for_meilisearch(
         )
 
     return {
-        "id": doc.uuid,  # Meilisearch requires 'id' field
+        "id": doc.id,  # Meilisearch requires 'id' field
         "title": doc.title,
         "content": doc.original_content,
         "month": doc.month,
         "link": doc.link,
         "metadata": metadata_dict,
-        "_vectors": {
-            "default": embedding_vector  # Vector for hybrid search
-        },
+        "_vectors": {"default": embedding_vector},  # Vector for hybrid search
     }

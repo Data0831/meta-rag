@@ -9,7 +9,12 @@ project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 if project_root not in sys.path:
     sys.path.insert(0, project_root)
 
-from src.config import PROCESSED_OUTPUT, MEILISEARCH_HOST, MEILISEARCH_API_KEY, MEILISEARCH_INDEX
+from src.config import (
+    PROCESSED_OUTPUT,
+    MEILISEARCH_HOST,
+    MEILISEARCH_API_KEY,
+    MEILISEARCH_INDEX,
+)
 from src.schema.schemas import AnnouncementDoc
 from src.database.db_adapter_meili import MeiliAdapter, transform_doc_for_meilisearch
 from src.database.vector_utils import create_enriched_text, get_embedding
@@ -55,7 +60,7 @@ def clear_all():
     adapter = MeiliAdapter(
         host=MEILISEARCH_HOST,
         api_key=MEILISEARCH_API_KEY,
-        collection_name=MEILISEARCH_INDEX
+        collection_name=MEILISEARCH_INDEX,
     )
     adapter.reset_index()
     print("✓ Meilisearch index cleared.")
@@ -81,7 +86,7 @@ def process_and_write():
     adapter = MeiliAdapter(
         host=MEILISEARCH_HOST,
         api_key=MEILISEARCH_API_KEY,
-        collection_name=MEILISEARCH_INDEX
+        collection_name=MEILISEARCH_INDEX,
     )
 
     # 1. Generate Embeddings and Transform Documents
@@ -98,7 +103,7 @@ def process_and_write():
             meili_doc = transform_doc_for_meilisearch(doc, vector)
             meili_docs.append(meili_doc)
         else:
-            print(f"⚠ Failed to generate embedding for doc {doc.uuid}")
+            print(f"⚠ Failed to generate embedding for doc {doc.id}")
 
         if (i + 1) % 10 == 0:
             print(f"  Processed {i + 1}/{len(docs)}")
@@ -118,7 +123,9 @@ def process_and_write():
     stats = adapter.get_stats()
     if stats:
         print(f"  Total documents: {stats.get('numberOfDocuments', 'N/A')}")
-        print(f"  Index status: {stats.get('isIndexing', False) and 'Indexing...' or 'Ready'}")
+        print(
+            f"  Index status: {stats.get('isIndexing', False) and 'Indexing...' or 'Ready'}"
+        )
 
     print("\n✓ Done.")
 

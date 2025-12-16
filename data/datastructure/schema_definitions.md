@@ -8,7 +8,7 @@
 ### 1.1 AnnouncementDoc (核心物件)
 | 欄位 (Key) | 類型 | 說明 | 來源 |
 | :--- | :--- | :--- | :--- |
-| `uuid` | String (UUID) | 唯一識別碼 | System |
+| `id` | String (id) | 唯一識別碼 | System |
 | `month` | String | 資料月份 (e.g., "2025-12") | Source |
 | `title` | String | 公告標題 | Source |
 | `link` | Optional[String] | 原始連結 | Source |
@@ -36,7 +36,7 @@
 
 | Column | Type | Description |
 | :--- | :--- | :--- |
-| `uuid` | TEXT | Primary Key |
+| `id` | TEXT | Primary Key |
 | `title` | TEXT | **FTS Indexed** |
 | `content` | TEXT | **FTS Indexed** (Original Content) |
 | `metadata_json` | TEXT | Full JSON Dump |
@@ -50,7 +50,7 @@
 **Payload Structure (注意：不含內文)**
 | Key | Type | Description |
 | :--- | :--- | :--- |
-| `uuid` | String | 關聯 SQLite 用 |
+| `id` | String | 關聯 SQLite 用 |
 | `meta_impact_level` | String | Filterable |
 | `meta_category` | String | Filterable |
 | `meta_products` | List[Str] | Filterable |

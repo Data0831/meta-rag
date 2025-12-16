@@ -1,5 +1,5 @@
 import json
-import uuid
+import id
 from typing import List, Dict, Any
 from pathlib import Path
 import sys
@@ -55,14 +55,14 @@ def parse_json_data(file_path: str) -> List[Dict[str, Any]]:
                 link = item.get("link", "").strip()
 
                 # We need a unique ID for the vector store and database.
-                # Since we don't have one in the source, we generate a UUID.
-                doc_uuid = str(uuid.uuid4())
+                # Since we don't have one in the source, we generate a id.
+                doc_id = str(id.id4())
 
                 # Initialize empty metadata needed for schema validation later
                 # Ensure it validates against our schema
                 try:
                     doc = AnnouncementDoc(
-                        uuid=doc_uuid,
+                        id=doc_id,
                         month=month,
                         title=title,
                         link=link,

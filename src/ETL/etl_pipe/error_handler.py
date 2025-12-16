@@ -17,7 +17,7 @@ class ErrorRecord:
 
     timestamp: str
     batch_file: str
-    uuids: List[str]  # 該批次中的所有 UUID
+    ids: List[str]  # 該批次中的所有 id
     error_type: str
     error_message: str
     llm_input: Optional[List[Dict[str, Any]]] = None
@@ -41,7 +41,7 @@ class ErrorHandler:
     def log_error(
         self,
         batch_file: str,
-        uuids: List[str],
+        ids: List[str],
         error_type: str,
         error_message: str,
         llm_input: Optional[List[Dict[str, Any]]] = None,
@@ -53,7 +53,7 @@ class ErrorHandler:
         error_record = ErrorRecord(
             timestamp=timestamp,
             batch_file=batch_file,
-            uuids=uuids,
+            ids=ids,
             error_type=error_type,
             error_message=error_message,
             llm_input=llm_input,
@@ -87,38 +87,38 @@ class ErrorHandler:
             print(f"  檔案: {error.batch_file}")
             print(f"  類型: {error.error_type}")
             print(f"  訊息: {error.error_message}")
-            print(f"  受影響的 UUID 數量: {len(error.uuids)}")
+            print(f"  受影響的 id 數量: {len(error.ids)}")
             print(
                 f"  詳細日誌: {self.log_dir}/{os.path.basename(error.batch_file)}.error.json"
             )
 
-        # 收集所有失敗的 UUID
-        all_failed_uuids = []
+        # 收集所有失敗的 id
+        all_failed_ids = []
         for error in self.error_records:
-            all_failed_uuids.extend(error.uuids)
+            all_failed_ids.extend(error.ids)
 
-        print(f"\n總計失敗的項目數: {len(all_failed_uuids)}")
+        print(f"\n總計失敗的項目數: {len(all_failed_ids)}")
         print(f"失敗的批次檔案數: {len(self.failed_batches)}")
 
     def save_error_list(self):
-        """將失敗的 UUID 寫入 errorlist.json"""
-        all_failed_uuids = []
+        """將失敗的 id 寫入 errorlist.json"""
+        all_failed_ids = []
         for error in self.error_records:
-            all_failed_uuids.extend(error.uuids)
+            all_failed_ids.extend(error.ids)
 
         error_list_path = os.path.join(self.output_dir, "../errorlist.json")
         error_data = {
             "timestamp": datetime.now().isoformat(),
-            "total_failed_items": len(all_failed_uuids),
+            "total_failed_items": len(all_failed_ids),
             "total_failed_batches": len(self.failed_batches),
-            "failed_uuids": all_failed_uuids,
+            "failed_ids": all_failed_ids,
             "failed_batch_files": self.failed_batches,
             "error_summary": [
                 {
                     "batch_file": error.batch_file,
                     "error_type": error.error_type,
                     "error_message": error.error_message,
-                    "affected_count": len(error.uuids),
+                    "affected_count": len(error.ids),
                 }
                 for error in self.error_records
             ],

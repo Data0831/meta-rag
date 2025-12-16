@@ -5,7 +5,7 @@
 -- Main Table: announcements
 -- ============================================
 CREATE TABLE IF NOT EXISTS announcements (
-    uuid TEXT PRIMARY KEY NOT NULL,
+    id TEXT PRIMARY KEY NOT NULL,
     month TEXT NOT NULL,                    -- Format: YYYY-MM
     title TEXT NOT NULL,
     content TEXT NOT NULL,                  -- Original content
@@ -78,7 +78,7 @@ CREATE INDEX IF NOT EXISTS idx_announcements_date_effective ON announcements(dat
 --   LIMIT 20;
 --
 -- Snippet Generation:
---   SELECT uuid, title, snippet(announcements_fts, -1, '<b>', '</b>', '...', 64) as snippet
+--   SELECT id, title, snippet(announcements_fts, -1, '<b>', '</b>', '...', 64) as snippet
 --   FROM announcements
 --   JOIN announcements_fts ON announcements.rowid = announcements_fts.rowid
 --   WHERE announcements_fts MATCH 'azure'

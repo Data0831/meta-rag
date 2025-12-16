@@ -60,7 +60,7 @@ class ETLPipeline:
         Args:
             file_path: Path to the raw JSON file
         Returns:
-            List of AnnouncementDoc dictionaries with UUID and empty metadata
+            List of AnnouncementDoc dictionaries with id and empty metadata
         """
         print(f"Parsing raw data from {file_path}...")
         docs = parse_raw_json(file_path)
@@ -144,11 +144,11 @@ class ETLPipeline:
 
         # 2. Load already processed data to avoid duplicates
         processed_docs = self.load_processed_data()
-        processed_uuids = {doc.get("uuid") for doc in processed_docs if doc.get("uuid")}
+        processed_ids = {doc.get("id") for doc in processed_docs if doc.get("id")}
 
         # 3. Filter out already processed documents
         unprocessed_docs = [
-            doc for doc in all_docs if doc.get("uuid") not in processed_uuids
+            doc for doc in all_docs if doc.get("id") not in processed_ids
         ]
 
         if not unprocessed_docs:
