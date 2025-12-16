@@ -1,9 +1,9 @@
 import json
-import id
 from typing import List, Dict, Any
 from pathlib import Path
 import sys
 import os
+import uuid
 
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../"))
 if project_root not in sys.path:
@@ -56,7 +56,7 @@ def parse_json_data(file_path: str) -> List[Dict[str, Any]]:
 
                 # We need a unique ID for the vector store and database.
                 # Since we don't have one in the source, we generate a id.
-                doc_id = str(id.id4())
+                doc_id = str(uuid.uuid4())
 
                 # Initialize empty metadata needed for schema validation later
                 # Ensure it validates against our schema

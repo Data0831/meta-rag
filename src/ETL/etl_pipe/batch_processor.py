@@ -11,7 +11,7 @@ import json
 import os
 import sys
 import time
-import id as id_lib
+import uuid
 from typing import List, Dict, Any, Optional
 from openai import APIStatusError
 
@@ -171,7 +171,7 @@ class BatchProcessor:
                 continue
 
             # 使用原始的 id 或生成新的
-            doc_id = raw.get("id") or str(id_lib.id4())
+            doc_id = raw.get("id") or str(uuid.uuid4())
 
             # Construct Metadata object from Pydantic MetadataExtraction
             try:

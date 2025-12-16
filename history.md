@@ -23,3 +23,5 @@
 
 ## 2025-12-16 (晚間)
 **Phase 5 架構革新 - 完全遷移至 Meilisearch**：執行從 SQLite + Qdrant 雙引擎到 Meilisearch 單一引擎的完整架構重構。建立 `db_adapter_meili.py` 統一混合搜尋適配器，整合關鍵字（含模糊匹配、錯字容忍）與語意向量搜尋。重寫 `SearchService` 移除並行查詢與 RRF 融合邏輯（~200 行），改為單一 API 呼叫。更新 `vectorPreprocessing.py` 與 `app.py` 全面支援 Meilisearch。備份舊適配器為 `.bak` 檔案。建立完整 `MIGRATION.md` 遷移文檔，包含步驟指南、架構對比、效能基準與常見問題。搜尋延遲從 ~150ms 降至 ~30ms，架構複雜度大幅簡化，系統更易維護且效能更優。
+
+**更改 uuid 變成 id**
