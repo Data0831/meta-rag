@@ -23,3 +23,6 @@
 
 ## 2025-12-16 (路徑配置整合)
 完成路徑配置統一管理。修復 `config.py` 語法錯誤並新增完整路徑常量（`DATA_DIR`, `PROCESSED_DIR`, `LOG_DIR`, `PAGE_JSON`, `SQLITE_DB` 等）。移除廢棄的 `split` 目錄相關配置與邏輯。重構 `etl.py` 使用集中式路徑配置，修正 `__init__` 參數定義，並簡化 `genMetaData` 方法從處理目錄改為處理單一輸入檔案，提升程式碼可維護性。
+
+## 2025-12-16 (ETL Pipeline 架構簡化)
+重構 ETL Pipeline，移除批次文件管理機制。`batch_processor.py` 改為純記憶體處理，移除 `load_batch`、`save_batch` 方法，將 `process_file` 重構為 `process_batch`。`etl.py` 新增 `load_parsed_data`、`load_processed_data`、`append_to_processed` 方法，實作增量處理流程：從 `parse.json` 載入資料、自動追蹤已處理 UUID 避免重複、依可配置批次大小（預設 10）分批處理、成功後立即追加至 `processed.json`。移除 `clean_processed_files`、`merge_processed_files`、`retry_failed_batches` 等冗餘方法。新增 `DEFAULT_BATCH_SIZE` 配置項至 `config.py`，提升容錯性與可恢復性。

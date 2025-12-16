@@ -1,7 +1,7 @@
 # 技術規格書：Microsoft 公告混合檢索系統
 
 ## 1. 專案目標 (Objectives)
-本專案旨在建構一套針對 Microsoft 公告資料（如 `page.example.json`）的高效能混合檢索系統。核心目標如下：
+本專案旨在建構一套針對 Microsoft 公告資料（如 `result.example.json`）的高效能混合檢索系統。核心目標如下：
 *   **精確與語意並重**：結合 SQLite FTS5 的關鍵字精確過濾（如日期、價格）與 Qdrant 的語意模糊搜尋（如「緊急變更」），解決單一檢索技術的不足。
 *   **智慧資料處理**：透過 LLM ETL Pipeline 自動化提取高價值 Metadata，並進行文本增強（Text Enrichment），提升向量檢索的準確度。
 *   **成本效益優化**：利用批次處理（Batch Processing）降低 LLM 呼叫成本與時間。
@@ -98,36 +98,43 @@ Content: {original_content}
 ## 5. 專案檔案結構 (Project Structure)
 
 ```text
-project_root/
-├── data/
-│   ├── split/                         # 分批後的原始資料
-│   ├── processed/                     # ETL 處理後的資料
-│   │   └── processed.json             # 合併後的完整資料
-│   ├── process_log/                   # ETL 錯誤日誌
-│   ├── page.example.json              # 資料格式示例
-│   └── page.json                      # JSON 格式原始資料
-├── database/
-│   ├── announcements.db               # SQLite 資料庫檔案
-│   └── qdrant_storage/                # Qdrant 本地儲存
-├── src/
-│   ├── ETL/                           # ETL 模組
-│   │   ├── etl_pipe/                  # ETL Pipeline 核心
-│   │   │   ├── etl.py                 # 主控制器
-│   │   │   ├── batch_processor.py     # 批次處理邏輯
-│   │   │   ├── error_handler.py       # 錯誤處理與日誌
-│   │   ├── spliter/                   # 資料分割
-│   │   │   ├── parser.py              # JSON 解析
-│   │   │   ├── splitter.py            # Natural Split
-│   ├── llm/                           # LLM 核心邏輯
-│   │   ├── client.py                  # LLM Client (支援 Pydantic Schema)
-│   │   ├── prompts.py                 # System Prompts
-│   ├── schema/                        # 資料定義
-│   │   ├── schemas.py                 # Pydantic Schemas
-│   ├── database/                      # 資料庫操作
-│   │   ├── db_adapter_sqlite.py       # SQLite FTS5 封裝
-│   │   ├── db_adapter_qdrant.py       # Qdrant 操作封裝
-│   │   └── vector_utils.py            # Embedding 與文本增強
-│   └── main.py                        # 程式進入點
-├── .env                               # API Keys 設定
-└── requirements.txt
-```ps: 維護時請寫重點，不要過度展開
+├─data
+│  │  errorlist.json
+│  │  page.example.json
+│  │  page.json
+│  │  parse.json
+│  │
+│  ├─datastructure
+│  │      metadata.example.json
+│  │
+│  └─processed
+│          processed.json
+│
+├─database
+│      announcements.db
+│
+├─src
+│  │  config.py
+│  │  dataPreprocessing.py
+│  │  main.py
+│  │
+│  ├─database
+│  │      db_adapter_qdrant.py
+│  │      db_adapter_sqlite.py
+│  │      vector_utils.py
+│  │
+│  ├─ETL
+│  │  ├─etl_pipe
+│  │  │  │  batch_processor.py
+│  │  │  │  error_handler.py
+│  │  │  │  etl.py
+│  │  │  │  parser.py
+│  │
+│  ├─llm
+│  │  │  client.py
+│  │  │  metadata_prompts.py
+│  │  │  
+│  │  │
+│  ├─schema
+│  │  │  schemas.py
+``` ps: 維護時請寫重點，不要過度展開

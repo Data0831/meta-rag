@@ -23,6 +23,9 @@ ERROR_LIST_OUTPUT = os.path.join(DATA_DIR, "errorlist.json")
 SQLITE_DB = os.path.join(DATABASE_DIR, "announcements.db")
 QDRANT_STORAGE = os.path.join(DATABASE_DIR, "qdrant_storage")
 
+# ETL Settings
+DEFAULT_BATCH_SIZE = 10  # Number of documents to process per batch
+
 # Legacy FilePath dict for backward compatibility
 FilePath = {
     "page": PAGE_JSON,

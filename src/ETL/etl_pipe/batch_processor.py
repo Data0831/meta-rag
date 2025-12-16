@@ -1,11 +1,9 @@
 """
 Batch Processor Module
 
-Handles individual batch processing including:
-- Loading batch data
+Handles in-memory batch processing including:
 - LLM metadata extraction
 - Data merging
-- File output
 """
 
 import json
@@ -32,25 +30,15 @@ from src.ETL.etl_pipe.error_handler import ErrorHandler
 
 
 class BatchProcessor:
-    """處理單個批次的 ETL 流程"""
+    """處理記憶體中批次資料的 ETL 流程"""
 
     def __init__(
         self,
         llm_client: LLMClient,
         error_handler: ErrorHandler,
-        output_dir: str = "data/processed",
     ):
         self.llm_client = llm_client
         self.error_handler = error_handler
-        self.output_dir = output_dir
-
-        # Ensure output directory exists
-        os.makedirs(self.output_dir, exist_ok=True)
-
-    def load_batch(self, file_path: str) -> List[Dict[str, Any]]:
-        """Load a single batch file."""
-        with open(file_path, "r", encoding="utf-8") as f:
-            return json.load(f)
 
     def prepare_llm_input(
         self, raw_batch: List[Dict[str, Any]]
@@ -133,51 +121,43 @@ class BatchProcessor:
 
         return merged_docs
 
-    def save_batch(self, docs: List[AnnouncementDoc], file_path: str):
-        """儲存批次結果到檔案"""
-        filename = os.path.basename(file_path)
-        output_path = os.path.join(self.output_dir, filename)
-
-        # Convert Pydantic models to dicts for JSON serialization
-        docs_json = [doc.model_dump(mode="json") for doc in docs]
-
-        with open(output_path, "w", encoding="utf-8") as f:
-            json.dump(docs_json, f, ensure_ascii=False, indent=2)
-
-        print(f"✓ Saved {len(docs)} documents to {output_path}")
-
-    def process_file(self, file_path: str) -> bool:
+    def process_batch(
+        self, raw_batch: List[Dict[str, Any]], batch_index: int
+    ) -> Optional[List[AnnouncementDoc]]:
         """
-        Process a single file through the ETL pipeline.
+        Process a single batch through the ETL pipeline.
+
+        Args:
+            raw_batch: List of raw announcement documents
+            batch_index: Index of the batch for logging purposes
 
         Returns:
-            True if successful, False if error occurred
+            List of processed AnnouncementDoc objects if successful, None if error occurred
         """
-        print(f"Processing {file_path}...")
+        print(f"Processing batch {batch_index} ({len(raw_batch)} items)...")
         llm_input = None
         uuids = []
 
         try:
-            # 1. Load Data
-            raw_batch = self.load_batch(file_path)
+            # 1. Validate batch
             if not raw_batch:
                 print("Empty batch, skipping.")
-                return True  # Empty is not an error
+                return []  # Empty is not an error
 
             # Extract UUIDs for error tracking
             uuids = [item.get("uuid") or str(idx) for idx, item in enumerate(raw_batch)]
 
             # 2. Check SYSTEM_PROMPT
             if not SYSTEM_PROMPT:
-                error_msg = "SYSTEM_PROMPT is empty in src/prompts.py"
+                error_msg = "SYSTEM_PROMPT is empty in src/llm/metadata_prompts.py"
                 print(f"WARNING: {error_msg}")
                 self.error_handler.log_error(
-                    batch_file=file_path,
+                    batch_file=f"batch_{batch_index}",
                     uuids=uuids,
                     error_type="ConfigError",
                     error_message=error_msg,
                 )
-                return False
+                return None
 
             # 3. Prepare LLM Input
             llm_input = self.prepare_llm_input(raw_batch)
@@ -191,14 +171,14 @@ class BatchProcessor:
                 )
                 print(f"✗ {error_msg}")
                 self.error_handler.log_error(
-                    batch_file=file_path,
+                    batch_file=f"batch_{batch_index}",
                     uuids=uuids,
                     error_type="LLMValidationError",
                     error_message=error_msg,
                     llm_input=llm_input,
                     llm_response=None,
                 )
-                return False
+                return None
 
             # 5. Merge Data
             metadata_batch = batch_result.results
@@ -210,7 +190,7 @@ class BatchProcessor:
                 )
                 print(f"✗ {error_msg}")
                 self.error_handler.log_error(
-                    batch_file=file_path,
+                    batch_file=f"batch_{batch_index}",
                     uuids=uuids,
                     error_type="MergeError",
                     error_message=error_msg,
@@ -219,22 +199,22 @@ class BatchProcessor:
                         [m.model_dump() for m in metadata_batch], ensure_ascii=False
                     ),
                 )
-                return False
+                return None
 
-            # 6. Save
-            self.save_batch(docs, file_path)
-            time.sleep(1)  # Rate limit protection
-            return True
+            # 6. Rate limit protection
+            time.sleep(1)
+            print(f"✓ Batch {batch_index} processed successfully ({len(docs)} docs)")
+            return docs
 
         except Exception as e:
             error_msg = f"Unexpected error: {str(e)}"
             print(f"✗ {error_msg}")
             self.error_handler.log_error(
-                batch_file=file_path,
+                batch_file=f"batch_{batch_index}",
                 uuids=uuids,
                 error_type="UnexpectedError",
                 error_message=error_msg,
                 llm_input=llm_input,
                 llm_response=None,
             )
-            return False
+            return None

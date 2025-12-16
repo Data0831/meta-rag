@@ -34,33 +34,36 @@ python src/main.py [mode]
 
 ## 3. 核心功能模組與路徑
 
-### A. 資料攝取與分塊 (`src/ingestion/splitter.py`)
-負責將原始 JSON 資料解析並切分為適合 LLM 處理的小批次。
+### A. 資料解析 (`src/ETL/etl_pipe/parser.py`)
+負責將原始 JSON 資料解析為標準化格式。
 *   **輸入**: `data/page.json`
+*   **處理**: 讀取原始資料，以單一 List Item 為最小單位 (Natural Split)，並生成 UUID。
+*   **輸出**: `data/parse.json`
+*   **執行指令**: `python src/ETL/etl_pipe/parser.py`
+
+### B. ETL Pipeline (`src/ETL/etl_pipe/etl.py`)
+負責將解析後的資料透過 LLM 提取 Metadata 並轉換為結構化資料。
+*   **輸入**: `data/parse.json`
 *   **處理**:
-    *   **解析 (`src/ingestion/parser.py`)**: 讀取原始資料，以單一 List Item 為最小單位 (Natural Split)，並生成 UUID。
-    *   **分塊 (`src/ingestion/splitter.py`)**: 將清洗後的資料按固定數量 (預設 5) 分組，存為獨立檔案。
-*   **輸出**: `data/split/*.json`
-*   **執行指令**: `python src/ingestion/splitter.py`
-
-### B. 資料處理 Pipeline (`src/pipeline/etl.py`)
-負責將原始 JSON 資料轉換為帶有 Metadata 的結構化資料。
-*   **輸入**: `data/split/*.json`
-*   **處理**: 呼叫 LLM 提取 Metadata (日期、產品、影響等級等)。
+    *   從 `parse.json` 載入所有資料
+    *   自動追蹤已處理的 UUID，避免重複處理
+    *   按批次大小（預設 10，可透過 `config.py` 的 `DEFAULT_BATCH_SIZE` 調整）分批呼叫 LLM
+    *   每批成功後立即追加到 `processed.json`（增量寫入，不覆蓋）
+    *   提取 Metadata (日期、產品、影響等級、摘要等)
 *   **輸出**: `data/processed/processed.json`
-*   **執行指令**: 若需重新執行 ETL，可單獨執行 `python src/pipeline/etl.py`。
+*   **執行指令**: 透過 `src/main.py` 執行 ETL 流程
 
-### C. 向量處理 (`src/vector_utils.py`)
+### C. 向量處理 (`src/database/vector_utils.py`)
 負責文本增強 (Enrichment) 與向量生成。
 *   **Embedding Model**: 使用本地 **Ollama** 運行的 `bge-m3` 模型。
 *   **Text Enrichment**: 將標題、摘要、產品等 Metadata 組合成 `Title: ...\nContent: ...` 格式以提升檢索準確度。
 *   **前提**: 必須先安裝 Ollama 並執行 `ollama pull bge-m3`。
 
 ### D. 資料庫適配器
-*   **SQLite (`src/db_adapter_sqlite.py`)**:
+*   **SQLite (`src/database/db_adapter_sqlite.py`)**:
     *   儲存: `database/announcements.db`
     *   功能: 關鍵字搜尋 (FTS5)、Metadata 篩選。
-*   **Qdrant (`src/db_adapter_qdrant.py`)**:
+*   **Qdrant (`src/database/db_adapter_qdrant.py`)**:
     *   儲存: Qdrant Server (Docker)
     *   Collection 名稱: `announcements`
     *   維度: `1024` (對應 bge-m3)。
@@ -78,8 +81,8 @@ python src/main.py [mode]
 2.  **資料準備**:
     *   確認 `data/processed/processed.json` 存在且有資料。
     *   若無，請依序執行：
-        1.  `python src/ingestion/splitter.py` (生成分塊資料)
-        2.  `python src/pipeline/etl.py` (生成 Metadata 與處理後資料)
+        1.  `python src/ETL/etl_pipe/parser.py` (將 page.json 解析為 parse.json)
+        2.  透過 `src/main.py` 執行 ETL 流程 (生成 Metadata 與處理後資料)
 
 3.  **執行驗證**:
     *   執行後觀察 Log，應顯示 "Upserted X documents into SQLite" 與 "Upserted X points into Qdrant"。
@@ -92,8 +95,14 @@ python src/main.py [mode]
 *   **權重優化**: 合成文本能明確標示 `Title:`, `Summary:` 等欄位，讓模型更能捕捉重點。
 
 **Q2: 向量生成 (Embedding) 是否包含原始內文？**
-*   **是**。在 `src/vector_utils.py` 的 `create_enriched_text` 函式中，我們將 Metadata (標題、產品、影響等級) 與 `original_content` 組合在一起生成向量。這確保了搜尋時能同時考慮公告屬性與實際內容。
+*   **是**。在 `src/database/vector_utils.py` 的 `create_enriched_text` 函式中，我們將 Metadata (標題、產品、影響等級) 與 `original_content` 組合在一起生成向量。這確保了搜尋時能同時考慮公告屬性與實際內容。
 
 **Q3: Qdrant 與 SQLite 的分工為何？**
 *   **Qdrant**: 儲存 **Vector** (含內文語意) 與 **Metadata Payload** (用於過濾)。不需儲存原始長文，以節省記憶體。
 *   **SQLite**: 儲存 **原始完整內文 (Content)** 與 Metadata。用於最終顯示詳細資料與 FTS5 精確關鍵字搜尋。
+
+**Q4: ETL Pipeline 的增量處理如何運作？**
+*   **UUID 追蹤**: 每個文件都有唯一的 UUID，系統會自動比對 `processed.json` 中已處理的 UUID。
+*   **避免重複**: 只處理尚未在 `processed.json` 中的文件，節省 API 成本與時間。
+*   **追加寫入**: 每批次處理成功後立即追加到 `processed.json`，不會覆蓋已有資料。
+*   **容錯恢復**: 若中途中斷，重新執行時會自動從未處理的文件繼續，已成功的批次不會重複處理。
