@@ -27,6 +27,10 @@ def etl_retry_errorlist():
     etl_pipeline.genMetaData(interactive=True)
 
 
+def add_segmented_summary():
+    etl_pipeline.add_segmented_summary()
+
+
 def main():
     while True:
         choice = (
@@ -37,6 +41,7 @@ def main():
         1. 清除 processed (如果需要全部重新處理)
         2. etl genMetaData (送給 LLM 處理)
         3. retry (保留上次的 processed，重新處理失敗的批次)
+        4. add_segmented_summary (對 processed.json 添加分詞欄位)
         Q. quit
         input your choice like 1 or Q:
         """
@@ -53,6 +58,8 @@ def main():
             etl_genMetaData()
         elif choice == "3":
             etl_retry_errorlist()
+        elif choice == "4":
+            add_segmented_summary()
         elif choice == "Q":
             return
         else:

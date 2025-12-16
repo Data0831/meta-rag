@@ -45,7 +45,7 @@ class MeiliAdapter:
 
             # 2. Set searchable attributes (for keyword search)
             self.index.update_searchable_attributes(
-                ["title", "content", "metadata.meta_summary"]
+                ["title", "content", "metadata.meta_summary", "metadata.meta_summary_segmented"]
             )
 
             # 3. Enable vector search (Hybrid Search)

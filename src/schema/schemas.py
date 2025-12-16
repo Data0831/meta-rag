@@ -35,6 +35,9 @@ class AnnouncementMetadata(BaseModel):
     meta_summary: Optional[str] = Field(
         None, description="Summary in Traditional Chinese"
     )
+    meta_summary_segmented: Optional[str] = Field(
+        None, description="Segmented summary for better keyword search (jieba)"
+    )
     meta_change_type: Optional[str] = Field(
         None, description="Type of change e.g. Deprecation"
     )

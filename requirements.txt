@@ -1,7 +1,9 @@
-qdrant-client
+# qdrant-client
 google-generativeai
 openai
 pydantic
 sqlite-utils
 python-dotenv
 ollama
+meilisearch
+jieba

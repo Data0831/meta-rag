@@ -199,3 +199,48 @@ class ETLPipeline:
             print("\n✓ All batches processed successfully!")
 
         print(f"\nProcessed data saved to: {self.processed_file}")
+
+    def add_segmented_summary(self):
+        """
+        Process existing processed.json to add segmented summary field.
+        Reads meta_summary and creates a segmented version using jieba for better keyword search.
+        """
+        import jieba
+
+        print("=" * 60)
+        print("Adding Segmented Summary to Processed Data")
+        print("=" * 60)
+
+        # Load processed data
+        processed_docs = self.load_processed_data()
+        if not processed_docs:
+            print("No processed data found. Please run ETL pipeline first.")
+            return
+
+        print(f"Processing {len(processed_docs)} documents...")
+        modified_count = 0
+
+        for doc in processed_docs:
+            # Get meta_summary from metadata
+            metadata = doc.get("metadata", {})
+            meta_summary = metadata.get("meta_summary")
+
+            if meta_summary:
+                # Use jieba to segment the summary
+                # Join with spaces for better keyword matching in Meilisearch
+                segmented = " ".join(jieba.cut(meta_summary))
+                metadata["meta_summary_segmented"] = segmented
+                modified_count += 1
+
+        # Save back to processed.json
+        with open(self.processed_file, "w", encoding="utf-8") as f:
+            json.dump(processed_docs, f, ensure_ascii=False, indent=2)
+
+        print(f"✓ Added segmented summary to {modified_count} documents")
+        print(f"✓ Updated file saved to: {self.processed_file}")
+        print("\nExample:")
+        if processed_docs and processed_docs[0].get("metadata", {}).get("meta_summary"):
+            example_meta = processed_docs[0]["metadata"]
+            print(f"  Original: {example_meta.get('meta_summary', '')[:100]}...")
+            print(f"  Segmented: {example_meta.get('meta_summary_segmented', '')[:100]}...")
+        print("\nNote: You need to re-run vectorPreprocessing.py to update Meilisearch index.")

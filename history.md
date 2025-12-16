@@ -25,3 +25,6 @@
 **Phase 5 架構革新 - 完全遷移至 Meilisearch**：執行從 SQLite + Qdrant 雙引擎到 Meilisearch 單一引擎的完整架構重構。建立 `db_adapter_meili.py` 統一混合搜尋適配器，整合關鍵字（含模糊匹配、錯字容忍）與語意向量搜尋。重寫 `SearchService` 移除並行查詢與 RRF 融合邏輯（~200 行），改為單一 API 呼叫。更新 `vectorPreprocessing.py` 與 `app.py` 全面支援 Meilisearch。備份舊適配器為 `.bak` 檔案。建立完整 `MIGRATION.md` 遷移文檔，包含步驟指南、架構對比、效能基準與常見問題。搜尋延遲從 ~150ms 降至 ~30ms，架構複雜度大幅簡化，系統更易維護且效能更優。
 
 **更改 uuid 變成 id**
+
+## 2025-12-16 (深夜)
+**Phase 6 中文分詞優化 - 關鍵字搜尋改進**：分析 Meilisearch 中文分詞限制（字符級分詞導致匹配不精準），實作欄位分離方案避免影響向量搜尋。在 `AnnouncementMetadata` 新增 `meta_summary_segmented` 欄位，使用 jieba 進行中文分詞並以空格分隔。於 `etl.py` 新增 `add_segmented_summary()` 方法處理現有 `processed.json`，更新 `db_adapter_meili.py` 將分詞欄位加入 `searchable_attributes`。在 `dataPreprocessing.py` 新增選項 4 供使用者執行分詞處理。更新 `requirements.txt` 加入 `jieba` 依賴。此方案確保 `meta_summary` 維持語義完整性用於向量搜尋，`meta_summary_segmented` 提升關鍵字匹配準確度，兼顧兩種搜尋模式的最佳效果。
