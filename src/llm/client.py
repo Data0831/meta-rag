@@ -1,12 +1,19 @@
 import os
 import json
-from typing import Type, TypeVar
-from openai import OpenAI
+from typing import Type, TypeVar, List
+from openai import OpenAI, APIError, APIStatusError
 from dotenv import load_dotenv
 from pydantic import BaseModel, ValidationError
 
 # Load environment variables
 load_dotenv()
+
+# Import model list from config
+import sys
+project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+if project_root not in sys.path:
+    sys.path.insert(0, project_root)
+from config import GEMINI_MODELS
 
 T = TypeVar("T", bound=BaseModel)
 

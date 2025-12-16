@@ -26,3 +26,6 @@
 
 ## 2025-12-16 (ETL Pipeline 架構簡化)
 重構 ETL Pipeline，移除批次文件管理機制。`batch_processor.py` 改為純記憶體處理，移除 `load_batch`、`save_batch` 方法，將 `process_file` 重構為 `process_batch`。`etl.py` 新增 `load_parsed_data`、`load_processed_data`、`append_to_processed` 方法，實作增量處理流程：從 `parse.json` 載入資料、自動追蹤已處理 UUID 避免重複、依可配置批次大小（預設 10）分批處理、成功後立即追加至 `processed.json`。移除 `clean_processed_files`、`merge_processed_files`、`retry_failed_batches` 等冗餘方法。新增 `DEFAULT_BATCH_SIZE` 配置項至 `config.py`，提升容錯性與可恢復性。
+
+## 2025-12-16 (LLM Model 自動切換機制)
+實作 API 錯誤自動降級機制，提升 ETL Pipeline 穩定性。在 `config.py` 新增 `GEMINI_MODELS` 列表配置（gemini-2.5-flash → gemini-2.5-flash-lite → gemini-flash-latest → gemini-flash-lite-latest）。重構 `batch_processor.py`：新增 `get_next_model()` 與 `reset_model_index()` 方法管理模型切換狀態；升級 `extract_metadata()` 捕獲 `APIStatusError` 異常，遇到 429（Rate Limit）或 500（Server Error）時自動切換至下一個模型並等待 3 秒重試；加入三重安全機制（計數器限制、模型用盡檢查、循環結束退出）防止無窮迴圈，最多嘗試 4 個模型。每個 batch 開始時自動重置至初始模型，保持 `LLMClient` 底層通用性不受影響，支援使用者自訂初始模型。

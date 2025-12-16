@@ -26,6 +26,14 @@ QDRANT_STORAGE = os.path.join(DATABASE_DIR, "qdrant_storage")
 # ETL Settings
 DEFAULT_BATCH_SIZE = 10  # Number of documents to process per batch
 
+# LLM Model Settings
+GEMINI_MODELS = [
+    "gemini-2.5-flash",
+    "gemini-2.5-flash-lite",
+    "gemini-flash-latest",
+    "gemini-flash-lite-latest",
+]
+
 # Legacy FilePath dict for backward compatibility
 FilePath = {
     "page": PAGE_JSON,

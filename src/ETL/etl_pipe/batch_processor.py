@@ -4,6 +4,7 @@ Batch Processor Module
 Handles in-memory batch processing including:
 - LLM metadata extraction
 - Data merging
+- Model switching on errors
 """
 
 import json
@@ -12,6 +13,7 @@ import sys
 import time
 import uuid as uuid_lib
 from typing import List, Dict, Any, Optional
+from openai import APIStatusError
 
 # Add project root to sys.path
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../.."))
@@ -27,10 +29,11 @@ from src.schema.schemas import (
     MetadataExtraction,
 )
 from src.ETL.etl_pipe.error_handler import ErrorHandler
+from src.config import GEMINI_MODELS
 
 
 class BatchProcessor:
-    """處理記憶體中批次資料的 ETL 流程"""
+    """處理記憶體中批次資料的 ETL 流程，支援模型自動切換"""
 
     def __init__(
         self,
@@ -39,6 +42,32 @@ class BatchProcessor:
     ):
         self.llm_client = llm_client
         self.error_handler = error_handler
+
+        # Model switching configuration
+        self.available_models = GEMINI_MODELS.copy()
+        self.current_model_index = 0
+
+        # Set initial model from llm_client
+        if hasattr(llm_client, 'model') and llm_client.model in self.available_models:
+            self.current_model_index = self.available_models.index(llm_client.model)
+
+    def get_next_model(self) -> Optional[str]:
+        """切換到下一個可用的 model"""
+        self.current_model_index += 1
+        if self.current_model_index >= len(self.available_models):
+            return None  # 所有 model 都試過了
+
+        next_model = self.available_models[self.current_model_index]
+        print(f"🔄 切換到下一個 model: {next_model}")
+        return next_model
+
+    def reset_model_index(self):
+        """重置 model index 到初始值（用於新的 batch）"""
+        initial_model = self.llm_client.model if hasattr(self.llm_client, 'model') else self.available_models[0]
+        if initial_model in self.available_models:
+            self.current_model_index = self.available_models.index(initial_model)
+        else:
+            self.current_model_index = 0
 
     def prepare_llm_input(
         self, raw_batch: List[Dict[str, Any]]
@@ -58,17 +87,64 @@ class BatchProcessor:
     def extract_metadata(
         self, llm_input: List[Dict[str, Any]]
     ) -> Optional[BatchMetaExtraction]:
-        """呼叫 LLM 提取 metadata"""
+        """呼叫 LLM 提取 metadata，支援模型自動切換"""
         messages = [
             {"role": "system", "content": SYSTEM_PROMPT},
             {"role": "user", "content": json.dumps(llm_input, ensure_ascii=False)},
         ]
 
-        batch_result = self.llm_client.call_with_schema(
-            messages=messages, response_model=BatchMetaExtraction
-        )
+        # 使用當前 model 嘗試
+        current_model = self.available_models[self.current_model_index]
 
-        return batch_result
+        # 安全機制：最多嘗試所有可用 model 一次
+        max_attempts = len(self.available_models)
+        attempt_count = 0
+
+        while attempt_count < max_attempts:
+            attempt_count += 1
+
+            try:
+                print(f"📡 使用 model: {current_model} (嘗試 {attempt_count}/{max_attempts})")
+                batch_result = self.llm_client.call_with_schema(
+                    messages=messages,
+                    response_model=BatchMetaExtraction,
+                    model=current_model,
+                )
+
+                if batch_result:
+                    return batch_result
+
+                # 如果返回 None（驗證失敗），不切換 model，直接返回 None
+                return None
+
+            except APIStatusError as e:
+                # 檢查是否為 429 或 500 錯誤
+                if e.status_code in [429, 500]:
+                    print(f"⚠ 遇到 {e.status_code} 錯誤: {e.message}")
+
+                    # 嘗試切換到下一個 model
+                    next_model = self.get_next_model()
+                    if next_model is None:
+                        print(f"✗ 所有 model 都已嘗試，放棄處理")
+                        return None
+
+                    current_model = next_model
+                    print(f"⏳ 等待 3 秒後切換...")
+                    time.sleep(3)  # 切換前等待，避免立即再次觸發 rate limit
+                    continue
+                else:
+                    # 其他錯誤直接拋出
+                    print(f"✗ API 錯誤 ({e.status_code}): {e.message}")
+                    raise
+
+            except Exception as e:
+                # 其他例外直接拋出
+                print(f"✗ 未預期的錯誤: {e}")
+                raise
+
+        # 安全退出：如果超過最大嘗試次數
+        print(f"✗ 已達最大嘗試次數 ({max_attempts})，放棄處理")
+        return None
 
     def merge_data(
         self, raw_items: List[Dict[str, Any]], metadata_items: List[MetadataExtraction]
@@ -146,6 +222,9 @@ class BatchProcessor:
 
             # Extract UUIDs for error tracking
             uuids = [item.get("uuid") or str(idx) for idx, item in enumerate(raw_batch)]
+
+            # Reset model index for new batch
+            self.reset_model_index()
 
             # 2. Check SYSTEM_PROMPT
             if not SYSTEM_PROMPT:
