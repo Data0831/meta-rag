@@ -1,7 +1,7 @@
 # 技術規格書：Microsoft 公告混合檢索系統
 
 ## 1. 專案目標 (Objectives)
-本專案旨在建構一套針對 Microsoft 公告資料（如 `result.example.json`）的高效能混合檢索系統。核心目標如下：
+本專案旨在建構一套針對 Microsoft 公告資料（如 `page.example.json`）的高效能混合檢索系統。核心目標如下：
 *   **精確與語意並重**：結合 SQLite FTS5 的關鍵字精確過濾（如日期、價格）與 Qdrant 的語意模糊搜尋（如「緊急變更」），解決單一檢索技術的不足。
 *   **智慧資料處理**：透過 LLM ETL Pipeline 自動化提取高價值 Metadata，並進行文本增強（Text Enrichment），提升向量檢索的準確度。
 *   **成本效益優化**：利用批次處理（Batch Processing）降低 LLM 呼叫成本與時間。
@@ -67,7 +67,7 @@ Content: {original_content}
 ## 4. 模組職責說明 (Module Responsibilities)
 
 ### 4.1 資料攝取與分塊模組 (Ingestion & Chunking Module)
-*   負責讀取 `result.json`。
+*   負責讀取 `page.json`。
 *   執行 **Natural Split**：迭代解析 List 中的 JSON Object，確保每個 `{ title, link, content }` 被視為一個獨立的 Chunk，不進行硬性切分以保持語意完整。
 
 ### 4.2 Metadata 提取模組 (LLM ETL Module)
@@ -104,8 +104,8 @@ project_root/
 │   ├── processed/                     # ETL 處理後的資料
 │   │   └── processed.json             # 合併後的完整資料
 │   ├── process_log/                   # ETL 錯誤日誌
-│   ├── result.example.json            # 資料格式示例
-│   └── result.json                    # JSON 格式原始資料
+│   ├── page.example.json              # 資料格式示例
+│   └── page.json                      # JSON 格式原始資料
 ├── database/
 │   ├── announcements.db               # SQLite 資料庫檔案
 │   └── qdrant_storage/                # Qdrant 本地儲存

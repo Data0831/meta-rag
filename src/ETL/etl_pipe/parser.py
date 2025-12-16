@@ -2,7 +2,14 @@ import json
 import uuid
 from typing import List, Dict, Any
 from pathlib import Path
-from src.models.schemas import AnnouncementDoc, AnnouncementMetadata
+import sys
+import os
+
+project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../../"))
+if project_root not in sys.path:
+    sys.path.insert(0, project_root)
+
+from src.schema.schemas import AnnouncementDoc, AnnouncementMetadata
 
 
 def parse_json_data(file_path: str) -> List[Dict[str, Any]]:
@@ -72,14 +79,14 @@ def parse_json_data(file_path: str) -> List[Dict[str, Any]]:
 
 if __name__ == "__main__":
     # Test execution
-    data_path = Path("data/result.json")
-    # If running from root, path is data/result.json
+    data_path = Path("data/page.json")
+    # If running from root, path is data/page.json
     # Adjust if running helper script directly
     if not data_path.exists():
         # Try absolute path if relative fails, or check common locations
         # For now, just print warning
         print(
-            f"Warning: {data_path} does not exist. Please place 'result.json' in 'data/' folder."
+            f"Warning: {data_path} does not exist. Please place 'page.json' in 'data/' folder."
         )
     else:
         docs = parse_json_data(str(data_path))

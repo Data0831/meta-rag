@@ -67,7 +67,7 @@ Content: {original_content}
 ## 4. 模組職責說明 (Module Responsibilities)
 
 ### 4.1 資料攝取與分塊模組 (Ingestion & Chunking Module)
-*   負責讀取 `result.json`。
+*   負責讀取 `page.json`。
 *   執行 **Natural Split**：迭代解析 List 中的 JSON Object，確保每個 `{ title, link, content }` 被視為一個獨立的 Chunk，不進行硬性切分以保持語意完整。
 
 ### 4.2 Metadata 提取模組 (LLM ETL Module)
@@ -100,32 +100,34 @@ Content: {original_content}
 ```text
 project_root/
 ├── data/
-│   ├── processed/                     # 處理後的批次資料
-│   │   └── processed.json             # 合併後的批次資料
-│   ├── result.example.json              # 資料格式示例
-│   └── result.json                      # json 格式原始資料
+│   ├── split/                         # 分批後的原始資料
+│   ├── processed/                     # ETL 處理後的資料
+│   │   └── processed.json             # 合併後的完整資料
+│   ├── process_log/                   # ETL 錯誤日誌
+│   ├── result.example.json            # 資料格式示例
+│   └── page.json                    # JSON 格式原始資料
 ├── database/
-│   ├── announcements.db        # SQLite 資料庫檔案
-│   └── qdrant_storage/         # Qdrant 本地儲存 (若使用 Docker 則無此項)
+│   ├── announcements.db               # SQLite 資料庫檔案
+│   └── qdrant_storage/                # Qdrant 本地儲存
 ├── src/
-│   ├── ingestion/              # 資料攝取與分塊
-│   │   ├── __init__.py
-│   │   ├── parser.py           # 原 ingestion.py (解析 Markdown/JSON)
-│   │   └── splitter.py         # 原 split_data.py (Natural Split)
-│   ├── llm/                    # LLM 核心邏輯
-│   │   ├── __init__.py
-│   │   ├── client.py           # 原 llm_client.py (OpenAI Client Wrapper)
-│   │   └── prompts.py          # System Prompts 管理
-│   ├── models/                 # 資料定義
-│   │   ├── __init__.py
-│   │   └── schemas.py          # Pydantic Schemas
-│   ├── pipeline/               # 業務流程
-│   │   ├── __init__.py
-│   │   └── etl.py              # 原 etl_pipeline.py (完整 ETL 流程)
-│   ├── vector_utils.py         # 負責 Text Enrichment 與 Embedding API
-│   ├── db_adapter_sqlite.py    # SQLite FTS5 操作封裝 (待實作)
-│   ├── db_adapter_qdrant.py    # Qdrant Upsert/Search 操作封裝 (待實作)
-│   └── main.py                 # 程式進入點 (待更新)
-├── .env                        # API Keys 設定
+│   ├── ETL/                           # ETL 模組
+│   │   ├── etl_pipe/                  # ETL Pipeline 核心
+│   │   │   ├── etl.py                 # 主控制器
+│   │   │   ├── batch_processor.py     # 批次處理邏輯
+│   │   │   ├── error_handler.py       # 錯誤處理與日誌
+│   │   ├── spliter/                   # 資料分割
+│   │   │   ├── parser.py              # JSON 解析
+│   │   │   ├── splitter.py            # Natural Split
+│   ├── llm/                           # LLM 核心邏輯
+│   │   ├── client.py                  # LLM Client (支援 Pydantic Schema)
+│   │   ├── prompts.py                 # System Prompts
+│   ├── schema/                        # 資料定義
+│   │   ├── schemas.py                 # Pydantic Schemas
+│   ├── database/                      # 資料庫操作
+│   │   ├── db_adapter_sqlite.py       # SQLite FTS5 封裝
+│   │   ├── db_adapter_qdrant.py       # Qdrant 操作封裝
+│   │   └── vector_utils.py            # Embedding 與文本增強
+│   └── main.py                        # 程式進入點
+├── .env                               # API Keys 設定
 └── requirements.txt
-``` ps: 維護時請寫重點，不要過度展開
+```ps: 維護時請寫重點，不要過度展開

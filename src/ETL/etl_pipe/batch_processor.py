@@ -10,19 +10,25 @@ Handles individual batch processing including:
 
 import json
 import os
+import sys
 import time
 import uuid as uuid_lib
 from typing import List, Dict, Any, Optional
 
+# Add project root to sys.path
+project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../.."))
+if project_root not in sys.path:
+    sys.path.insert(0, project_root)
+
 from src.llm.client import LLMClient
-from src.llm.prompts import SYSTEM_PROMPT
-from src.models.schemas import (
+from src.llm.metadata_prompts import SYSTEM_PROMPT
+from src.schema.schemas import (
     AnnouncementDoc,
     AnnouncementMetadata,
     BatchMetaExtraction,
     MetadataExtraction,
 )
-from src.pipeline.error_handler import ErrorHandler
+from src.ETL.etl_pipe.error_handler import ErrorHandler
 
 
 class BatchProcessor:
@@ -46,7 +52,9 @@ class BatchProcessor:
         with open(file_path, "r", encoding="utf-8") as f:
             return json.load(f)
 
-    def prepare_llm_input(self, raw_batch: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    def prepare_llm_input(
+        self, raw_batch: List[Dict[str, Any]]
+    ) -> List[Dict[str, Any]]:
         """準備 LLM 輸入資料（標準化欄位）"""
         llm_input = []
         for idx, item in enumerate(raw_batch):
@@ -157,9 +165,7 @@ class BatchProcessor:
                 return True  # Empty is not an error
 
             # Extract UUIDs for error tracking
-            uuids = [
-                item.get("uuid") or str(idx) for idx, item in enumerate(raw_batch)
-            ]
+            uuids = [item.get("uuid") or str(idx) for idx, item in enumerate(raw_batch)]
 
             # 2. Check SYSTEM_PROMPT
             if not SYSTEM_PROMPT:

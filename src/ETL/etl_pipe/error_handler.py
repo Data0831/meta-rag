@@ -27,7 +27,9 @@ class ErrorRecord:
 class ErrorHandler:
     """管理 ETL Pipeline 的錯誤記錄與處理"""
 
-    def __init__(self, log_dir: str = "data/process_log", output_dir: str = "data/processed"):
+    def __init__(
+        self, log_dir: str = "data/process_log", output_dir: str = "data/processed"
+    ):
         self.log_dir = log_dir
         self.output_dir = output_dir
         self.error_records: List[ErrorRecord] = []
@@ -104,8 +106,7 @@ class ErrorHandler:
         for error in self.error_records:
             all_failed_uuids.extend(error.uuids)
 
-        error_list_path = os.path.join(self.output_dir, "errorlist.json")
-
+        error_list_path = os.path.join(self.output_dir, "../errorlist.json")
         error_data = {
             "timestamp": datetime.now().isoformat(),
             "total_failed_items": len(all_failed_uuids),

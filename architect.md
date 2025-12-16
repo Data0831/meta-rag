@@ -36,7 +36,7 @@ python src/main.py [mode]
 
 ### A. 資料攝取與分塊 (`src/ingestion/splitter.py`)
 負責將原始 JSON 資料解析並切分為適合 LLM 處理的小批次。
-*   **輸入**: `data/result.json`
+*   **輸入**: `data/page.json`
 *   **處理**:
     *   **解析 (`src/ingestion/parser.py`)**: 讀取原始資料，以單一 List Item 為最小單位 (Natural Split)，並生成 UUID。
     *   **分塊 (`src/ingestion/splitter.py`)**: 將清洗後的資料按固定數量 (預設 5) 分組，存為獨立檔案。
