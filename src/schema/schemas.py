@@ -127,3 +127,4 @@ class SearchIntent(BaseModel):
         default_factory=list,
         description="Soft-match keywords (e.g., product names) to boost relevance, not filter",
     )
+    limit: Optional[int] = Field(None, description="Max results to return")

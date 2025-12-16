@@ -68,11 +68,14 @@ class SearchService:
             SearchIntent object with filters, keyword_query, and semantic_query
         """
         # Construct prompt with current date context
-        prompt = SEARCH_INTENT_PROMPT.format(
-            user_query=user_query, current_date=datetime.now().strftime("%Y-%m-%d")
+        system_prompt = SEARCH_INTENT_PROMPT.format(
+            current_date=datetime.now().strftime("%Y-%m-%d")
         )
 
-        messages = [{"role": "user", "content": prompt}]
+        messages = [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_query},
+        ]
 
         # Use LLM with schema validation
         intent = self.llm_client.call_with_schema(
@@ -81,7 +84,10 @@ class SearchService:
         return intent
 
     def search(
-        self, user_query: str, limit: int = 20, semantic_ratio: float = DEFAULT_SEMANTIC_RATIO
+        self,
+        user_query: str,
+        limit: int = 20,
+        semantic_ratio: float = DEFAULT_SEMANTIC_RATIO,
     ) -> Dict[str, Any]:
         """
         Perform unified hybrid search using Meilisearch.
@@ -115,6 +121,10 @@ class SearchService:
                 semantic_query=user_query,
             )
 
+        # Override limit if specified in intent
+        if intent.limit is not None:
+            limit = intent.limit
+
         # Convert month format from YYYY-MM to YYYY-monthname
         if intent.filters.months:
             converted_months = []
@@ -124,7 +134,9 @@ class SearchService:
                     year, month_num = month_str.split("-")
                     if month_num in MONTH_NUM_TO_NAME:
                         # Convert to YYYY-monthname format to match database
-                        converted_months.append(f"{year}-{MONTH_NUM_TO_NAME[month_num]}")
+                        converted_months.append(
+                            f"{year}-{MONTH_NUM_TO_NAME[month_num]}"
+                        )
                     else:
                         converted_months.append(month_str)
                 else:
@@ -140,7 +152,9 @@ class SearchService:
             # Only generate embedding if we're using semantic search
             query_vector = vector_utils.get_embedding(intent.semantic_query)
             if not query_vector:
-                print("⚠ Embedding generation failed. Falling back to keyword-only search.")
+                print(
+                    "⚠ Embedding generation failed. Falling back to keyword-only search."
+                )
 
         # 4. Single Meilisearch API call (Hybrid Search)
         results = self.meili_adapter.search(
@@ -153,6 +167,8 @@ class SearchService:
 
         # 5. Return results with intent
         return {
-            "intent": intent.model_dump() if hasattr(intent, "model_dump") else intent.dict(),
+            "intent": (
+                intent.model_dump() if hasattr(intent, "model_dump") else intent.dict()
+            ),
             "results": results,
         }

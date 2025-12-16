@@ -23,7 +23,7 @@ def test_search(query: str):
 
     try:
         # Set semantic_ratio=0.0 to disable vector search
-        results = service.search(query, limit=5, semantic_ratio=0.0)
+        results = service.search(query, semantic_ratio=0.0)
 
         # Display intent
         print("\n[Intent Parsed]")
@@ -35,6 +35,8 @@ def test_search(query: str):
             print(f"\n[Months Filter] {filters['months']}")
         if results["intent"].get("boost_keywords"):
             print(f"[Boost Keywords] {results['intent']['boost_keywords']}")
+        if results["intent"].get("limit") is not None:
+            print(f"[Limit from Intent] {results['intent']['limit']}")
 
         # Display results
         print(f"\n[Results] Found {len(results['results'])} documents")
@@ -71,7 +73,7 @@ def main():
 
     # Test cases
     test_queries = [
-        "三個月內「AI 雲合作夥伴計劃」相關公告",
+        "請給我一篇三個月內「AI 雲合作夥伴計劃」相關公告",
     ]
 
     for query in test_queries:
