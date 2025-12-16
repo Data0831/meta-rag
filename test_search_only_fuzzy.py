@@ -1,6 +1,6 @@
 """
-Test script for Phase 4 Hybrid Search Service
-Tests Intent Parsing, Filters, and RRF Fusion
+Test script for Fuzzy-Only Search (No Vector Search)
+Tests Intent Parsing, Filters, and Meilisearch Keyword Search
 """
 
 import sys
@@ -14,15 +14,16 @@ import json
 
 
 def test_search(query: str):
-    """Test search with a given query"""
+    """Test search with a given query using only fuzzy search (semantic_ratio=0.0)"""
     print("\n" + "=" * 80)
-    print(f"Testing Query: {query}")
+    print(f"Testing Query (Fuzzy Only): {query}")
     print("=" * 80)
 
     service = SearchService()
 
     try:
-        results = service.search(query, limit=5)
+        # Set semantic_ratio=0.0 to disable vector search
+        results = service.search(query, limit=5, semantic_ratio=0.0)
 
         # Display intent
         print("\n[Intent Parsed]")
@@ -65,7 +66,7 @@ def test_search(query: str):
 def main():
     """Run test cases"""
     print("\n" + "=" * 80)
-    print("Phase 4 Hybrid Search Service - Test Suite")
+    print("Test Suite - Fuzzy Search Only")
     print("=" * 80)
 
     # Test cases

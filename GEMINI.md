@@ -39,6 +39,7 @@ project_root/
 │   └── ...
 ├── src/
 │   ├── config.py               # 全域設定 (Meilisearch Host, Key 等)
+│   ├── meilisearch_config.py   # Meilisearch 設定
 │   ├── dataPreprocessing.py    # 資料前處理 (ETL 入口)
 │   ├── vectorPreprocessing.py  # 向量計算與 Index Reset 工具
 │   ├── app.py                  # [Future] Flask 入口點

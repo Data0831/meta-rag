@@ -6,6 +6,13 @@ Unified search engine for hybrid search (keyword + semantic + filters)
 import meilisearch
 from typing import List, Dict, Any, Optional
 from src.schema.schemas import AnnouncementDoc, SearchFilters
+from src.meilisearch_config import (
+    RANKING_RULES,
+    FILTERABLE_ATTRIBUTES,
+    SEARCHABLE_ATTRIBUTES,
+    EMBEDDING_CONFIG,
+    DEFAULT_SEMANTIC_RATIO,
+)
 import json
 
 
@@ -33,43 +40,17 @@ class MeiliAdapter:
         """
         try:
             # 1. Set filterable attributes (required for filtering)
-            self.index.update_filterable_attributes(
-                [
-                    "month",
-                    "metadata.meta_category",
-                    "metadata.meta_audience",
-                    "metadata.meta_products",
-                    "metadata.meta_impact_level",
-                ]
-            )
+            self.index.update_filterable_attributes(FILTERABLE_ATTRIBUTES)
 
             # 2. Set searchable attributes (for keyword search)
-            self.index.update_searchable_attributes(
-                ["title", "content", "metadata.meta_summary", "metadata.meta_summary_segmented"]
-            )
+            self.index.update_searchable_attributes(SEARCHABLE_ATTRIBUTES)
 
             # 3. Enable vector search (Hybrid Search)
-            self.index.update_embedders(
-                {
-                    "default": {
-                        "source": "userProvided",  # We provide embeddings ourselves
-                        "dimensions": 1024,  # bge-m3 embedding dimension
-                    }
-                }
-            )
+            self.index.update_embedders({"default": EMBEDDING_CONFIG})
 
             # 4. Set ranking rules to balance keyword and semantic search
             # Meilisearch uses these rules to determine the order of results
-            self.index.update_ranking_rules(
-                [
-                    "words",  # Keyword matching (most important)
-                    "typo",  # Typo tolerance
-                    "proximity",  # Word proximity
-                    "attribute",  # Attribute ranking (title > content)
-                    "sort",  # Custom sorting if needed
-                    "exactness",  # Exact matches get higher priority
-                ]
-            )
+            self.index.update_ranking_rules(RANKING_RULES)
 
             print(
                 f"✓ Meilisearch index '{self.collection_name}' configured successfully."
@@ -123,7 +104,7 @@ class MeiliAdapter:
         vector: Optional[List[float]] = None,
         filters: Optional[str] = None,
         limit: int = 20,
-        semantic_ratio: float = 0.5,
+        semantic_ratio: float = DEFAULT_SEMANTIC_RATIO,
     ) -> List[Dict[str, Any]]:
         """
         Perform hybrid search on Meilisearch.
@@ -144,6 +125,7 @@ class MeiliAdapter:
             "limit": limit,
             "attributesToRetrieve": ["*"],  # Return all fields
             "showRankingScore": True,  # Include ranking scores
+            "showRankingScoreDetails": True,  # Include score breakdown
         }
 
         # Add filter if provided

@@ -28,3 +28,6 @@
 
 ## 2025-12-16 (深夜)
 **Phase 6 中文分詞優化 - 關鍵字搜尋改進**：分析 Meilisearch 中文分詞限制（字符級分詞導致匹配不精準），實作欄位分離方案避免影響向量搜尋。在 `AnnouncementMetadata` 新增 `meta_summary_segmented` 欄位，使用 jieba 進行中文分詞並以空格分隔。於 `etl.py` 新增 `add_segmented_summary()` 方法處理現有 `processed.json`，更新 `db_adapter_meili.py` 將分詞欄位加入 `searchable_attributes`。在 `dataPreprocessing.py` 新增選項 4 供使用者執行分詞處理。更新 `requirements.txt` 加入 `jieba` 依賴。此方案確保 `meta_summary` 維持語義完整性用於向量搜尋，`meta_summary_segmented` 提升關鍵字匹配準確度，兼顧兩種搜尋模式的最佳效果。
+
+## 2025-12-17
+**Phase 6 搜尋權重與配置集中化**：建立純模糊搜尋測試腳本 (`test_search_only_fuzzy.py`) 驗證參數控制。鑑於 Meilisearch 排序邏輯分散的問題，建立了統一配置檔 `src/meilisearch_config.py`，集中管理排序規則 (Ranking Rules)、過濾/搜尋屬性與預設語意權重 (`DEFAULT_SEMANTIC_RATIO`)。重構 `db_adapter_meili.py` 與 `search_service.py` 引用此全域配置，實現搜尋行為的統一控管與快速調整。

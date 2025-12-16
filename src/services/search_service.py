@@ -16,6 +16,7 @@ from src.schema.schemas import SearchIntent, SearchFilters
 from src.database.db_adapter_meili import MeiliAdapter, build_meili_filter
 from src.database import vector_utils
 from src.config import MEILISEARCH_HOST, MEILISEARCH_API_KEY, MEILISEARCH_INDEX
+from src.meilisearch_config import DEFAULT_SEMANTIC_RATIO
 from datetime import datetime
 
 
@@ -80,7 +81,7 @@ class SearchService:
         return intent
 
     def search(
-        self, user_query: str, limit: int = 20, semantic_ratio: float = 0.5
+        self, user_query: str, limit: int = 20, semantic_ratio: float = DEFAULT_SEMANTIC_RATIO
     ) -> Dict[str, Any]:
         """
         Perform unified hybrid search using Meilisearch.
