@@ -97,7 +97,8 @@ class ETLPipeline:
                     month=raw.get("month", "Unknown"),
                     title=raw.get("title", ""),
                     link=raw.get("link"),
-                    original_content=raw.get("content", ""),
+                    original_content=raw.get("original_content")
+                    or raw.get("content", ""),
                     metadata=metadata_obj,
                 )
                 merged_docs.append(doc)
@@ -211,5 +212,5 @@ class ETLPipeline:
 
 if __name__ == "__main__":
     pipeline = ETLPipeline()
-    # pipeline.run()
-    pipeline.merge_processed_files()
+    pipeline.run()
+    # pipeline.merge_processed_files()

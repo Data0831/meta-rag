@@ -12,8 +12,8 @@ QDRANT_URL = os.getenv("QDRANT_URL", "http://localhost:6333")
 QDRANT_API_KEY = os.getenv("QDRANT_API_KEY", None)
 
 COLLECTION_NAME = "announcements"
-# Default embedding size for text-embedding-3-small is 1536
-VECTOR_SIZE = 1536
+# Embedding size for bge-m3 is 1024
+VECTOR_SIZE = 1024
 
 
 def get_client():

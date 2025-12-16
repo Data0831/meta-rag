@@ -1,7 +1,23 @@
+"""
+Data Splitter Module
+
+Splits processed announcement documents into batches for ETL pipeline processing.
+- Reads parsed data from result.json
+- Splits into configurable batch sizes
+- Cleans up existing batch files before writing new ones
+- Saves batches as separate JSON files (1.json, 2.json, etc.)
+"""
+
 import json
 import os
 from pathlib import Path
 from math import ceil
+import sys
+
+project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "../.."))
+if project_root not in sys.path:
+    sys.path.insert(0, project_root)
+
 from src.ingestion.parser import parse_json_data
 
 
@@ -27,6 +43,12 @@ def split_and_save_batches(input_file: str, output_dir: str, batch_size: int = 5
     print(
         f"Found {total_docs} documents. Splitting into {num_batches} batches of size {batch_size}."
     )
+
+    # Clean up existing JSON files in output directory
+    print(f"Cleaning up existing JSON files in {output_dir}...")
+    for file in Path(output_dir).glob("*.json"):
+        file.unlink()
+        print(f"Deleted {file}")
 
     for i in range(num_batches):
         start_idx = i * batch_size
