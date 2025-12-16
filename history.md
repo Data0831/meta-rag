@@ -17,3 +17,6 @@
 
 ## 2025-12-16
 完成 Phase 3 向量功能。將 Embeddings 遷移至 Ollama (bge-m3)，實作 `vector_utils.py` 並加入測試。更新 `task.md` 與文件，修正 Enum 驗證錯誤。
+
+## 2025-12-16 (ETL Schema 升級與錯誤處理)
+升級 ETL Pipeline 至 Pydantic Schema 嚴格驗證。新增 `MetadataExtraction` 與 `BatchMetaExtraction` 模型，實作 `client.py` 的 `call_with_schema` 方法支援自動重試與 JSON Schema 轉換。建立企業級錯誤處理機制：`ErrorRecord` 記錄完整上下文（UUID、LLM 輸入/輸出），自動寫入 `data/process_log/*.error.json`；實作互動式重試流程與 `errorlist.json` 輸出，確保可追溯性。修正 `uuid` 與 `id` 欄位匹配問題。

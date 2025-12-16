@@ -56,3 +56,46 @@ class AnnouncementDoc(BaseModel):
     # Let's include the metadata object directly to be Pythonic,
     # and we can flatten it for SQLite storage later.
     metadata: AnnouncementMetadata = Field(..., description="Extracted metadata")
+
+
+# LLM Extraction Schemas (用於批量 ETL)
+class MetadataExtraction(BaseModel):
+    """單個公告的 Metadata 提取結果（LLM 輸出格式）"""
+
+    id: str = Field(..., description="Original ID from input")
+    meta_date_effective: Optional[str] = Field(
+        None, description="Policy effective date (YYYY-MM-DD)"
+    )
+    meta_date_announced: Optional[str] = Field(
+        None, description="Announcement publication date (YYYY-MM-DD)"
+    )
+    meta_products: List[str] = Field(
+        default_factory=list, description="Related products (English names)"
+    )
+    meta_audience: List[str] = Field(
+        default_factory=list, description="Target audience roles"
+    )
+    meta_category: Optional[str] = Field(
+        None,
+        description="One of: Pricing, Security, Feature Update, Compliance, Retirement, General",
+    )
+    meta_impact_level: Optional[str] = Field(
+        None, description="Impact level: High, Medium, or Low"
+    )
+    meta_action_deadline: Optional[str] = Field(
+        None, description="Action deadline (YYYY-MM-DD)"
+    )
+    meta_summary: Optional[str] = Field(
+        None, description="Concise summary in Traditional Chinese"
+    )
+    meta_change_type: Optional[str] = Field(
+        None, description="Type of change (e.g., Deprecation, New Feature)"
+    )
+
+
+class BatchMetaExtraction(BaseModel):
+    """批量 Metadata 提取的完整回應格式"""
+
+    results: List[MetadataExtraction] = Field(
+        ..., min_length=1, max_length=10, description="List of extracted metadata"
+    )

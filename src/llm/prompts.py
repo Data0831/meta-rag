@@ -27,18 +27,20 @@ Each item contains `id`, `month`, `title`, and `content`.
 - **meta_summary**: A concise 1-sentence summary in Traditional Chinese. Focus on "What changed?" and "Who is affected?".
 
 ## Output JSON Schema
-[
-  {
-    "id": "Original ID from input",
-    "meta_date_effective": "YYYY-MM-DD or null",
-    "meta_date_announced": "YYYY-MM-DD or null",
-    "meta_products": ["Product A"],
-    "meta_audience": ["Audience A"],
-    "meta_category": "Category Enum",
-    "meta_impact_level": "High/Medium/Low",
-    "meta_action_deadline": "YYYY-MM-DD or null",
-    "meta_summary": "繁體中文摘要 (e.g., Sentinel 預購計畫推出，最高可省 73%。)",
-    "meta_change_type": "Change Type String"
-  }
-]
+{
+  "results": [
+    {
+      "id": "Original ID from input",
+      "meta_date_effective": "YYYY-MM-DD or null",
+      "meta_date_announced": "YYYY-MM-DD or null",
+      "meta_products": ["Product A"],
+      "meta_audience": ["Audience A"],
+      "meta_category": "Category Enum",
+      "meta_impact_level": "High/Medium/Low",
+      "meta_action_deadline": "YYYY-MM-DD or null",
+      "meta_summary": "繁體中文摘要 (e.g., Sentinel 預購計畫推出，最高可省 73%。)",
+      "meta_change_type": "Change Type String"
+    }
+  ]
+}
 """
