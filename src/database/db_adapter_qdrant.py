@@ -1,8 +1,16 @@
 import os
-from typing import List
+from typing import List, Optional, Dict, Any
 from qdrant_client import QdrantClient
-from qdrant_client.models import Distance, VectorParams, PointStruct
-from src.schema.schemas import AnnouncementDoc
+from qdrant_client.models import (
+    Distance, 
+    VectorParams, 
+    PointStruct, 
+    Filter, 
+    FieldCondition, 
+    MatchValue, 
+    MatchAny
+)
+from src.schema.schemas import AnnouncementDoc, SearchFilters
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -94,3 +102,64 @@ def upsert_documents(
     if points:
         client.upsert(collection_name=collection_name, points=points)
         print(f"Upserted {len(points)} points into Qdrant.")
+
+
+def search_semantic(
+    query_vector: List[float], 
+    filters: Optional[SearchFilters] = None, 
+    limit: int = 20,
+    collection_name: str = COLLECTION_NAME
+) -> List[Dict[str, Any]]:
+    """
+    Perform vector search on Qdrant with optional filters.
+    """
+    client = get_client()
+    
+    query_filter = None
+    if filters:
+        conditions = []
+        
+        if filters.month:
+            conditions.append(
+                FieldCondition(key="month", match=MatchValue(value=filters.month))
+            )
+        
+        if filters.category:
+            cat_val = filters.category.value if hasattr(filters.category, 'value') else filters.category
+            conditions.append(
+                FieldCondition(key="meta_category", match=MatchValue(value=cat_val))
+            )
+            
+        if filters.impact_level:
+            impact_val = filters.impact_level.value if hasattr(filters.impact_level, 'value') else filters.impact_level
+            conditions.append(
+                FieldCondition(key="meta_impact_level", match=MatchValue(value=impact_val))
+            )
+            
+        if filters.products:
+            # Check if ANY of the requested products match ANY of the meta_products list in payload
+            # Qdrant match_any checks if payload field value (which can be list) contains any of the provided values.
+            # But wait, meta_products is a list in payload. 'match_any' checks if the field value is one of the provided values.
+            # If the field is a list, 'match_any' checks intersection?
+            # Documentation says: "MatchAny - filter for keyword field. Matches if field value is one of the given values."
+            # If field is array, it matches if at least one element equals to one of the values.
+            conditions.append(
+                FieldCondition(key="meta_products", match=MatchAny(any=filters.products))
+            )
+            
+        if conditions:
+            query_filter = Filter(must=conditions)
+
+    results = client.query_points(
+        collection_name=collection_name,
+        query=query_vector,
+        query_filter=query_filter,
+        limit=limit,
+        with_payload=True
+    ).points
+    
+    # Format output
+    return [
+        {"uuid": hit.id, "score": hit.score, "payload": hit.payload}
+        for hit in results
+    ]

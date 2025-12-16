@@ -99,3 +99,20 @@ class BatchMetaExtraction(BaseModel):
     results: List[MetadataExtraction] = Field(
         ..., min_length=1, max_length=10, description="List of extracted metadata"
     )
+
+
+class SearchFilters(BaseModel):
+    """Search filters extracted from user query"""
+
+    month: Optional[str] = Field(None, description="Month (YYYY-MM)")
+    category: Optional[Category] = Field(None, description="Category")
+    impact_level: Optional[ImpactLevel] = Field(None, description="Impact Level")
+    products: List[str] = Field(default_factory=list, description="Product names")
+
+
+class SearchIntent(BaseModel):
+    """Structured search intent parsed from user query"""
+
+    filters: SearchFilters = Field(..., description="Filters to apply")
+    keyword_query: str = Field(..., description="Optimized keyword query for FTS")
+    semantic_query: str = Field(..., description="Optimized semantic query for Vector DB")

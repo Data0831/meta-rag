@@ -1,10 +1,11 @@
 from sqlite_utils import Database
-from src.schema.schemas import AnnouncementDoc
-from typing import List
+from src.schema.schemas import AnnouncementDoc, SearchFilters
+from typing import List, Dict, Any, Optional
 import json
 import os
+from src.config import SQLITE_DB
 
-DB_PATH = os.path.join("database", "announcements.db")
+DB_PATH = SQLITE_DB
 
 
 def init_db(db_path: str = DB_PATH):
@@ -24,6 +25,7 @@ def init_db(db_path: str = DB_PATH):
                 "month": str,
                 "title": str,
                 "content": str,
+                "category": str,
                 "products": str,  # Storing as JSON string
                 "impact_level": str,
                 "date_effective": str,
@@ -41,13 +43,26 @@ def init_db(db_path: str = DB_PATH):
 def reset_db(db_path: str = DB_PATH):
     """
     Delete and re-initialize the SQLite database.
+    Also removes WAL and SHM files if they exist.
     """
-    if os.path.exists(db_path):
-        try:
-            os.remove(db_path)
-            print(f"Removed database file: {db_path}")
-        except Exception as e:
-            print(f"Error removing database file: {e}")
+    # List of files to remove (main db + WAL mode files)
+    files_to_remove = [
+        db_path,
+        f"{db_path}-wal",
+        f"{db_path}-shm"
+    ]
+
+    for file_path in files_to_remove:
+        if os.path.exists(file_path):
+            try:
+                os.remove(file_path)
+                print(f"Removed file: {file_path}")
+            except PermissionError:
+                print(f"Permission denied: {file_path} (file may be in use)")
+            except Exception as e:
+                print(f"Error removing {file_path}: {e}")
+
+    # Re-initialize the database
     init_db(db_path)
 
 
@@ -75,6 +90,9 @@ def insert_documents(docs: List[AnnouncementDoc], db_path: str = DB_PATH):
             "month": doc.month,
             "title": doc.title,
             "content": doc.original_content,
+            "category": (
+                meta.meta_category.value if meta.meta_category else None
+            ),
             "products": json.dumps(meta.meta_products, ensure_ascii=False),
             "impact_level": (
                 meta.meta_impact_level.value if meta.meta_impact_level else None
@@ -92,3 +110,99 @@ def insert_documents(docs: List[AnnouncementDoc], db_path: str = DB_PATH):
     # Batch upsert
     db["announcements"].upsert_all(records, pk="uuid")
     print(f"Upserted {len(records)} documents into SQLite.")
+
+
+def search_keyword(
+    query: str, filters: Optional[SearchFilters] = None, limit: int = 20, db_path: str = DB_PATH
+) -> List[Dict[str, Any]]:
+    """
+    Perform FTS5 search on SQLite with optional filters.
+    Returns a list of dicts with 'uuid' and 'score' (rank).
+    """
+    db = Database(db_path)
+    
+    if "announcements" not in db.table_names():
+        print("Table 'announcements' does not exist.")
+        return []
+
+    # Base query for FTS
+    # We use the announcements_fts table implicitly via .search() method of sqlite-utils 
+    # OR construct raw SQL for more control over hybrid filtering (WHERE + MATCH).
+    
+    # Using raw SQL to combine FTS match with standard column filtering efficiently
+    # The standard pattern for sqlite FTS mixed with column filters is:
+    # SELECT ..., rank FROM announcements WHERE announcements MATCH :query AND [filters] ORDER BY rank
+    
+    where_clauses = ["announcements_fts MATCH :query"]
+    params = {"query": query}
+    
+    if filters:
+        if filters.month:
+            where_clauses.append("month = :month")
+            params["month"] = filters.month
+        
+        if filters.category:
+            where_clauses.append("category = :category")
+            params["category"] = filters.category.value if hasattr(filters.category, 'value') else filters.category
+
+        if filters.impact_level:
+            where_clauses.append("impact_level = :impact_level")
+            params["impact_level"] = filters.impact_level.value if hasattr(filters.impact_level, 'value') else filters.impact_level
+
+        # Note: 'products' filter is tricky in SQLite since it's a JSON string.
+        # We might skip it here and rely on Qdrant or post-filtering, 
+        # OR use LIKE %product%. Let's try simple LIKE if provided.
+        if filters.products:
+            # For simplicity, just check if ANY of the requested products appear in the json string
+            # This is a bit naive but works for basic filtering.
+            # Building (products LIKE %p1% OR products LIKE %p2%)
+            prod_clauses = []
+            for i, prod in enumerate(filters.products):
+                key = f"prod_{i}"
+                prod_clauses.append(f"products LIKE :{key}")
+                params[key] = f"%{prod}%"
+            
+            if prod_clauses:
+                where_clauses.append(f"({' OR '.join(prod_clauses)})")
+
+    where_str = " AND ".join(where_clauses)
+    
+    # We join with the FTS table to get the rank. 
+    # sqlite-utils creates a view or we can just query the table directly if it's set up right.
+    # Usually: select * from announcements where announcements match ...
+    # But for ranking we specifically want the FTS table's hidden columns or matchinfo.
+    # Simpler approach using sqlite-utils pythonic API if possible, but raw SQL is safer for FTS syntax.
+    
+    # Standard SQLite FTS query
+    sql = f"""
+        SELECT announcements.uuid, announcements.title, snippet(announcements_fts, -1, '<b>', '</b>', '...', 64) as snippet
+        FROM announcements 
+        JOIN announcements_fts ON announcements.rowid = announcements_fts.rowid 
+        WHERE {where_str}
+        ORDER BY rank
+        LIMIT {limit}
+    """
+    
+    try:
+        results = list(db.query(sql, params))
+        # Add a mock score based on order (since rank is hidden/internal usually lower is better in FTS5 default)
+        # We can normalize rank to a score 0-1 if needed, but for RRF we just need rank order.
+        # Let's return the rank index as score for now (1/(rank+k)).
+        return results
+    except Exception as e:
+        print(f"SQLite Search Error: {e}")
+        return []
+
+
+def get_documents_by_uuids(uuids: List[str], db_path: str = DB_PATH) -> List[Dict[str, Any]]:
+    """
+    Fetch full documents by a list of UUIDs.
+    """
+    db = Database(db_path)
+    if not uuids:
+        return []
+    
+    placeholders = ",".join(["?"] * len(uuids))
+    sql = f"SELECT * FROM announcements WHERE uuid IN ({placeholders})"
+    
+    return list(db.query(sql, uuids))
