@@ -1,138 +1,79 @@
-# 技術規格書：Microsoft 公告混合檢索系統
+# 技術規格書：Microsoft RAG 混合檢索系統
 
 ## 1. 專案目標 (Objectives)
-本專案旨在建構一套針對 Microsoft 公告資料（如 `page.example.json`）的高效能混合檢索系統。核心目標如下：
-*   **精確與語意並重**：結合 SQLite FTS5 的關鍵字精確過濾（如日期、價格）與 Qdrant 的語意模糊搜尋（如「緊急變更」），解決單一檢索技術的不足。
-*   **智慧資料處理**：透過 LLM ETL Pipeline 自動化提取高價值 Metadata，並進行文本增強（Text Enrichment），提升向量檢索的準確度。
-*   **成本效益優化**：利用批次處理（Batch Processing）降低 LLM 呼叫成本與時間。
+本專案旨在建構一套高效能的 Microsoft 公告智慧檢索系統，並為未來擴充為對話機器人 (Chatbot) 奠定基礎。
+*   **混合檢索 (Hybrid Search)**：結合 SQLite FTS5 的關鍵字精準度與 Qdrant 的語意理解能力，解決單一技術盲點。
+*   **自動化 ETL**：利用 LLM (Gemini) 自動提取高價值 Metadata 並進行文本增強。
+*   **服務化架構 (Service-Oriented)**：設計解耦的服務層 (Service Layer)，支援 CLI 工具與未來的 Flask Web API 共用核心邏輯。
 
 ## 2. 系統核心架構 (Core Architecture)
 
-本系統採用 **ETL Pipeline + Hybrid Search** 架構。
+系統採用 **四層式架構 (4-Tier Architecture)** 以確保關注點分離。
 
-### 2.1 技術選型 (Tech Stack)
-*   **ETL & Logic**: **Python** (負責資料清洗、LLM 串接、流程控制)。
-*   **LLM Provider**: **GEMINI 2.5 flash**。
-    *   *理由*：免費。
-*   **Relational Database**: **SQLite (with FTS5 extension)**。
-    *   *理由*：輕量級、無需伺服器，FTS5 模組足以處理精確關鍵字檢索與 Metadata 過濾。
-*   **Vector Database**: **Qdrant**。
-    *   *理由*：支援 Payload Filtering，適合混合檢索場景。
-*   **Embedding Model**: **本地 **`bge-m3`**。
-    *   *理由*：本地呼叫容易。
+### 2.1 架構分層
+1.  **應用層 (Application Layer)**
+    *   負責與使用者互動。目前為 CLI，未來可無縫擴充 Flask Web App。
+    *   *職責*：接收請求、呼叫 Service 層、格式化輸出。
+2.  **服務層 (Service Layer)**
+    *   核心業務邏輯所在，協調不同的資料來源。
+    *   **SearchService**: 執行「兩階段檢索」(Query Qdrant -> Get UUIDs -> Fetch SQLite)。
+    *   **RAGService**: 負責 Prompt 組裝與 LLM 對話生成。
+    *   **ETLPipeline**: 負責資料清洗、Metadata 提取與寫入。
+3.  **資料存取層 (Data Access Layer / DAL)**
+    *   封裝對資料庫的具體操作。
+    *   `db_adapter_sqlite.py`: 處理 FTS5 查詢與 CRUD。
+    *   `db_adapter_qdrant.py`: 處理向量 Upsert 與 Payload Filtering。
+4.  **基礎設施層 (Infrastructure)**
+    *   LLM Client (Gemini 2.5 Flash)。
+    *   Embedding Model (bge-m3 / OpenAI)。
 
-### 2.2 資料流架構
-1.  **Raw Data Input**: 讀取 Markdown 原始檔。
-2.  **Chunking**: 採用 **Natural Split** 策略，以單一 List Item (JSON Object) 為最小單位。
-3.  **LLM ETL**: 批次傳送內容至 LLM，提取 Metadata 並標準化。
-4.  **Vector Enrichment**: 將 Metadata 注入原始文本生成「合成語意文本（Synthetic Context String）」。
-5.  **Storage**:
-    *   Metadata 與原始文本寫入 **SQLite**。
-    *   合成文本的 Vector 與 Metadata Payload 寫入 **Qdrant**。
+### 2.2 關鍵資料流 (Data Flow)
+*   **寫入 (ETL)**: Raw Data -> Chunking -> LLM Extraction -> Text Enrichment -> (SQLite + Qdrant)。
+*   **讀取 (Search)**: User Query -> Embedding -> **Qdrant (Top-K UUIDs)** -> **SQLite (Full Content)** -> Result。
 
-## 3. 關鍵數據結構 (Data Structures)
-
-### 3.1 核心實體：公告文件 (Announcement Document)
-這是經過 ETL 處理後的標準化資料模型。
-
-| 欄位名稱 (Key) | 類型 | 說明 | 來源 |
-| :--- | :--- | :--- | :--- |
-| `uuid` | String (UUID) | 唯一識別碼，用於關聯 SQLite 與 Qdrant | System Generated |
-| `month` | String | 原始資料歸屬月份 (e.g., "2025-12") | Source |
-| `title` | String | 公告標題 | Source |
-| `original_content` | Text | 原始公告內文 (用於 RAG 最終生成) | Source |
-| `meta_date_announced` | Date (ISO) | 公告發布日期 (YYYY-MM-DD) | LLM Extracted |
-| `meta_date_effective` | Date (ISO) | 政策生效日期 (YYYY-MM-DD) | LLM Extracted |
-| `meta_products` | List[String] | 相關產品 (正規化名稱, e.g., "Microsoft Sentinel") | LLM Extracted |
-| `meta_category` | Enum | 公告類別 (Pricing, Feature, Retirement, Security) | LLM Extracted |
-| `meta_audience` | List[String] | 受眾 (e.g., CSP, Reseller) | LLM Extracted |
-| `meta_impact_level` | Enum | 衝擊等級 (High, Medium, Low) | LLM Extracted |
-| `meta_action_deadline` | Date/Null | 行動截止日 | LLM Extracted |
-| `meta_summary` | String | 單句摘要 | LLM Extracted |
-| `meta_change_type` | String | 變更類型 (e.g., Deprecation) | LLM Extracted |
-
-### 3.2 向量增強文本 (Enriched Text for Embedding)
-**注意**：此結構僅用於生成 Embedding Vector，**不直接儲存**，但其邏輯至關重要。
+## 3. 專案檔案結構 (Project Structure)
 
 ```text
-Title: {title}
-Impact Level: {meta_impact_level}
-Target Audience: {meta_audience}
-Products: {meta_products}
-Change Type: {meta_change_type}
-Summary: {meta_summary}
-Content: {original_content}
+project_root/
+├── data/
+│   ├── datastructure/          # 資料結構定義文件
+│   │   └── schema_definitions.md
+│   └── ...
+├── database/                   # 實體資料庫檔案
+├── src/
+│   ├── config.py               # 全域設定
+│   ├── main.py                 # CLI 入口點
+│   ├── app.py                  # [Future] Flask 入口點
+│   ├── services/               # [核心] 業務邏輯服務層
+│   │   ├── __init__.py
+│   │   ├── search_service.py   # 整合 Qdrant 與 SQLite 檢索邏輯
+│   │   └── rag_service.py      # [Future] RAG 對話邏輯
+│   ├── database/               # 資料庫轉接器 (DAL)
+│   │   ├── db_adapter_qdrant.py
+│   │   └── db_adapter_sqlite.py
+│   ├── etl/                    # 資料處理流程
+│   │   └── etl_pipe/           # 包含 Parser, Batch Processor
+│   ├── llm/                    # LLM 客戶端封裝
+│   └── schema/                 # Pydantic 資料模型
+│       └── schemas.py
+└── requirements.txt
 ```
 
-## 4. 模組職責說明 (Module Responsibilities)
+## 4. 程式開發規範 (Engineering Conventions)
 
-### 4.1 資料攝取與分塊模組 (Ingestion & Chunking Module)
-*   負責讀取 `page.json`。
-*   執行 **Natural Split**：迭代解析 List 中的 JSON Object，確保每個 `{ title, link, content }` 被視為一個獨立的 Chunk，不進行硬性切分以保持語意完整。
+### 4.1 風格與格式
+*   **Python 版本**: 3.10+
+*   **Formatter**: 嚴格使用 `Black`。
+*   **Imports**: 絕對路徑導入 (e.g., `from src.database import ...`)。
 
-### 4.2 Metadata 提取模組 (LLM ETL Module)
-*   **Batch Request Management**：將 5-10 篇公告打包為單一 Prompt 發送給 LLM，降低 API 呼叫次數。
-*   **Prompt Engineering**：定義 System Prompt，強制 LLM 輸出嚴格的 JSON 格式。
-*   **Normalization**：負責清理 LLM 輸出（如日期格式統一為 `YYYY-MM-DD`，Null 值處理）。
+### 4.2 類型系統 (Typing)
+*   全面使用 Python **Type Hints**。
+*   資料交換強制使用 **Pydantic Models** (`src/schema/schemas.py`)，禁止傳遞裸字典 (Dict)。
 
-### 4.3 向量處理模組 (Vector Processing Module)
-*   **Text Enrichment**：實作 `create_embedding_text()` 函式，將 Metadata 與原始內文組合成富文本。
-*   **Embedding Generation**：呼叫 Embedding API 將富文本轉換為向量。
+### 4.3 資料庫設計原則
+*   **Payload Strategy**: Qdrant Payload **不儲存內文**，僅儲存 Filter 用 Metadata。
+*   **Lookup Pattern**: 所有詳細內文展示必須透過 UUID 回查 SQLite。
+*   **Idempotency**: ETL 流程須具備冪等性 (Idempotent)，重複執行不應產生重複資料 (透過 UUID 檢查)。
 
-### 4.4 儲存管理模組 (Storage Manager)
-*   **SQLite Handler**：
-    *   建立 FTS5 Virtual Table。
-    *   將 `title`, `content` 寫入索引欄位。
-    *   將 `products`, `month` 等 Metadata 寫入 `UNINDEXED` 欄位或輔助欄位。
-*   **Qdrant Handler**：
-    *   將 Vector 與 Payload (完整 Metadata JSON) 寫入 Collection。
-    *   確保 ID 與 SQLite 中的 UUID 一致。
-
-### 4.5 檢索服務模組 (Search Service)
-*   提供統一查詢介面。
-*   處理混合檢索邏輯：
-    1.  解析使用者查詢（Keyword vs Semantic）。
-    2.  執行 Vector Search（捕捉語意如 "urgent"）。
-    3.  視情況套用 Metadata Filter（如 `filter = { meta_impact: "High" }`）。
-
-## 5. 專案檔案結構 (Project Structure)
-
-```text
-├─data
-│  │  errorlist.json
-│  │  page.example.json
-│  │  page.json
-│  │  parse.json
-│  │
-│  ├─datastructure
-│  │      metadata.example.json
-│  │
-│  └─processed
-│          processed.json
-│
-├─database
-│      announcements.db
-│
-├─src
-│  │  config.py # 相關參數與路徑
-│  │  dataPreprocessing.py # 資料預處理主函式
-│  │  main.py # 暫時放棄
-│  │
-│  ├─database
-│  │      db_adapter_qdrant.py
-│  │      db_adapter_sqlite.py
-│  │      vector_utils.py
-│  │
-│  ├─ETL
-│  │  ├─etl_pipe
-│  │  │  │  batch_processor.py
-│  │  │  │  error_handler.py
-│  │  │  │  etl.py
-│  │  │  │  parser.py
-│  │
-│  ├─llm
-│  │  │  client.py
-│  │  │  metadata_prompts.py
-│  ├─schema
-│  │  │  schemas.py
-``` ps: 維護時請寫重點，不要過度展開
+### 4.4 擴充指南 (Flask Migration)
+未來遷移至 Web App 時，應保持 `src/services` 與 `src/database` 不變，僅需新增 Flask Route 呼叫 `src/services` 中的方法即可。

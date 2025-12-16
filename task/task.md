@@ -91,16 +91,14 @@ def call_gemini(messages, model="gemini-2.5-flash"):
 *   [x] **Task 3.1: 向量增強實作 (`src/vector_utils.py`)**
     *   實作 `create_enriched_text(doc)`：依照 spec 將 metadata 與 content 拼裝成字串。
     *   實作 `get_embedding(text)`：串接 Embedding API (Local ollama bge-m3)。
-*   [ ] **Task 3.2: SQLite 適配器 (`src/db_adapter_sqlite.py`)**
+*   [x] **Task 3.2: SQLite 適配器 (`src/db_adapter_sqlite.py`)**
     *   實作 `init_db()`：建立 FTS5 Virtual Table。
     *   實作 `insert_documents(docs)`：將 `title`, `content` (Index) 與 Metadata (Unindexed) 寫入。
-*   [ ] **Task 3.3: Qdrant 適配器 (`src/db_adapter_qdrant.py`)**
+*   [x] **Task 3.3: Qdrant 適配器 (`src/db_adapter_qdrant.py`)**
     *   實作 `init_collection()`：設定 Vector Size 與 Distance (Cosine)。
     *   實作 `upsert_documents(docs, vectors)`：
         *   確保 ID 使用 UUID (與 SQLite 一致)。
         *   將原始 Metadata JSON 放入 Payload。
-*   [ ] **Task 3.4: 執行完整 ETL (`src/main.py` - Mode: Ingest)**
-    *   串聯 Phase 1, 2, 3，執行一次完整的資料寫入流程。
 
 ## 階段四：混合檢索服務 (Hybrid Search Service)
 **目標**：實作檢索邏輯，提供統一的搜尋介面。
