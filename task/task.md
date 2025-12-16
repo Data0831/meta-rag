@@ -1,155 +1,45 @@
-根據您的決定，我們將執行 **方案 A：完全遷移至 Meilisearch**。這會大幅簡化您的架構。
+1. 關鍵字模糊比對機制
 
-### 步驟 1: 環境準備 (Infrastructure)
+  並非多次查詢，而是單次查詢自動處理：
+  - 你的 keyword_query（例如 "Azure OpenAI 價格"）被一次性送入 Meilisearch
+  - Meilisearch 內部自動分詞並依照 6 個 ranking rules 計算分數
+  - 重要：中文是按字符級分詞（"價格" → ["價", "格"]），這是目前架構的限制
 
-1.  **啟動 Meilisearch 服務 (已完成)**
-   
+  Typo Tolerance（模糊匹配）：
+  - 英文支援最多 2 字符差異："Azrue" 仍能匹配 "Azure"
+  - 中文不支援 typo tolerance（因為是字符級分詞）
 
-2.  **安裝 Python SDK(已完成)**
+  2. Metadata 的實際作用
 
-### 步驟 2: 資料適配器重寫 (Database Adapter)
+  只有 meta_summary 真正參與搜索：
+  - ✅ meta_summary（LLM 生成的中文摘要）：參與關鍵字 + 語義搜索
+    - 這是最有價值的 metadata
+    - 彌補了原始 content 可能是英文的問題
+    - 提供更豐富的中文語義信息
 
-刪除 `src/database/db_adapter_sqlite.py` 和 `src/database/db_adapter_qdrant.py`，建立一個新的統一 Adapter：
+  其他 metadata 僅用於過濾：
+  - ⚠️ meta_category, meta_impact_level：只能用 filter，不參與搜索
+  - ❌ meta_products, meta_audience：可過濾但完全未使用
 
-**建立 `src/database/db_adapter_meili.py`**
+  這表示：
+  - 查詢 "Azure OpenAI" 時，meta_products 中的 "Azure OpenAI" 不會提升文檔分數
+  - 這些 metadata 的搜索潛力未被發揮
 
-```python
-import meilisearch
-from typing import List, Dict, Any
+  3. LLM 生成的 Keywords 問題
 
-class MeiliAdapter:
-    def __init__(self, host="http://localhost:7700", api_key="masterKey"):
-        self.client = meilisearch.Client(host, api_key)
-        # 確保 index 存在並設定向量搜尋
-        self.index = self.client.index('announcements')
-        self._configure_index()
+  發現重大功能缺口：
+  - LLM 確實生成了 boost_keywords（例如 ["Azure OpenAI", "AI 雲合作夥伴計劃"]）
+  - 但在 search_service.py 中完全未被使用
+  - 只在測試輸出中顯示，對搜索結果無任何影響
 
-    def _configure_index(self):
-        # 1. 設定可過濾的屬性 (Filterable Attributes)
-        self.index.update_filterable_attributes([
-            'month', 
-            'metadata.meta_category', 
-            'metadata.meta_audience',
-            'metadata.meta_products'
-        ])
-        # 2. 開啟向量搜尋功能 (Hybrid Search)
-        self.index.update_settings({
-            "embedders": {
-                "default": {
-                    "source": "userProvided",  # 我們自己算 embedding 傳進去
-                    "dimensions": 1024        # 配合您的 embedding model 維度
-                }
-            }
-        })
+  這意味著：
+  - LLM 的產品名稱提取工作被浪費了
+  - 無法通過 boost 機制提升特定產品相關文檔的排名
 
-    def upsert_documents(self, documents: List[Dict[str, Any]]):
-        """
-        documents 格式需包含:
-        - id (原 id)
-        - _vectors (原 vector, Meilisearch 要求的格式)
-        - title, content, metadata...
-        """
-        # Meilisearch 批次寫入效率高
-        self.index.add_documents(documents)
+  建議的優化方向
 
-    def search(self, 
-               query: str, 
-               vector: List[float] = None, 
-               filters: str = None, 
-               limit: int = 20) -> List[Dict]:
-        
-        search_params = {
-            "limit": limit,
-            "filter": filters,
-            "hybrid": {
-                "semanticRatio": 0.5,  # 0.5 = 關鍵字與語義各半，可依需求調整
-                "embedder": "default"
-            }
-        }
-        
-        if vector:
-            search_params["vector"] = vector
+  1. 啟用 boost_keywords：將其合併到 keyword_query 或研究 Meilisearch 的 boost API
+  2. 將 meta_products 加入 searchable：讓產品名稱能參與搜索
+  3. 改善中文分詞：在 ETL 時使用 jieba 預處理，或在 meta_summary 中加入空格分詞
 
-        return self.index.search(query, search_params)['hits']
-```
-
-### 步驟 3: ETL Pipeline 修改 (`src/etl_pipeline.py`)
-
-您需要調整資料輸出的格式，以符合 Meilisearch 的要求：
-
-1.  **欄位更名：** 將 `id` 改為 `id`。
-2.  **向量格式：** Meilisearch 接受 `_vectors` 欄位（注意是複數且有底線）。
-
-```python
-# 在 ETL 處理完 metadata 和 embedding 後
-def transform_for_meilisearch(doc, embedding_vector):
-    return {
-        "id": doc["id"],  # 關鍵修改
-        "title": doc["title"],
-        "content": doc["content"], # 原始 Markdown
-        "month": doc["month"],
-        "link": doc["link"],
-        "metadata": doc["metadata"], # 保持巢狀結構
-        "_vectors": {
-             "default": embedding_vector # 對應 adapter 設定的 embedder 名稱
-        }
-    }
-```
-
-### 步驟 4: 搜尋服務簡化 (`src/services/search_service.py`)
-
-這是變動最大的地方，邏輯會變得非常簡單：
-
-```python
-from src.database.db_adapter_meili import MeiliAdapter
-
-class SearchService:
-    def __init__(self):
-        self.db = MeiliAdapter()
-        # LLM 解析器保持不變
-        
-    def search(self, user_query: str, current_date: str):
-        # 1. LLM 解析 Intent (保持原樣)
-        intent = self.llm_parser.parse(user_query, current_date)
-        
-        # 2. 轉換 Filter 語法 (Meilisearch Style)
-        # 例如: "month IN ['2025-nov']"
-        meili_filter = self._build_meili_filter(intent.filters)
-        
-        # 3. 取得向量 (如果需要 Hybrid)
-        query_vector = self.embedding_model.encode(user_query)
-        
-        # 4. 單一呼叫搞定所有事
-        results = self.db.search(
-            query=intent.keyword_query,  # LLM 優化過的關鍵字
-            vector=query_vector,
-            filters=meili_filter
-        )
-        
-        return results
-
-    def _build_meili_filter(self, filters):
-        conditions = []
-        if filters.get('months'):
-            months_str = ", ".join([f"'{m}'" for m in filters['months']])
-            conditions.append(f"month IN [{months_str}]")
-            
-        if filters.get('category'):
-            conditions.append(f"metadata.meta_category = '{filters['category']}'")
-            
-        return " AND ".join(conditions) if conditions else None
-```
-
-### 步驟 5: 清理舊程式碼
-
-完成上述修改後，您可以愉快地刪除以下檔案/功能：
-1.  🔥 `src/database/db_adapter_sqlite.py`
-2.  🔥 `src/database/db_adapter_qdrant.py`
-3.  🔥 `RRF Fusion` 相關的所有演算法函數
-4.  🔥 SQLite 的 `.db` 檔案
-
-### 總結
-現在您的架構變成了：
-`User Query` -> `LLM Intent` -> `Meilisearch (Hybrid)` -> `Results`
-
-這個架構既支援您要的**精準關鍵字匹配**（Meilisearch 強項），也支援**語意搜尋**（透過傳入 `_vectors`），且完全不需要自己維護分詞或複雜的融合邏輯。
+  你想針對這些問題進行優化嗎？我可以幫你實現這些改進。

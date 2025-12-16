@@ -42,7 +42,7 @@ def test_search(query: str):
             print(f"   id: {doc['id']}")
             print(f"   Month: {doc.get('month', 'N/A')}")
             print(f"   Category: {doc.get('category', 'N/A')}")
-            print(f"   RRF Score: {doc.get('rrf_score', 0):.4f}")
+            print(f"   Link: {doc.get('link', 'N/A')}")
             if "snippet" in doc:
                 print(f"   Snippet: {doc['snippet'][:100]}...")
 

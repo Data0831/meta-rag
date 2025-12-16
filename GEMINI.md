@@ -1,7 +1,3 @@
-好的，這是一份經過大幅簡化與現代化改寫的技術規格書，完全反映了從「SQLite + Qdrant 雙引擎」轉向「Meilisearch 單一引擎」的架構變更。
-
-***
-
 # 技術規格書：Microsoft RAG 智慧檢索系統 (Meilisearch 版)
 
 ## 1. 專案目標 (Objectives)
