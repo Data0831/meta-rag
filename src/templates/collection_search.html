@@ -67,7 +67,7 @@
     <div class="flex min-h-screen w-full">
         <!-- Left Sidebar -->
         <aside
-            class="w-[320px] shrink-0 bg-white/50 dark:bg-gray-900/50 p-6 flex flex-col gap-6 border-r border-gray-200 dark:border-gray-700">
+            class="w-[280px] shrink-0 bg-white/50 dark:bg-gray-900/50 p-6 flex flex-col gap-6 border-r border-gray-200 dark:border-gray-700">
             <div class="flex flex-col gap-2">
                 <a href="/search"
                     class="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-800 transition-colors">
@@ -78,56 +78,16 @@
                 <p class="text-sm text-gray-500 dark:text-gray-400">向量資料庫搜尋</p>
             </div>
 
-            <!-- Search Settings -->
-            <div class="flex flex-col gap-6">
-                <!-- Top-K Slider -->
-                <div class="flex flex-col gap-3">
-                    <div class="flex justify-between items-center">
-                        <p class="text-base font-medium text-gray-900 dark:text-white">Top-K</p>
-                        <p id="topKValue" class="text-sm font-semibold text-blue-600">10</p>
-                    </div>
-                    <input type="range" id="topKSlider" min="1" max="50" value="10"
-                        class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600">
-                    <div class="flex justify-between text-xs text-gray-500">
-                        <span>1</span>
-                        <span>50</span>
-                    </div>
+            <!-- Collection Info -->
+            <div class="flex flex-col gap-3 p-4 bg-gray-100/50 dark:bg-white/5 rounded-lg">
+                <div class="flex items-center gap-2 text-gray-700 dark:text-gray-300">
+                    <span class="material-symbols-outlined text-[18px]">info</span>
+                    <span class="text-sm font-medium">集合資訊</span>
                 </div>
-
-                <!-- Rerank Toggle -->
-                <div class="flex flex-col gap-4 rounded-lg bg-gray-100/50 dark:bg-white/5 p-4">
-                    <div class="flex items-center justify-between">
-                        <div class="flex-1">
-                            <p class="text-base font-bold text-gray-900 dark:text-white">啟用 Rerank</p>
-                            <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">重新排序搜尋結果</p>
-                        </div>
-                        <label class="relative inline-flex items-center cursor-pointer">
-                            <input type="checkbox" id="rerankToggle" class="sr-only peer">
-                            <div
-                                class="w-11 h-6 bg-gray-300 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-600 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600">
-                            </div>
-                        </label>
-                    </div>
-
-                    <!-- Rerank Top-N -->
-                    <div id="rerankTopNContainer"
-                        class="hidden flex-col gap-2 pt-2 border-t border-gray-200 dark:border-gray-600">
-                        <div class="flex justify-between items-center">
-                            <p class="text-sm font-medium text-gray-700 dark:text-gray-300">Rerank Top-N</p>
-                            <p id="rerankTopNValue" class="text-sm font-semibold text-blue-600">5</p>
-                        </div>
-                        <input type="range" id="rerankTopNSlider" min="1" max="20" value="5"
-                            class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-blue-600">
-                    </div>
+                <div class="text-xs text-gray-500 dark:text-gray-400">
+                    在上方輸入查詢以搜尋此集合中的向量
                 </div>
             </div>
-
-            <!-- Search Button -->
-            <button id="searchBtn"
-                class="flex items-center justify-center gap-2 px-5 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium">
-                <span class="material-symbols-outlined">search</span>
-                搜尋
-            </button>
         </aside>
 
         <!-- Right Main Content -->
@@ -154,8 +114,6 @@
             <div class="flex items-center justify-between text-sm text-gray-600 dark:text-gray-400">
                 <div id="resultsInfo" class="hidden">
                     找到 <span id="resultsCount" class="font-semibold text-gray-900 dark:text-white">0</span> 筆結果
-                    <span id="rerankBadge"
-                        class="hidden ml-2 px-2 py-0.5 bg-purple-100 text-purple-700 rounded text-xs">Reranked</span>
                 </div>
                 <div id="searchTime" class="hidden">
                     搜尋時間: <span id="searchTimeValue" class="font-semibold">0</span>ms

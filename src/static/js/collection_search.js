@@ -5,14 +5,7 @@ const COLLECTION_NAME = window.COLLECTION_NAME;
 
 // DOM Elements
 const searchInput = document.getElementById('searchInput');
-const searchBtn = document.getElementById('searchBtn');
 const searchIconBtn = document.getElementById('searchIconBtn');
-const topKSlider = document.getElementById('topKSlider');
-const topKValue = document.getElementById('topKValue');
-const rerankToggle = document.getElementById('rerankToggle');
-const rerankTopNContainer = document.getElementById('rerankTopNContainer');
-const rerankTopNSlider = document.getElementById('rerankTopNSlider');
-const rerankTopNValue = document.getElementById('rerankTopNValue');
 
 // State Elements
 const loadingState = document.getElementById('loadingState');
@@ -22,52 +15,23 @@ const emptyState = document.getElementById('emptyState');
 const resultsContainer = document.getElementById('resultsContainer');
 const resultsInfo = document.getElementById('resultsInfo');
 const resultsCount = document.getElementById('resultsCount');
-const rerankBadge = document.getElementById('rerankBadge');
 const searchTime = document.getElementById('searchTime');
 const searchTimeValue = document.getElementById('searchTimeValue');
 
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
     setupEventListeners();
-    updateSliderValues();
 });
 
 // Event Listeners
 function setupEventListeners() {
     // Search triggers
-    searchBtn.addEventListener('click', performSearch);
     searchIconBtn.addEventListener('click', performSearch);
     searchInput.addEventListener('keypress', (e) => {
         if (e.key === 'Enter') {
             performSearch();
         }
     });
-
-    // Sliders
-    topKSlider.addEventListener('input', (e) => {
-        topKValue.textContent = e.target.value;
-    });
-
-    rerankTopNSlider.addEventListener('input', (e) => {
-        rerankTopNValue.textContent = e.target.value;
-    });
-
-    // Rerank toggle
-    rerankToggle.addEventListener('change', (e) => {
-        if (e.target.checked) {
-            rerankTopNContainer.classList.remove('hidden');
-            rerankTopNContainer.classList.add('flex');
-        } else {
-            rerankTopNContainer.classList.add('hidden');
-            rerankTopNContainer.classList.remove('flex');
-        }
-    });
-}
-
-// Update slider initial values
-function updateSliderValues() {
-    topKValue.textContent = topKSlider.value;
-    rerankTopNValue.textContent = rerankTopNSlider.value;
 }
 
 // Perform Search
@@ -91,9 +55,7 @@ async function performSearch() {
             },
             body: JSON.stringify({
                 query: query,
-                top_k: parseInt(topKSlider.value),
-                use_rerank: rerankToggle.checked,
-                rerank_top_n: parseInt(rerankTopNSlider.value)
+                top_k: 10  // Default top-k value
             })
         });
 
@@ -126,13 +88,6 @@ function renderResults(data, duration) {
     resultsInfo.classList.remove('hidden');
     resultsCount.textContent = data.total;
 
-    // Show rerank badge if applicable
-    if (data.reranked) {
-        rerankBadge.classList.remove('hidden');
-    } else {
-        rerankBadge.classList.add('hidden');
-    }
-
     // Show search time
     searchTime.classList.remove('hidden');
     searchTimeValue.textContent = duration;
@@ -146,7 +101,7 @@ function renderResults(data, duration) {
 
 // Render Single Result Card
 function renderResultCard(result, rank) {
-    const score = result.rerank_score !== undefined ? result.rerank_score : result.score;
+    const score = result.score || 0;
     const scorePercent = Math.round(score * 100);
     const scoreColor = getScoreColor(scorePercent);
 
@@ -172,7 +127,7 @@ function renderResultCard(result, rank) {
                     </p>
                 </div>
                 <span class="px-2 py-1 rounded-full text-xs font-semibold ${scoreColor.bg} ${scoreColor.text}">
-                    ${scorePercent}% ${result.rerank_score !== undefined ? 'Relevance' : 'Similarity'}
+                    ${scorePercent}% Similarity
                 </span>
             </div>
 
