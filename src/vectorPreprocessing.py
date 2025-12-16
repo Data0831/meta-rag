@@ -9,10 +9,9 @@ project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 if project_root not in sys.path:
     sys.path.insert(0, project_root)
 
-from src.config import PROCESSED_OUTPUT
+from src.config import PROCESSED_OUTPUT, MEILISEARCH_HOST, MEILISEARCH_API_KEY, MEILISEARCH_INDEX
 from src.schema.schemas import AnnouncementDoc
-from src.database.db_adapter_qdrant import reset_collection, upsert_documents
-from src.database.db_adapter_sqlite import reset_db, insert_documents
+from src.database.db_adapter_meili import MeiliAdapter, transform_doc_for_meilisearch
 from src.database.vector_utils import create_enriched_text, get_embedding
 
 load_dotenv()
@@ -50,15 +49,26 @@ def load_processed_data() -> List[AnnouncementDoc]:
 
 
 def clear_all():
+    """Clear all data from Meilisearch index."""
     print("\n--- Clearing Data ---")
-    print("Clearing Qdrant collection...")
-    reset_collection()
-    print("Clearing SQLite database...")
-    reset_db()
-    print("All cleared.")
+    print("Clearing Meilisearch index...")
+    adapter = MeiliAdapter(
+        host=MEILISEARCH_HOST,
+        api_key=MEILISEARCH_API_KEY,
+        collection_name=MEILISEARCH_INDEX
+    )
+    adapter.reset_index()
+    print("✓ Meilisearch index cleared.")
 
 
 def process_and_write():
+    """
+    Process documents and write to Meilisearch.
+    - Load processed.json
+    - Generate embeddings
+    - Transform to Meilisearch format
+    - Upsert to Meilisearch
+    """
     print("\n--- Processing and Writing Data ---")
     docs = load_processed_data()
     if not docs:
@@ -67,49 +77,68 @@ def process_and_write():
 
     print(f"Loaded {len(docs)} documents.")
 
-    # 1. Generate Embeddings
-    print("Generating embeddings (this may take a while)...")
-    vectors = []
-    valid_docs = []
+    # Initialize Meilisearch adapter
+    adapter = MeiliAdapter(
+        host=MEILISEARCH_HOST,
+        api_key=MEILISEARCH_API_KEY,
+        collection_name=MEILISEARCH_INDEX
+    )
+
+    # 1. Generate Embeddings and Transform Documents
+    print("Generating embeddings and transforming documents...")
+    meili_docs = []
 
     for i, doc in enumerate(docs):
+        # Generate enriched text for embedding
         text = create_enriched_text(doc)
         vector = get_embedding(text)
+
         if vector:
-            vectors.append(vector)
-            valid_docs.append(doc)
+            # Transform to Meilisearch format
+            meili_doc = transform_doc_for_meilisearch(doc, vector)
+            meili_docs.append(meili_doc)
         else:
-            print(f"Failed to generate embedding for doc {doc.uuid}")
+            print(f"⚠ Failed to generate embedding for doc {doc.uuid}")
 
         if (i + 1) % 10 == 0:
-            print(f"Processed {i + 1}/{len(docs)}")
+            print(f"  Processed {i + 1}/{len(docs)}")
 
-    if not valid_docs:
+    if not meili_docs:
         print("No valid documents with embeddings to insert.")
         return
 
-    # 2. Insert into SQLite
-    print("Inserting into SQLite...")
-    insert_documents(valid_docs)
+    print(f"✓ Successfully prepared {len(meili_docs)} documents.")
 
-    # 3. Insert into Qdrant
-    print("Inserting into Qdrant...")
-    upsert_documents(valid_docs, vectors)
+    # 2. Upsert to Meilisearch
+    print("Upserting documents to Meilisearch...")
+    adapter.upsert_documents(meili_docs)
 
-    print("Done.")
+    # 3. Show index stats
+    print("\n--- Index Statistics ---")
+    stats = adapter.get_stats()
+    if stats:
+        print(f"  Total documents: {stats.get('numberOfDocuments', 'N/A')}")
+        print(f"  Index status: {stats.get('isIndexing', False) and 'Indexing...' or 'Ready'}")
+
+    print("\n✓ Done.")
 
 
 def main():
+    """
+    Main entry point for vector preprocessing.
+    Provides interactive menu for Meilisearch operations.
+    """
     while True:
         choice = (
             str(
                 input(
                     """
-        1. Clear all (Qdrant & SQLite)
-        2. Process and Write (Load processed.json -> Embed -> Write to DBs)
+        === Meilisearch Vector Preprocessing ===
+        1. Clear Meilisearch index
+        2. Process and Write (Load processed.json -> Embed -> Write to Meilisearch)
         Q. Quit
-        input your choice like 1 or Q:
-        """
+
+        Enter your choice (1, 2, or Q): """
                 )
             )
             .strip()
@@ -120,6 +149,7 @@ def main():
         elif choice == "2":
             process_and_write()
         elif choice == "Q":
+            print("Exiting...")
             return
         else:
             print("Invalid choice. Please try again.")

@@ -4,3 +4,4 @@ data/split/*
 data/processed/*
 data/process_log/*
 code/*
+*.bak

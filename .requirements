@@ -3,3 +3,4 @@ google-generativeai
 openai
 pydantic
 sqlite-utils
+meilisearch

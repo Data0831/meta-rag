@@ -19,9 +19,14 @@ PARSE_JSON = os.path.join(DATA_DIR, "parse.json")
 PROCESSED_OUTPUT = os.path.join(PROCESSED_DIR, "processed.json")
 ERROR_LIST_OUTPUT = os.path.join(DATA_DIR, "errorlist.json")
 
-# Database files
+# Database files (Legacy - will be removed)
 SQLITE_DB = os.path.join(DATABASE_DIR, "announcements.db")
 QDRANT_STORAGE = os.path.join(DATABASE_DIR, "qdrant_storage")
+
+# Meilisearch Settings
+MEILISEARCH_HOST = os.getenv("MEILISEARCH_HOST", "http://localhost:7700")
+MEILISEARCH_API_KEY = os.getenv("MEILISEARCH_API_KEY", "masterKey")
+MEILISEARCH_INDEX = "announcements"
 
 # ETL Settings
 DEFAULT_BATCH_SIZE = 10  # Number of documents to process per batch
