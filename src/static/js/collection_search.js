@@ -194,40 +194,43 @@ function renderResults(data, duration) {
 
 function updateIntentDisplay(intent) {
     if (!intent) return;
-    
+
     intentContainer.classList.remove('hidden');
-    
+
     // Update Keywords & Semantic Query
     intentKeywordQuery.textContent = intent.keyword_query || 'N/A';
     intentSemanticQuery.textContent = intent.semantic_query || 'N/A';
-    
+
     // Update Filters
     intentFilters.innerHTML = '';
     const filters = intent.filters || {};
-    let hasFilters = false;
 
-    // Months
+    // 1. Limit (Always show)
+    const limitVal = intent.limit !== null && intent.limit !== undefined ? intent.limit : 'Null';
+    const limitClass = (intent.limit !== null && intent.limit !== undefined) ?
+        "bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-300 border-gray-200 dark:border-gray-600" :
+        "bg-transparent text-gray-400 border-gray-200 dark:border-gray-700 border-dashed";
+
+    intentFilters.innerHTML += `<span class="px-2 py-0.5 rounded border text-xs ${limitClass}">🔢 Limit: ${limitVal}</span>`;
+
+    // 2. Category (Always show)
+    const catVal = filters.category || 'Null';
+    const catClass = filters.category ?
+        "bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-300 border-green-200 dark:border-green-700" :
+        "bg-transparent text-gray-400 border-gray-200 dark:border-gray-700 border-dashed";
+
+    intentFilters.innerHTML += `<span class="px-2 py-0.5 rounded border text-xs ${catClass}">🏷️ Category: ${catVal}</span>`;
+
+    // 3. Months (Only if present)
     if (filters.months && filters.months.length > 0) {
-        hasFilters = true;
         filters.months.forEach(m => {
             intentFilters.innerHTML += `<span class="px-2 py-0.5 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-300 rounded border border-blue-200 dark:border-blue-700 text-xs">📅 ${m}</span>`;
         });
     }
 
-    // Category
-    if (filters.category) {
-        hasFilters = true;
-        intentFilters.innerHTML += `<span class="px-2 py-0.5 bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-300 rounded border border-green-200 dark:border-green-700 text-xs">🏷️ ${filters.category}</span>`;
-    }
-    
-    // Impact Level
+    // 4. Impact Level (Only if present)
     if (filters.impact_level) {
-        hasFilters = true;
         intentFilters.innerHTML += `<span class="px-2 py-0.5 bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-300 rounded border border-red-200 dark:border-red-700 text-xs">⚠️ ${filters.impact_level}</span>`;
-    }
-
-    if (!hasFilters) {
-        intentFilters.innerHTML = '<span class="text-gray-400 italic">無過濾條件</span>';
     }
 }
 
@@ -264,11 +267,11 @@ function renderResultCard(result, rank) {
     // Score Details Analysis
     let scoreDetailsHtml = '';
     let matchTypeBadge = '';
-    
+
     if (result._rankingScoreDetails) {
         const detailsObj = result._rankingScoreDetails;
         const hasKeywords = detailsObj.words !== undefined;
-        
+
         // Determine Match Type Badge
         if (hasKeywords) {
             matchTypeBadge = `<span class="ml-2 px-1.5 py-0.5 rounded text-[10px] font-bold border border-blue-200 bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:border-blue-800 dark:text-blue-300">Keyword</span>`;
@@ -285,9 +288,9 @@ function renderResultCard(result, rank) {
                 } else if (typeof value === 'number') {
                     valStr = Math.round(value * 100) + '%';
                 } else {
-                    return null; 
+                    return null;
                 }
-                
+
                 // Translate key
                 let label = key;
                 let icon = '';
@@ -307,7 +310,7 @@ function renderResultCard(result, rank) {
             })
             .filter(Boolean)
             .join('');
-            
+
         if (details) {
             scoreDetailsHtml = `
                 <div class="mt-3 pt-2 border-t border-gray-100 dark:border-gray-700/50 flex flex-wrap gap-2">

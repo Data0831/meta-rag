@@ -80,7 +80,7 @@ Query: "Show me high impact security announcements from last month"
 {{
     "filters": {{
         "months": ["2025-11"],
-        "category": "Security",
+        "category": null,
         "impact_level": "High"
     }},
     "keyword_query": "高影響 安全性 公告",
@@ -114,7 +114,7 @@ Query: "Azure OpenAI pricing details"
 {{
     "filters": {{
         "months": [],
-        "category": "Pricing",
+        "category": null,
         "impact_level": null
     }},
     "keyword_query": "Azure OpenAI 價格",
@@ -131,7 +131,7 @@ Query: "請給我三篇關於資安的資料"
 {{
     "filters": {{
         "months": [],
-        "category": "Security",
+        "category": null,
         "impact_level": null
     }},
     "keyword_query": "資安 資料",
@@ -149,7 +149,7 @@ Query: "請給我一篇三個月內「copilot 價格」相關公告"
 {{
     "filters": {{
         "months": ["2025-10", "2025-11", "2025-12"],
-        "category": "pricing",
+        "category": null,
         "impact_level": null
     }},
     "keyword_query": "copilot 價格",
