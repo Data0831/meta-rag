@@ -28,6 +28,22 @@
         .card-shadow {
             box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
         }
+
+        /* Dimmed result style - applied when similarity is below threshold */
+        .dimmed-result {
+            opacity: 0.4;
+            filter: grayscale(20%);
+            transition: opacity 0.3s ease, filter 0.3s ease;
+        }
+
+        .dimmed-result:hover {
+            opacity: 0.6;
+        }
+
+        /* Smooth transitions for result cards */
+        .result-card {
+            transition: opacity 0.3s ease, filter 0.3s ease, transform 0.2s ease;
+        }
     </style>
 
     <script>
@@ -86,6 +102,47 @@
                 </div>
                 <div class="text-xs text-gray-500 dark:text-gray-400">
                     在上方輸入查詢以搜尋此集合中的向量
+                </div>
+            </div>
+
+            <!-- Similarity Threshold Control -->
+            <div class="flex flex-col gap-3 p-4 bg-gray-100/50 dark:bg-white/5 rounded-lg">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-2 text-gray-700 dark:text-gray-300">
+                        <span class="material-symbols-outlined text-[18px]">tune</span>
+                        <span class="text-sm font-medium">相似度閾值</span>
+                    </div>
+                    <span id="thresholdValue" class="text-sm font-bold text-blue-600 dark:text-blue-400">0%</span>
+                </div>
+                <input type="range" id="similarityThreshold" min="0" max="100" step="5" value="0"
+                    class="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-blue-600">
+                <div class="text-xs text-gray-500 dark:text-gray-400">
+                    低於此值的結果將以暗淡效果顯示
+                </div>
+            </div>
+
+            <!-- Search Configuration -->
+            <div class="flex flex-col gap-3 p-4 bg-gray-100/50 dark:bg-white/5 rounded-lg">
+                <div class="flex items-center gap-2 text-gray-700 dark:text-gray-300">
+                    <span class="material-symbols-outlined text-[18px]">settings</span>
+                    <span class="text-sm font-medium">搜尋設定</span>
+                </div>
+
+                <!-- Semantic Ratio Slider -->
+                <div class="flex flex-col gap-2">
+                    <div class="flex items-center justify-between">
+                        <label for="semanticRatioSlider" class="text-xs text-gray-600 dark:text-gray-400">語意搜尋權重</label>
+                        <span id="semanticRatioValue" class="text-xs font-bold text-gray-700 dark:text-gray-300">50%</span>
+                    </div>
+                    <input type="range" id="semanticRatioSlider" min="0" max="1" step="0.1" value="0.5"
+                        class="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-blue-600">
+                </div>
+
+                <!-- Limit Input -->
+                <div class="flex flex-col gap-2">
+                    <label for="limitInput" class="text-xs text-gray-600 dark:text-gray-400">結果數量</label>
+                    <input type="number" id="limitInput" min="1" max="100" value="10"
+                        class="px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent">
                 </div>
             </div>
         </aside>

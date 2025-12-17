@@ -3,19 +3,11 @@
 
 /**
  * Search Configuration
- *
- * To add UI controls for these settings, add the following elements to your HTML:
- *
- * For semantic ratio control (slider):
- * <input type="range" id="semanticRatioSlider" min="0" max="1" step="0.1" value="0.5">
- * <span id="semanticRatioValue">50%</span>
- *
- * For limit control (number input):
- * <input type="number" id="limitInput" min="1" max="100" value="10">
  */
 let searchConfig = {
     limit: 10,  // Number of results to return
-    semanticRatio: 0.5  // Weight for semantic search (0.0 = pure keyword, 1.0 = pure semantic)
+    semanticRatio: 0.5,  // Weight for semantic search (0.0 = pure keyword, 1.0 = pure semantic)
+    similarityThreshold: 0  // Similarity threshold (0-100), results below this will be dimmed
 };
 
 // DOM Elements
@@ -41,7 +33,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // Setup search configuration (can be extended with UI controls)
 function setupSearchConfig() {
-    // Try to get semantic ratio slider if it exists in the UI
+    // Similarity threshold slider
+    const similarityThreshold = document.getElementById('similarityThreshold');
+    const thresholdValue = document.getElementById('thresholdValue');
+    if (similarityThreshold && thresholdValue) {
+        similarityThreshold.addEventListener('input', (e) => {
+            searchConfig.similarityThreshold = parseInt(e.target.value);
+            thresholdValue.textContent = searchConfig.similarityThreshold + '%';
+            // Apply threshold to current results if they exist
+            applyThresholdToResults();
+        });
+    }
+
+    // Semantic ratio slider
     const semanticRatioSlider = document.getElementById('semanticRatioSlider');
     if (semanticRatioSlider) {
         semanticRatioSlider.addEventListener('input', (e) => {
@@ -54,7 +58,7 @@ function setupSearchConfig() {
         });
     }
 
-    // Try to get limit input if it exists in the UI
+    // Limit input
     const limitInput = document.getElementById('limitInput');
     if (limitInput) {
         limitInput.addEventListener('change', (e) => {
@@ -64,6 +68,25 @@ function setupSearchConfig() {
             }
         });
     }
+}
+
+// Apply threshold to current results (real-time update)
+function applyThresholdToResults() {
+    if (!currentResults || currentResults.length === 0) return;
+
+    const resultCards = resultsContainer.querySelectorAll('.result-card');
+    resultCards.forEach((card, index) => {
+        if (index < currentResults.length) {
+            const result = currentResults[index];
+            const score = Math.round((result._rankingScore || 0) * 100);
+
+            if (score < searchConfig.similarityThreshold) {
+                card.classList.add('dimmed-result');
+            } else {
+                card.classList.remove('dimmed-result');
+            }
+        }
+    });
 }
 
 // Event Listeners
@@ -175,8 +198,12 @@ function renderResultCard(result, rank) {
         metadata.unshift(['month', result.month]);
     }
 
+    // Check if result is below threshold
+    const isDimmed = scorePercent < searchConfig.similarityThreshold;
+    const dimmedClass = isDimmed ? 'dimmed-result' : '';
+
     return `
-        <div class="rounded-lg bg-gray-50 dark:bg-gray-800 p-5 card-shadow transition-shadow hover:shadow-lg">
+        <div class="result-card rounded-lg bg-gray-50 dark:bg-gray-800 p-5 card-shadow transition-all duration-300 hover:shadow-lg ${dimmedClass}">
             <!-- Header -->
             <div class="flex justify-between items-start mb-3">
                 <div class="flex items-center gap-2">
