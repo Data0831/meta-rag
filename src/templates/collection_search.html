@@ -144,6 +144,12 @@
                     <input type="number" id="limitInput" min="1" max="100" value="10"
                         class="px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-transparent">
                 </div>
+
+                <!-- LLM Rewrite Checkbox -->
+                <div class="flex items-center gap-2 mt-2">
+                    <input type="checkbox" id="llmRewriteCheckbox" class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600">
+                    <label for="llmRewriteCheckbox" class="text-xs text-gray-600 dark:text-gray-400 select-none">啟用 LLM 查詢重寫</label>
+                </div>
             </div>
         </aside>
 
@@ -174,6 +180,34 @@
                 </div>
                 <div id="searchTime" class="hidden">
                     搜尋時間: <span id="searchTimeValue" class="font-semibold">0</span>ms
+                </div>
+            </div>
+
+            <!-- Intent Analysis Info (Hidden by default) -->
+            <div id="intentContainer" class="hidden bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+                <div class="flex items-center gap-2 mb-2 text-blue-800 dark:text-blue-300">
+                    <span class="material-symbols-outlined text-[20px]">psychology</span>
+                    <h3 class="font-medium text-sm">LLM 意圖分析</h3>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+                    <!-- Filters -->
+                    <div>
+                        <span class="font-semibold text-gray-600 dark:text-gray-400 block mb-1">套用過濾器 (Filters):</span>
+                        <div id="intentFilters" class="flex flex-wrap gap-1">
+                            <!-- Filters will be injected here -->
+                        </div>
+                    </div>
+                    <!-- Queries -->
+                    <div class="space-y-2">
+                        <div>
+                            <span class="font-semibold text-gray-600 dark:text-gray-400">關鍵字查詢:</span>
+                            <span id="intentKeywordQuery" class="text-gray-800 dark:text-gray-200 ml-1 font-mono bg-white dark:bg-black/20 px-1 rounded"></span>
+                        </div>
+                        <div>
+                            <span class="font-semibold text-gray-600 dark:text-gray-400">語意查詢:</span>
+                            <span id="intentSemanticQuery" class="text-gray-800 dark:text-gray-200 ml-1 font-mono bg-white dark:bg-black/20 px-1 rounded"></span>
+                        </div>
+                    </div>
                 </div>
             </div>
 

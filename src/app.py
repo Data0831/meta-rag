@@ -96,6 +96,7 @@ def search():
         query = data["query"]
         limit = data.get("limit", 20)
         semantic_ratio = data.get("semantic_ratio", 0.5)
+        enable_llm = data.get("enable_llm", True)
 
         # Validate parameters
         if not isinstance(limit, int) or limit < 1 or limit > 100:
@@ -125,7 +126,10 @@ def search():
         # Perform search
         search_service = SearchService()
         results = search_service.search(
-            user_query=query, limit=limit, semantic_ratio=semantic_ratio
+            user_query=query,
+            limit=limit,
+            semantic_ratio=semantic_ratio,
+            enable_llm=enable_llm,
         )
 
         return jsonify(results)

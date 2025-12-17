@@ -7,12 +7,18 @@
 let searchConfig = {
     limit: 10,  // Number of results to return
     semanticRatio: 0.5,  // Weight for semantic search (0.0 = pure keyword, 1.0 = pure semantic)
-    similarityThreshold: 0  // Similarity threshold (0-100), results below this will be dimmed
+    similarityThreshold: 0,  // Similarity threshold (0-100), results below this will be dimmed
+    enableLlm: false
 };
 
 // DOM Elements
 const searchInput = document.getElementById('searchInput');
 const searchIconBtn = document.getElementById('searchIconBtn');
+const llmRewriteCheckbox = document.getElementById('llmRewriteCheckbox');
+const intentContainer = document.getElementById('intentContainer');
+const intentFilters = document.getElementById('intentFilters');
+const intentKeywordQuery = document.getElementById('intentKeywordQuery');
+const intentSemanticQuery = document.getElementById('intentSemanticQuery');
 
 // State Elements
 const loadingState = document.getElementById('loadingState');
@@ -66,6 +72,13 @@ function setupSearchConfig() {
             if (value > 0 && value <= 100) {
                 searchConfig.limit = value;
             }
+        });
+    }
+
+    // LLM Rewrite Checkbox
+    if (llmRewriteCheckbox) {
+        llmRewriteCheckbox.addEventListener('change', (e) => {
+            searchConfig.enableLlm = e.target.checked;
         });
     }
 }
@@ -122,7 +135,8 @@ async function performSearch() {
             body: JSON.stringify({
                 query: query,
                 limit: searchConfig.limit,
-                semantic_ratio: searchConfig.semanticRatio
+                semantic_ratio: searchConfig.semanticRatio,
+                enable_llm: searchConfig.enableLlm
             })
         });
 
@@ -146,12 +160,18 @@ async function performSearch() {
 function renderResults(data, duration) {
     hideAllStates();
 
-    // Extract results from SearchService response
+    // Extract results and intent from SearchService response
     const results = data.results || [];
+    const intent = data.intent;
 
     if (results.length === 0) {
         showEmpty('沒有找到相關結果', '請嘗試不同的搜尋查詢');
         return;
+    }
+
+    // Update Intent Display
+    if (intent && searchConfig.enableLlm) {
+        updateIntentDisplay(intent);
     }
 
     // Store results globally for detail view
@@ -170,6 +190,45 @@ function renderResults(data, duration) {
     resultsContainer.innerHTML = results.map((result, index) => {
         return renderResultCard(result, index + 1);
     }).join('');
+}
+
+function updateIntentDisplay(intent) {
+    if (!intent) return;
+    
+    intentContainer.classList.remove('hidden');
+    
+    // Update Keywords & Semantic Query
+    intentKeywordQuery.textContent = intent.keyword_query || 'N/A';
+    intentSemanticQuery.textContent = intent.semantic_query || 'N/A';
+    
+    // Update Filters
+    intentFilters.innerHTML = '';
+    const filters = intent.filters || {};
+    let hasFilters = false;
+
+    // Months
+    if (filters.months && filters.months.length > 0) {
+        hasFilters = true;
+        filters.months.forEach(m => {
+            intentFilters.innerHTML += `<span class="px-2 py-0.5 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-300 rounded border border-blue-200 dark:border-blue-700 text-xs">📅 ${m}</span>`;
+        });
+    }
+
+    // Category
+    if (filters.category) {
+        hasFilters = true;
+        intentFilters.innerHTML += `<span class="px-2 py-0.5 bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-300 rounded border border-green-200 dark:border-green-700 text-xs">🏷️ ${filters.category}</span>`;
+    }
+    
+    // Impact Level
+    if (filters.impact_level) {
+        hasFilters = true;
+        intentFilters.innerHTML += `<span class="px-2 py-0.5 bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-300 rounded border border-red-200 dark:border-red-700 text-xs">⚠️ ${filters.impact_level}</span>`;
+    }
+
+    if (!hasFilters) {
+        intentFilters.innerHTML = '<span class="text-gray-400 italic">無過濾條件</span>';
+    }
 }
 
 // Render Single Result Card
@@ -202,6 +261,62 @@ function renderResultCard(result, rank) {
     const isDimmed = scorePercent < searchConfig.similarityThreshold;
     const dimmedClass = isDimmed ? 'dimmed-result' : '';
 
+    // Score Details Analysis
+    let scoreDetailsHtml = '';
+    let matchTypeBadge = '';
+    
+    if (result._rankingScoreDetails) {
+        const detailsObj = result._rankingScoreDetails;
+        const hasKeywords = detailsObj.words !== undefined;
+        
+        // Determine Match Type Badge
+        if (hasKeywords) {
+            matchTypeBadge = `<span class="ml-2 px-1.5 py-0.5 rounded text-[10px] font-bold border border-blue-200 bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:border-blue-800 dark:text-blue-300">Keyword</span>`;
+        } else if (detailsObj.vectorSort !== undefined || detailsObj.semantic !== undefined) {
+            matchTypeBadge = `<span class="ml-2 px-1.5 py-0.5 rounded text-[10px] font-bold border border-purple-200 bg-purple-50 text-purple-600 dark:bg-purple-900/30 dark:border-purple-800 dark:text-purple-300">Semantic</span>`;
+        }
+
+        const details = Object.entries(detailsObj)
+            .map(([key, value]) => {
+                // Handle various formats of value
+                let valStr = '';
+                if (typeof value === 'object' && value !== null && value.score !== undefined) {
+                    valStr = Math.round(value.score * 100) + '%';
+                } else if (typeof value === 'number') {
+                    valStr = Math.round(value * 100) + '%';
+                } else {
+                    return null; 
+                }
+                
+                // Translate key
+                let label = key;
+                let icon = '';
+                if (key === 'vectorSort' || key === 'semantic') { label = 'Dense (Vector)'; icon = 'hub'; }
+                if (key === 'words') { label = 'Keywords'; icon = 'abc'; }
+                if (key === 'typo') { label = 'Fuzzy (Typo)'; icon = 'spellcheck'; }
+                if (key === 'proximity') { label = 'Proximity'; icon = 'format_align_center'; }
+                if (key === 'attribute') { label = 'Attribute'; icon = 'sell'; }
+                if (key === 'exactness') { label = 'Exactness'; icon = 'done_all'; }
+
+                return `<div class="flex flex-col items-center bg-gray-100 dark:bg-gray-700/50 rounded px-2 py-1 min-w-[60px]">
+                    <span class="text-[10px] text-gray-500 dark:text-gray-400 uppercase tracking-wider flex items-center gap-1">
+                        ${icon ? `<span class="material-symbols-outlined text-[10px]">${icon}</span>` : ''} ${label}
+                    </span>
+                    <span class="text-xs font-bold text-gray-700 dark:text-gray-300">${valStr}</span>
+                </div>`;
+            })
+            .filter(Boolean)
+            .join('');
+            
+        if (details) {
+            scoreDetailsHtml = `
+                <div class="mt-3 pt-2 border-t border-gray-100 dark:border-gray-700/50 flex flex-wrap gap-2">
+                    ${details}
+                </div>
+            `;
+        }
+    }
+
     return `
         <div class="result-card rounded-lg bg-gray-50 dark:bg-gray-800 p-5 card-shadow transition-all duration-300 hover:shadow-lg ${dimmedClass}">
             <!-- Header -->
@@ -213,9 +328,10 @@ function renderResultCard(result, rank) {
                     <p class="text-xs font-mono text-gray-500 dark:text-gray-400">
                         ID: <span class="text-gray-700 dark:text-gray-300">${result.id.substring(0, 8)}...</span>
                     </p>
+                    ${matchTypeBadge}
                 </div>
                 <span class="px-2 py-1 rounded-full text-xs font-semibold ${scoreColor.bg} ${scoreColor.text}">
-                    ${scorePercent}% Similarity
+                    ${scorePercent}% Match
                 </span>
             </div>
 
@@ -234,6 +350,9 @@ function renderResultCard(result, rank) {
                     `).join('')}
                 </div>
             ` : ''}
+
+            <!-- Score Details -->
+            ${scoreDetailsHtml}
 
             <!-- Expand Button -->
             <button onclick="showResultDetail(${rank - 1})"
@@ -314,4 +433,5 @@ function hideAllStates() {
     resultsContainer.classList.add('hidden');
     resultsInfo.classList.add('hidden');
     searchTime.classList.add('hidden');
+    if (intentContainer) intentContainer.classList.add('hidden');
 }

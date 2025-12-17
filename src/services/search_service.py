@@ -88,12 +88,14 @@ class SearchService:
         user_query: str,
         limit: int = 20,
         semantic_ratio: float = DEFAULT_SEMANTIC_RATIO,
+        enable_llm: bool = True,
     ) -> Dict[str, Any]:
         """
         Perform unified hybrid search using Meilisearch.
 
         Workflow:
         1. Parse Intent (LLM) -> Extract filters, keyword_query, semantic_query
+           (If enable_llm=False, skips LLM and uses raw query)
         2. Build Meilisearch filter expression
         3. Generate query embedding for semantic search
         4. Single Meilisearch API call (combines keyword + semantic + filters)
@@ -104,6 +106,7 @@ class SearchService:
             limit: Maximum number of results to return
             semantic_ratio: Weight for semantic search (0.0 = pure keyword, 1.0 = pure semantic)
                             Default 0.5 means equal weight
+            enable_llm: Whether to use LLM for intent parsing (default: True)
 
         Returns:
             Dictionary with:
@@ -111,10 +114,16 @@ class SearchService:
             - results: List of ranked documents from Meilisearch
         """
         # 1. Parse Intent
-        intent = self.parse_intent(user_query)
+        intent = None
+        if enable_llm:
+            intent = self.parse_intent(user_query)
+        
         if not intent:
-            # Fallback if intent parsing fails
-            print("⚠ Intent parsing failed. Using fallback basic search.")
+            if enable_llm:
+                # Fallback if intent parsing fails
+                print("⚠ Intent parsing failed. Using fallback basic search.")
+            
+            # Basic intent (no filters, raw query)
             intent = SearchIntent(
                 filters=SearchFilters(),  # Empty filters
                 keyword_query=user_query,

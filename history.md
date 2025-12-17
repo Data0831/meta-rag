@@ -41,3 +41,7 @@
 **Collection 頁面路由修復**：診斷並修復從 vector_search 頁面點擊 collection 無法跳轉的問題。在 `app.py` 中新增 `/collection/<collection_name>` 動態路由（src/app.py:64-67），渲染 `collection_search.html` 模板並傳入 collection_name 參數。此修復使前端 `vector_search.js` 中的多處 collection 連結（表格行點擊、詳情彈窗搜尋按鈕等）能夠正常導航至 `http://localhost:5000/collection/announcements`，完善了 vector search 管理介面的完整導航流程。
 
 **搜尋介面相似度閾值功能**：於 collection_search 頁面左側邊欄新增相似度閾值滑桿控制（0-100%，步長5%）。實作即時過濾機制：低於閾值的搜尋結果以暗淡效果顯示（透明度40%、灰度20%），而非完全隱藏。在 `collection_search.html` 新增三個控制區塊（相似度閾值、語意搜尋權重、結果數量），於 `collection_search.js` 實作 `applyThresholdToResults()` 即時過濾函數與 `setupSearchConfig()` 參數綁定。添加 CSS `.dimmed-result` 類別實現平滑視覺過渡效果（0.3秒動畫、hover 時提升至60%透明度），提供清晰的結果質量視覺區分。
+
+**LLM 意圖重寫功能與詳細評分展示**：在 Collection Search 頁面新增「LLM 查詢重寫 (Use LLM Rewrite)」開關功能。
+- **前端優化**：新增控制核取方塊與「LLM 意圖分析」區塊，展示解析後的過濾器 (Filters)、關鍵字查詢與語意查詢。在結果卡片中新增詳細評分展示 (Score Details)，包含 Dense (Vector)、Keywords 與 Fuzzy (Typo) 評分細節。
+- **後端增強**：更新 `SearchService` 與 API 支援 `enable_llm` 參數，允許跳過 LLM 解析直接執行關鍵字搜尋，提供更靈活的搜尋控制。
