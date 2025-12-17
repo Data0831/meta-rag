@@ -142,7 +142,15 @@ class MeiliAdapter:
 
         try:
             results = self.index.search(query, search_params)
-            return results["hits"]
+            hits = results["hits"]
+
+            # Manually sort by _rankingScore in descending order
+            # This ensures hybrid search results are properly ranked by their final score
+            # (fixes issue where keyword results appear before higher-scored semantic results)
+            if hits and "_rankingScore" in hits[0]:
+                hits.sort(key=lambda x: x.get("_rankingScore", 0), reverse=True)
+
+            return hits
 
         except Exception as e:
             print(f"Meilisearch search error: {e}")

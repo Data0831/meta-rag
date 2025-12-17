@@ -23,35 +23,92 @@ def test_search(query: str):
     service = SearchService()
 
     try:
+        # Use limit=5 as fallback if LLM doesn't specify
         results = service.search(query, limit=5)
 
-        # Display intent
+        # Display intent with highlighting
         print("\n[Intent Parsed]")
-        print(json.dumps(results["intent"], indent=2, ensure_ascii=False))
+        intent = results["intent"]
+        print(json.dumps(intent, indent=2, ensure_ascii=False))
+
+        # Highlight key search parameters
+        print("\n" + "-" * 80)
+        print("[Search Strategy]")
+        print(f"  Keyword Query:  {intent.get('keyword_query', 'N/A')}")
+        print(f"  Semantic Query: {intent.get('semantic_query', 'N/A')}")
+
+        # Show semantic ratio with visual indicator
+        semantic_ratio = intent.get("recommended_semantic_ratio", 0.5)
+        keyword_weight = 1 - semantic_ratio
+        print(f"\n  Semantic Ratio: {semantic_ratio:.2f}")
+        print(
+            f"    ├─ Keyword Weight:  {keyword_weight:.2f} {'█' * int(keyword_weight * 20)}"
+        )
+        print(
+            f"    └─ Semantic Weight: {semantic_ratio:.2f} {'█' * int(semantic_ratio * 20)}"
+        )
 
         # Show applied filters
-        filters = results["intent"]["filters"]
+        filters = intent["filters"]
+        print(f"\n[Filters Applied]")
         if filters.get("months"):
-            print(f"\n[Months Filter] {filters['months']}")
-        if results["intent"].get("boost_keywords"):
-            print(f"[Boost Keywords] {results['intent']['boost_keywords']}")
+            print(f"  Months:       {filters['months']}")
+        if filters.get("category"):
+            print(f"  Category:     {filters['category']}")
+        if filters.get("impact_level"):
+            print(f"  Impact Level: {filters['impact_level']}")
+        if not any(filters.values()):
+            print(f"  (No filters)")
+
+        if intent.get("boost_keywords"):
+            print(f"\n[Boost Keywords] {intent['boost_keywords']}")
+
+        if intent.get("limit"):
+            print(f"\n[Result Limit] LLM specified: {intent['limit']}")
+        else:
+            print(f"\n[Result Limit] Using fallback: 5")
 
         # Display results
-        print(f"\n[Results] Found {len(results['results'])} documents")
+        print("\n" + "=" * 80)
+        print(f"[Search Results] Found {len(results['results'])} documents")
+        print("=" * 80)
+
         for idx, doc in enumerate(results["results"], 1):
-            print(f"\n{idx}. {doc.get('title', 'No Title')}")
-            print(f"   id: {doc['id']}")
-            print(f"   Score: {doc.get('_rankingScore', 'N/A')}")
+            print(f"\n[{idx}] {doc.get('title', 'No Title')}")
+            print(f"{'─' * 80}")
+            print(f"  ID:           {doc['id']}")
+            print(f"  Month:        {doc.get('month', 'N/A')}")
+            print(f"  Ranking Score: {doc.get('_rankingScore', 0):.4f}")
+
+            # Display detailed score breakdown
             if "_rankingScoreDetails" in doc:
                 details = doc["_rankingScoreDetails"]
-                print(
-                    f"   Score Details: {json.dumps(details, indent=2, ensure_ascii=False)}"
-                )
-            print(f"   Month: {doc.get('month', 'N/A')}")
-            print(f"   Category: {doc.get('category', 'N/A')}")
-            print(f"   Link: {doc.get('link', 'N/A')}")
-            if "snippet" in doc:
-                print(f"   Snippet: {doc['snippet'][:100]}...")
+                print(f"\n  Score Breakdown:")
+                for key, value in details.items():
+                    if isinstance(value, dict):
+                        print(f"    {key}:")
+                        for sub_key, sub_value in value.items():
+                            print(f"      {sub_key}: {sub_value}")
+                    else:
+                        print(f"    {key}: {value}")
+
+            # Show metadata if available
+            if "metadata" in doc:
+                meta = doc["metadata"]
+                print(f"\n  Metadata:")
+                if meta.get("meta_category"):
+                    print(f"    Category:     {meta['meta_category']}")
+                if meta.get("meta_impact_level"):
+                    print(f"    Impact Level: {meta['meta_impact_level']}")
+                if meta.get("meta_products"):
+                    print(f"    Products:     {', '.join(meta['meta_products'][:3])}")
+                if meta.get("meta_summary"):
+                    summary = meta["meta_summary"]
+                    print(
+                        f"    Summary:      {summary[:150]}{'...' if len(summary) > 150 else ''}"
+                    )
+
+            print(f"\n  Link: {doc.get('link', 'N/A')}")
 
         return results
 
@@ -66,12 +123,20 @@ def test_search(query: str):
 def main():
     """Run test cases"""
     print("\n" + "=" * 80)
-    print("Phase 4 Hybrid Search Service - Test Suite")
+    print("Hybrid Search Service - LLM Semantic Ratio Test Suite")
     print("=" * 80)
 
-    # Test cases
+    # Test cases covering different semantic ratio scenarios
     test_queries = [
+        # Keyword-heavy queries (expected ratio: 0.2-0.3)
+        # "Azure OpenAI pricing",
+        # "Copilot for Microsoft 365 更新",
+        # Balanced queries (expected ratio: 0.4-0.5)
         "三個月內「AI 雲合作夥伴計劃」相關公告",
+        # "安全性最佳實踐",
+        # # Semantic-heavy queries (expected ratio: 0.6-0.8)
+        # "如何提升雲端安全",
+        # "最近有什麼重要變更",
     ]
 
     for query in test_queries:

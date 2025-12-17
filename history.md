@@ -45,3 +45,14 @@
 **LLM 意圖重寫功能與詳細評分展示**：在 Collection Search 頁面新增「LLM 查詢重寫 (Use LLM Rewrite)」開關功能。
 - **前端優化**：新增控制核取方塊與「LLM 意圖分析」區塊，展示解析後的過濾器 (Filters)、關鍵字查詢與語意查詢。在結果卡片中新增詳細評分展示 (Score Details)，包含 Dense (Vector)、Keywords 與 Fuzzy (Typo) 評分細節。
 - **後端增強**：更新 `SearchService` 與 API 支援 `enable_llm` 參數，允許跳過 LLM 解析直接執行關鍵字搜尋，提供更靈活的搜尋控制。
+
+## 2025-12-17 (23:45)
+**搜尋結果視覺化與 Intent 顯示優化**：
+- **結果匹配區分**：更新 `collection_search.js`，在搜尋結果卡片上明確標示「Keyword (關鍵字)」或「Semantic (語意)」匹配標籤，並優化了評分細節 (Score Details) 的圖示與排版，讓使用者能直觀分辨結果來源。
+- **Intent 顯示增強**：改進 LLM 意圖分析區塊的顯示邏輯，強制顯示 `Limit` 與 `Category` 欄位。即使 LLM 未解析出這些限制，也會以虛線框樣式顯示 `Null`，明確傳達「無限制」的狀態，提升介面資訊的完整性與透明度。
+
+## 2025-12-17 (13:57)
+**動態語意權重調整機制 (Dynamic Semantic Ratio)**：分析目前 Meilisearch 混合搜尋的分數加權問題（語意相似但實際無關、關鍵字過於籠統），實作 LLM 動態調整 `semantic_ratio` 功能。擴充 `SearchIntent` Schema 新增 `recommended_semantic_ratio` 欄位（0.0-1.0，預設 0.5）。更新 `SEARCH_INTENT_PROMPT` 添加決策邏輯，根據查詢特性自動推薦權重：精確查詢（產品名、技術代碼）使用 0.2-0.3 偏重關鍵字，概念性查詢（如何提升安全）使用 0.6-0.8 偏重語意，一般查詢使用 0.5 平衡。修改 `search_service.py` 自動採用 LLM 推薦值並輸出提示訊息。升級 `test_search.py` 新增語意權重視覺化顯示（進度條）、詳細評分細節、Metadata 展示與 6 種測試案例，並設定預設 limit=5 作為後備值。
+
+## 2025-12-17 (14:30)
+**混合搜尋排序修復 (Hybrid Search Sorting Fix)**：診斷並修復混合搜尋結果排序錯誤問題。發現 Meilisearch 的預設 Ranking Rules（words, typo, proximity, attribute, exactness）導致關鍵字結果優先於語意結果，即使語意結果分數更高也被排在後面。實作後處理排序方案：在 `db_adapter_meili.py:147-151` 新增手動排序邏輯，於搜尋返回結果後按 `_rankingScore` 降序重新排序，確保混合搜尋的最終分數能正確反映在結果順序上。建立 `check_sort_order.py` 測試腳本驗證排序正確性。此修復使混合搜尋真正實現統一排名，高分語意結果不再被低分關鍵字結果壓制。

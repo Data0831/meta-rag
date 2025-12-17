@@ -264,23 +264,25 @@ function renderResultCard(result, rank) {
     const isDimmed = scorePercent < searchConfig.similarityThreshold;
     const dimmedClass = isDimmed ? 'dimmed-result' : '';
 
-    // Score Details Analysis
-    let scoreDetailsHtml = '';
-    let matchTypeBadge = '';
-
-    if (result._rankingScoreDetails) {
-        const detailsObj = result._rankingScoreDetails;
-        const hasKeywords = detailsObj.words !== undefined;
-
-        // Determine Match Type Badge
-        if (hasKeywords) {
-            matchTypeBadge = `<span class="ml-2 px-1.5 py-0.5 rounded text-[10px] font-bold border border-blue-200 bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:border-blue-800 dark:text-blue-300">Keyword</span>`;
-        } else if (detailsObj.vectorSort !== undefined || detailsObj.semantic !== undefined) {
-            matchTypeBadge = `<span class="ml-2 px-1.5 py-0.5 rounded text-[10px] font-bold border border-purple-200 bg-purple-50 text-purple-600 dark:bg-purple-900/30 dark:border-purple-800 dark:text-purple-300">Semantic</span>`;
-        }
-
-        const details = Object.entries(detailsObj)
-            .map(([key, value]) => {
+        // Score Details Analysis
+        let scoreDetailsHtml = '';
+        let matchTypeBadge = '';
+        
+        if (result._rankingScoreDetails) {
+            const detailsObj = result._rankingScoreDetails;
+            const hasKeywords = detailsObj.words !== undefined;
+            const hasVector = detailsObj.vectorSort !== undefined || detailsObj.semantic !== undefined;
+            
+            // Determine Match Type Badge
+            if (hasKeywords && hasVector) {
+                matchTypeBadge = `<span class="ml-2 px-1.5 py-0.5 rounded text-[10px] font-bold border border-orange-200 bg-orange-50 text-orange-600 dark:bg-orange-900/30 dark:border-orange-800 dark:text-orange-300">Hybrid</span>`;
+            } else if (hasKeywords) {
+                matchTypeBadge = `<span class="ml-2 px-1.5 py-0.5 rounded text-[10px] font-bold border border-blue-200 bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:border-blue-800 dark:text-blue-300">Keyword</span>`;
+            } else if (hasVector) {
+                matchTypeBadge = `<span class="ml-2 px-1.5 py-0.5 rounded text-[10px] font-bold border border-purple-200 bg-purple-50 text-purple-600 dark:bg-purple-900/30 dark:border-purple-800 dark:text-purple-300">Semantic</span>`;
+            }
+    
+            const details = Object.entries(detailsObj)            .map(([key, value]) => {
                 // Handle various formats of value
                 let valStr = '';
                 if (typeof value === 'object' && value !== null && value.score !== undefined) {

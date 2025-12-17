@@ -10,12 +10,12 @@ No more RRF fusion needed - Meilisearch handles it internally!
 """
 
 from typing import Dict, Any, Optional
-from llm.client import LLMClient
-from llm.search_prompts import SEARCH_INTENT_PROMPT
-from schema.schemas import SearchIntent, SearchFilters
-from database.db_adapter_meili import MeiliAdapter, build_meili_filter
-from database import vector_utils
-from config import MEILISEARCH_HOST, MEILISEARCH_API_KEY, MEILISEARCH_INDEX
+from src.llm.client import LLMClient
+from src.llm.search_prompts import SEARCH_INTENT_PROMPT
+from src.schema.schemas import SearchIntent, SearchFilters
+from src.database.db_adapter_meili import MeiliAdapter, build_meili_filter
+from src.database import vector_utils
+from src.config import MEILISEARCH_HOST, MEILISEARCH_API_KEY, MEILISEARCH_INDEX
 from meilisearch_config import DEFAULT_SEMANTIC_RATIO
 from datetime import datetime
 
@@ -94,7 +94,7 @@ class SearchService:
         Perform unified hybrid search using Meilisearch.
 
         Workflow:
-        1. Parse Intent (LLM) -> Extract filters, keyword_query, semantic_query
+        1. Parse Intent (LLM) -> Extract filters, keyword_query, semantic_query, recommended_semantic_ratio
            (If enable_llm=False, skips LLM and uses raw query)
         2. Build Meilisearch filter expression
         3. Generate query embedding for semantic search
@@ -104,25 +104,25 @@ class SearchService:
         Args:
             user_query: Natural language query
             limit: Maximum number of results to return
-            semantic_ratio: Weight for semantic search (0.0 = pure keyword, 1.0 = pure semantic)
-                            Default 0.5 means equal weight
+            semantic_ratio: Initial weight for semantic search (0.0 = pure keyword, 1.0 = pure semantic)
+                            Default 0.5 - Will be overridden by LLM's recommended_semantic_ratio if available
             enable_llm: Whether to use LLM for intent parsing (default: True)
 
         Returns:
             Dictionary with:
-            - intent: Parsed search intent
+            - intent: Parsed search intent (includes recommended_semantic_ratio)
             - results: List of ranked documents from Meilisearch
         """
         # 1. Parse Intent
         intent = None
         if enable_llm:
             intent = self.parse_intent(user_query)
-        
+
         if not intent:
             if enable_llm:
                 # Fallback if intent parsing fails
                 print("⚠ Intent parsing failed. Using fallback basic search.")
-            
+
             # Basic intent (no filters, raw query)
             intent = SearchIntent(
                 filters=SearchFilters(),  # Empty filters
@@ -133,6 +133,11 @@ class SearchService:
         # Override limit if specified in intent
         if intent.limit is not None:
             limit = intent.limit
+
+        # Use LLM-recommended semantic_ratio (unless user explicitly overrides)
+        if intent.recommended_semantic_ratio is not None:
+            semantic_ratio = intent.recommended_semantic_ratio
+            print(f"🎯 Using LLM-recommended semantic_ratio: {semantic_ratio:.2f}")
 
         # Convert month format from YYYY-MM to YYYY-monthname
         if intent.filters.months:
@@ -164,6 +169,14 @@ class SearchService:
                 print(
                     "⚠ Embedding generation failed. Falling back to keyword-only search."
                 )
+
+        # Append boost keywords to the keyword query to enhance relevance
+        # Meilisearch 'words' ranking rule will prioritize documents containing these terms
+        if intent.boost_keywords:
+            boost_query_part = " ".join(intent.boost_keywords)
+            # We append them to the user's keyword query
+            intent.keyword_query = f"{intent.keyword_query} {boost_query_part}".strip()
+            print(f"🚀 Applied boost keywords: {boost_query_part}")
 
         # 4. Single Meilisearch API call (Hybrid Search)
         results = self.meili_adapter.search(

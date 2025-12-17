@@ -209,8 +209,8 @@ filterable_attributes = [
 # 可搜索欄位（用於模糊搜索 + 語義搜索）
 searchable_attributes = [
     "title",
-    "content",
     "metadata.meta_summary"  # ← 唯一參與搜索的 metadata
+    "content",
 ]
 ```
 

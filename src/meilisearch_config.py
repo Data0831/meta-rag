@@ -15,11 +15,11 @@ DEFAULT_SEMANTIC_RATIO = 0.5
 # The order in the list represents the priority of the rule.
 # Reference: https://www.meilisearch.com/docs/learn/core_concepts/relevancy
 RANKING_RULES = [
-    "words",      # Prioritize documents containing more query terms
-    "typo",       # Prioritize documents with fewer typos
+    "words",  # Prioritize documents containing more query terms
+    "typo",  # Prioritize documents with fewer typos
     "proximity",  # Prioritize documents where query terms are closer together
     "attribute",  # Prioritize matches in more important attributes (e.g. title > content)
-    "sort",       # Sort by custom sortable attributes (if requested in query)
+    "sort",  # Sort by custom sortable attributes (if requested in query)
     "exactness",  # Prioritize exact matches over fuzzy matches
 ]
 
@@ -38,13 +38,13 @@ FILTERABLE_ATTRIBUTES = [
 # Order implies importance (e.g., matches in title are more important than in content)
 SEARCHABLE_ATTRIBUTES = [
     "title",
-    "content",
     "metadata.meta_summary",
-    "metadata.meta_summary_segmented",
+    # "metadata.meta_summary_segmented",
+    "content",
 ]
 
 # Embedding Configuration
 EMBEDDING_CONFIG = {
     "source": "userProvided",  # We generate embeddings externally (BGE-M3)
-    "dimensions": 1024,        # Dimension of BGE-M3 embeddings
+    "dimensions": 1024,  # Dimension of BGE-M3 embeddings
 }
