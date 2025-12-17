@@ -5,8 +5,8 @@ Unified search engine for hybrid search (keyword + semantic + filters)
 
 import meilisearch
 from typing import List, Dict, Any, Optional
-from src.schema.schemas import AnnouncementDoc, SearchFilters
-from src.meilisearch_config import (
+from schema.schemas import AnnouncementDoc, SearchFilters
+from meilisearch_config import (
     RANKING_RULES,
     FILTERABLE_ATTRIBUTES,
     SEARCHABLE_ATTRIBUTES,

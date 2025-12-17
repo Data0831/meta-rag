@@ -31,3 +31,8 @@
 
 ## 2025-12-17
 **Phase 6 搜尋權重與配置集中化**：建立純模糊搜尋測試腳本 (`test_search_only_fuzzy.py`) 驗證參數控制。鑑於 Meilisearch 排序邏輯分散的問題，建立了統一配置檔 `src/meilisearch_config.py`，集中管理排序規則 (Ranking Rules)、過濾/搜尋屬性與預設語意權重 (`DEFAULT_SEMANTIC_RATIO`)。重構 `db_adapter_meili.py` 與 `search_service.py` 引用此全域配置，實現搜尋行為的統一控管與快速調整。
+
+**前端適配 Meilisearch**：完整重構 `collection_search.js` 前端代碼，適配 Meilisearch 混合搜尋架構。修改 API 端點從 `/api/search/${COLLECTION_NAME}` 至 `/api/search`，請求參數從 `top_k` 改為 `limit` 並新增 `semantic_ratio` 控制語意搜尋權重。適配 SearchService 響應格式（`{intent, results}`），將 Meilisearch 的 `_rankingScore` 映射為相似度分數，從 `content`/`title` 提取文本並改進 metadata 顯示。建立 `searchConfig` 配置對象與 `setupSearchConfig()` 函數，支援動態綁定 UI 控件（語意比例滑塊、結果數量輸入框），實現靈活的前端搜尋參數控制。
+
+## 2025-12-17 (晚間)
+**Flask 路由修復與頁面整合**：診斷並修復 404 錯誤問題。新增 `/vector_search` 頁面路由渲染 `vector_search.html`，建立 `/api/collections` 端點將 Meilisearch 索引信息適配為 Qdrant 格式供前端使用（包含 collection name、status、points_count、vector config 等）。移除冗余的 `/collection_search` 頁面路由，明確區分頁面路由與 API 端點職責。最終確立四個頁面路由（`/`, `/chat`, `/search`, `/vector_search`）與四個核心 API 端點（`/api/collection_search`, `/api/collections`, `/api/stats`, `/api/health`），完成前後端整合架構優化。

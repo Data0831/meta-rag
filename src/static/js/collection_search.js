@@ -1,7 +1,22 @@
-// Collection Search - Vector Database Search Interface
+// Collection Search - Meilisearch Hybrid Search Interface
+// Supports keyword search, semantic search, and metadata filtering
 
-// Get collection name from window
-const COLLECTION_NAME = window.COLLECTION_NAME;
+/**
+ * Search Configuration
+ *
+ * To add UI controls for these settings, add the following elements to your HTML:
+ *
+ * For semantic ratio control (slider):
+ * <input type="range" id="semanticRatioSlider" min="0" max="1" step="0.1" value="0.5">
+ * <span id="semanticRatioValue">50%</span>
+ *
+ * For limit control (number input):
+ * <input type="number" id="limitInput" min="1" max="100" value="10">
+ */
+let searchConfig = {
+    limit: 10,  // Number of results to return
+    semanticRatio: 0.5  // Weight for semantic search (0.0 = pure keyword, 1.0 = pure semantic)
+};
 
 // DOM Elements
 const searchInput = document.getElementById('searchInput');
@@ -21,7 +36,35 @@ const searchTimeValue = document.getElementById('searchTimeValue');
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
     setupEventListeners();
+    setupSearchConfig();
 });
+
+// Setup search configuration (can be extended with UI controls)
+function setupSearchConfig() {
+    // Try to get semantic ratio slider if it exists in the UI
+    const semanticRatioSlider = document.getElementById('semanticRatioSlider');
+    if (semanticRatioSlider) {
+        semanticRatioSlider.addEventListener('input', (e) => {
+            searchConfig.semanticRatio = parseFloat(e.target.value);
+            // Update label if it exists
+            const label = document.getElementById('semanticRatioValue');
+            if (label) {
+                label.textContent = Math.round(searchConfig.semanticRatio * 100) + '%';
+            }
+        });
+    }
+
+    // Try to get limit input if it exists in the UI
+    const limitInput = document.getElementById('limitInput');
+    if (limitInput) {
+        limitInput.addEventListener('change', (e) => {
+            const value = parseInt(e.target.value);
+            if (value > 0 && value <= 100) {
+                searchConfig.limit = value;
+            }
+        });
+    }
+}
 
 // Event Listeners
 function setupEventListeners() {
@@ -48,14 +91,15 @@ async function performSearch() {
     const startTime = performance.now();
 
     try {
-        const response = await fetch(`/api/search/${COLLECTION_NAME}`, {
+        const response = await fetch('/api/collection_search', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
                 query: query,
-                top_k: 10  // Default top-k value
+                limit: searchConfig.limit,
+                semantic_ratio: searchConfig.semanticRatio
             })
         });
 
@@ -79,14 +123,20 @@ async function performSearch() {
 function renderResults(data, duration) {
     hideAllStates();
 
-    if (!data.results || data.results.length === 0) {
+    // Extract results from SearchService response
+    const results = data.results || [];
+
+    if (results.length === 0) {
         showEmpty('沒有找到相關結果', '請嘗試不同的搜尋查詢');
         return;
     }
 
+    // Store results globally for detail view
+    currentResults = results;
+
     // Show results info
     resultsInfo.classList.remove('hidden');
-    resultsCount.textContent = data.total;
+    resultsCount.textContent = results.length;
 
     // Show search time
     searchTime.classList.remove('hidden');
@@ -94,25 +144,36 @@ function renderResults(data, duration) {
 
     // Render result cards
     resultsContainer.classList.remove('hidden');
-    resultsContainer.innerHTML = data.results.map((result, index) => {
+    resultsContainer.innerHTML = results.map((result, index) => {
         return renderResultCard(result, index + 1);
     }).join('');
 }
 
 // Render Single Result Card
 function renderResultCard(result, rank) {
-    const score = result.score || 0;
+    // Extract score from Meilisearch response
+    const score = result._rankingScore || 0;
     const scorePercent = Math.round(score * 100);
     const scoreColor = getScoreColor(scorePercent);
 
-    // Extract text from payload
-    const text = result.payload.text || result.payload.content || JSON.stringify(result.payload);
+    // Extract text from Meilisearch document
+    const text = result.content || result.title || '';
     const truncatedText = text.length > 300 ? text.substring(0, 300) + '...' : text;
 
-    // Get metadata
-    const metadata = Object.entries(result.payload)
-        .filter(([key]) => key !== 'text' && key !== 'content')
-        .slice(0, 3); // Show max 3 metadata fields
+    // Get metadata fields to display
+    const metadata = [];
+    if (result.metadata) {
+        // Show important metadata fields
+        const metaEntries = Object.entries(result.metadata)
+            .filter(([key, value]) => value != null && value !== '')
+            .slice(0, 3); // Show max 3 metadata fields
+        metadata.push(...metaEntries);
+    }
+
+    // Add month if available
+    if (result.month) {
+        metadata.unshift(['month', result.month]);
+    }
 
     return `
         <div class="rounded-lg bg-gray-50 dark:bg-gray-800 p-5 card-shadow transition-shadow hover:shadow-lg">
@@ -172,10 +233,27 @@ function getScoreColor(percent) {
 
 // Show result detail (placeholder for now)
 let currentResults = [];
-window.showResultDetail = function(index) {
-    // Store results for detail view
-    // For now, just alert - you can implement a modal later
-    alert(`詳細資訊功能開發中... (Result #${index + 1})`);
+window.showResultDetail = function (index) {
+    if (index < 0 || index >= currentResults.length) {
+        alert('無效的結果索引');
+        return;
+    }
+
+    const result = currentResults[index];
+
+    // For now, show a detailed alert with result information
+    // You can implement a modal later
+    const details = `
+標題: ${result.title || 'N/A'}
+月份: ${result.month || 'N/A'}
+評分: ${Math.round((result._rankingScore || 0) * 100)}%
+連結: ${result.link || 'N/A'}
+
+內容:
+${result.content || 'N/A'}
+    `.trim();
+
+    alert(details);
 };
 
 // UI State Management

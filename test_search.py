@@ -3,6 +3,7 @@ Test script for Phase 4 Hybrid Search Service
 Tests Intent Parsing, Filters, and RRF Fusion
 """
 
+# todo: limit 設定、keyword 加入 query
 import sys
 from pathlib import Path
 

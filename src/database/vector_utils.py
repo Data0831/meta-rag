@@ -2,15 +2,16 @@ import os
 from typing import List
 import ollama
 from dotenv import load_dotenv
-from src.schema.schemas import AnnouncementMetadata, AnnouncementDoc
 from datetime import date
 import sys
 import uuid
+from schema.schemas import AnnouncementMetadata, AnnouncementDoc
 
 # Add project root to sys.path
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 if project_root not in sys.path:
     sys.path.insert(0, project_root)
+
 
 load_dotenv()
 

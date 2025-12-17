@@ -68,7 +68,7 @@
                     <span class="material-symbols-outlined text-[18px]">science</span>
                     RAG LAB
                 </a>
-                <a href="/search"
+                <a href="/vector_search"
                     class="flex items-center gap-2 px-4 py-2 rounded-t-lg text-sm font-medium transition-colors duration-200 text-text-secondary-light dark:text-text-secondary-dark hover:bg-black/5 dark:hover:bg-white/5 min-w-[120px] justify-center">
                     <span class="material-symbols-outlined text-[18px]">manage_search</span>
                     Vector Search
@@ -81,7 +81,8 @@
             </div>
 
             <!-- Info Badges (Right) -->
-            <div class="flex items-center gap-3 pb-2 pr-2 text-[11px] text-text-secondary-light dark:text-text-secondary-dark">
+            <div
+                class="flex items-center gap-3 pb-2 pr-2 text-[11px] text-text-secondary-light dark:text-text-secondary-dark">
                 <!-- Backend Info -->
                 <div class="flex items-center gap-1">
                     <span class="material-symbols-outlined !text-sm">cloud</span>
@@ -92,7 +93,8 @@
                 <div class="flex items-center gap-1">
                     <span class="material-symbols-outlined !text-sm">database</span>
                     <span id="collection-display-header" class="font-mono text-primary">nomic-hybrid-coll</span>
-                    <span id="vectors-count-header" class="text-text-secondary-light dark:text-text-secondary-dark">(<span>0</span>)</span>
+                    <span id="vectors-count-header"
+                        class="text-text-secondary-light dark:text-text-secondary-dark">(<span>0</span>)</span>
                 </div>
 
                 <!-- Retrieval Mode Info -->
@@ -105,8 +107,10 @@
                 <div class="flex items-center gap-1">
                     <span class="material-symbols-outlined !text-sm">memory</span>
                     <span id="dense-model-name-header">nomic-embed-text</span>
-                    <span id="vector-dimension-header" class="text-text-secondary-light dark:text-text-secondary-dark">(768d)</span>
-                    <span id="sparse-model-info-header" class="text-text-secondary-light dark:text-text-secondary-dark">+ BM42</span>
+                    <span id="vector-dimension-header"
+                        class="text-text-secondary-light dark:text-text-secondary-dark">(768d)</span>
+                    <span id="sparse-model-info-header"
+                        class="text-text-secondary-light dark:text-text-secondary-dark">+ BM42</span>
                 </div>
 
                 <!-- Text Splitter Info -->
@@ -144,9 +148,11 @@
 
                         <!-- INTELLIGENT ROUTING Section -->
                         <section>
-                            <div class="bg-[#e9e9eb] dark:bg-[#3a3a3c] rounded-lg overflow-hidden transition-all duration-300">
+                            <div
+                                class="bg-[#e9e9eb] dark:bg-[#3a3a3c] rounded-lg overflow-hidden transition-all duration-300">
                                 <!-- Section Header (Clickable for Collapse/Expand) -->
-                                <button id="routing-header-btn" class="w-full flex items-center justify-between px-4 py-3 hover:bg-black/5 dark:hover:bg-white/5 transition-colors">
+                                <button id="routing-header-btn"
+                                    class="w-full flex items-center justify-between px-4 py-3 hover:bg-black/5 dark:hover:bg-white/5 transition-colors">
                                     <div class="flex items-center gap-3">
                                         <span aria-hidden="true"
                                             class="material-symbols-outlined text-text-secondary-light dark:text-text-secondary-dark !font-thin">alt_route</span>
@@ -154,18 +160,25 @@
                                             class="text-text-primary-light dark:text-text-primary-dark text-sm font-medium">
                                             Intelligent Routing</p>
                                     </div>
-                                    <span id="routing-arrow" class="material-symbols-outlined text-text-secondary-light dark:text-text-secondary-dark !text-lg transform transition-transform duration-300">expand_more</span>
+                                    <span id="routing-arrow"
+                                        class="material-symbols-outlined text-text-secondary-light dark:text-text-secondary-dark !text-lg transform transition-transform duration-300">expand_more</span>
                                 </button>
-                                
+
                                 <!-- Collapsible Content -->
-                                <div id="routing-content" class="hidden border-t border-border-light dark:border-border-dark">
+                                <div id="routing-content"
+                                    class="hidden border-t border-border-light dark:border-border-dark">
                                     <!-- Toggle 1: Query Rewrite -->
-                                    <div class="flex flex-col border-b border-border-light/50 dark:border-border-dark/50">
+                                    <div
+                                        class="flex flex-col border-b border-border-light/50 dark:border-border-dark/50">
                                         <div class="flex items-center justify-between px-4 py-2">
-                                            <p class="text-xs text-text-secondary-light dark:text-text-secondary-dark font-medium pl-7">Query Rewrite</p>
+                                            <p
+                                                class="text-xs text-text-secondary-light dark:text-text-secondary-dark font-medium pl-7">
+                                                Query Rewrite</p>
                                             <div class="shrink-0">
-                                                <label class="relative inline-flex h-[24px] w-[40px] cursor-pointer items-center">
-                                                    <input id="optimize-query-toggle" class="sr-only peer" type="checkbox" />
+                                                <label
+                                                    class="relative inline-flex h-[24px] w-[40px] cursor-pointer items-center">
+                                                    <input id="optimize-query-toggle" class="sr-only peer"
+                                                        type="checkbox" />
                                                     <div
                                                         class="w-full h-full rounded-full bg-neutral-300 dark:bg-neutral-600 peer-checked:bg-primary transition-colors duration-300">
                                                     </div>
@@ -176,7 +189,8 @@
                                         </div>
                                         <!-- Model Select for Rewrite (Hidden by default) -->
                                         <div id="rewrite-model-config" class="hidden px-4 pb-2 pl-11">
-                                            <select id="rewrite-model-select" class="w-full rounded-md border-none bg-neutral-200 dark:bg-neutral-700 text-text-primary-light dark:text-text-primary-dark text-xs p-1.5 focus:outline-none focus:ring-1 focus:ring-primary/50">
+                                            <select id="rewrite-model-select"
+                                                class="w-full rounded-md border-none bg-neutral-200 dark:bg-neutral-700 text-text-primary-light dark:text-text-primary-dark text-xs p-1.5 focus:outline-none focus:ring-1 focus:ring-primary/50">
                                                 <option disabled selected>Loading...</option>
                                             </select>
                                         </div>
@@ -185,10 +199,14 @@
                                     <!-- Toggle 2: Relevance Check -->
                                     <div class="flex flex-col">
                                         <div class="flex items-center justify-between px-4 py-2">
-                                            <p class="text-xs text-text-secondary-light dark:text-text-secondary-dark font-medium pl-7">Relevance Check</p>
+                                            <p
+                                                class="text-xs text-text-secondary-light dark:text-text-secondary-dark font-medium pl-7">
+                                                Relevance Check</p>
                                             <div class="shrink-0">
-                                                <label class="relative inline-flex h-[24px] w-[40px] cursor-pointer items-center">
-                                                    <input id="relevance-check-toggle" class="sr-only peer" type="checkbox" />
+                                                <label
+                                                    class="relative inline-flex h-[24px] w-[40px] cursor-pointer items-center">
+                                                    <input id="relevance-check-toggle" class="sr-only peer"
+                                                        type="checkbox" />
                                                     <div
                                                         class="w-full h-full rounded-full bg-neutral-300 dark:bg-neutral-600 peer-checked:bg-primary transition-colors duration-300">
                                                     </div>
@@ -199,7 +217,8 @@
                                         </div>
                                         <!-- Model Select for Relevance (Hidden by default) -->
                                         <div id="relevance-model-config" class="hidden px-4 pb-2 pl-11">
-                                            <select id="relevance-model-select" class="w-full rounded-md border-none bg-neutral-200 dark:bg-neutral-700 text-text-primary-light dark:text-text-primary-dark text-xs p-1.5 focus:outline-none focus:ring-1 focus:ring-primary/50">
+                                            <select id="relevance-model-select"
+                                                class="w-full rounded-md border-none bg-neutral-200 dark:bg-neutral-700 text-text-primary-light dark:text-text-primary-dark text-xs p-1.5 focus:outline-none focus:ring-1 focus:ring-primary/50">
                                                 <option disabled selected>Loading...</option>
                                             </select>
                                         </div>
@@ -276,7 +295,8 @@
                                                 <input id="rerank-threshold-value-slider"
                                                     class="w-full h-1.5 bg-neutral-300 dark:bg-neutral-600 rounded-full appearance-none cursor-pointer accent-primary"
                                                     max="1.0" min="0.0" step="0.05" type="range" value="0.00" />
-                                                <p class="text-xs text-text-secondary-light dark:text-text-secondary-dark italic mt-1">
+                                                <p
+                                                    class="text-xs text-text-secondary-light dark:text-text-secondary-dark italic mt-1">
                                                     💡 低於此 Relevance Score 的結果不會加入 Context，但會在 Reference 中標記為「未引用」
                                                 </p>
                                             </label>
@@ -333,7 +353,8 @@
                                     <div class="shrink-0">
                                         <label
                                             class="relative inline-flex h-[28px] w-[48px] cursor-pointer items-center">
-                                            <input id="threshold-toggle" class="sr-only peer" type="checkbox" disabled />
+                                            <input id="threshold-toggle" class="sr-only peer" type="checkbox"
+                                                disabled />
                                             <div
                                                 class="w-full h-full rounded-full bg-neutral-300 dark:bg-neutral-600 peer-checked:bg-primary peer-disabled:opacity-40 peer-disabled:cursor-not-allowed transition-colors duration-300">
                                             </div>
@@ -356,13 +377,15 @@
                                         <input id="threshold-value-slider"
                                             class="w-full h-1.5 bg-neutral-300 dark:bg-neutral-600 rounded-full appearance-none cursor-pointer accent-primary"
                                             max="1.0" min="0.0" step="0.05" type="range" value="0.50" />
-                                        <p class="text-xs text-text-secondary-light dark:text-text-secondary-dark italic mt-1">
+                                        <p
+                                            class="text-xs text-text-secondary-light dark:text-text-secondary-dark italic mt-1">
                                             💡 低於此分數的結果不會加入 Context，但會在 Reference 中標記為「未引用」
                                         </p>
                                     </label>
                                 </div>
                             </div>
-                            <div id="threshold-disabled-notice" class="mt-2 px-2 py-2 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg hidden">
+                            <div id="threshold-disabled-notice"
+                                class="mt-2 px-2 py-2 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg hidden">
                                 <p class="text-xs text-amber-700 dark:text-amber-400 flex items-center gap-1">
                                     <span class="material-symbols-outlined !text-sm">info</span>
                                     此功能僅在「Dense 模式」且「未啟用 Rerank」時可用
@@ -446,20 +469,24 @@
             <main class="flex-1 flex flex-col bg-background-light dark:bg-background-dark overflow-hidden min-w-0">
                 <!-- Top Bar -->
                 <header class="flex-shrink-0 py-3 px-6 border-b border-border-light dark:border-border-dark">
-                    <div class="flex items-center justify-center gap-6 flex-wrap text-xs text-text-secondary-light dark:text-text-secondary-dark">
+                    <div
+                        class="flex items-center justify-center gap-6 flex-wrap text-xs text-text-secondary-light dark:text-text-secondary-dark">
                         <!-- Token Stats -->
                         <div class="flex items-center gap-1.5">
                             <span class="material-symbols-outlined !text-base">summarize</span>
                             <span class="font-medium">Tokens:</span>
                             <span id="token-stats-header" class="font-mono text-primary">0 / 200K</span>
-                            <span id="token-percentage-header" class="text-text-secondary-light dark:text-text-secondary-dark">(0%)</span>
+                            <span id="token-percentage-header"
+                                class="text-text-secondary-light dark:text-text-secondary-dark">(0%)</span>
                         </div>
 
                         <!-- Session History Stats -->
-                        <div class="flex items-center gap-1.5 border-l border-border-light dark:border-border-dark pl-4" title="Accumulated tokens in conversation memory">
+                        <div class="flex items-center gap-1.5 border-l border-border-light dark:border-border-dark pl-4"
+                            title="Accumulated tokens in conversation memory">
                             <span class="material-symbols-outlined !text-base">history</span>
                             <span class="font-medium">History:</span>
-                            <span id="history-token-stats-header" class="font-mono text-purple-600 dark:text-purple-400">0</span>
+                            <span id="history-token-stats-header"
+                                class="font-mono text-purple-600 dark:text-purple-400">0</span>
                         </div>
                     </div>
                 </header>
@@ -477,7 +504,8 @@
                             <span aria-hidden="true" class="material-symbols-outlined !font-thin">arrow_upward</span>
                         </button>
                         <button id="retry-btn" title="Retry Last Message"
-                            class="absolute right-14 top-2 h-10 w-10 rounded-full bg-gray-300 dark:bg-gray-700 flex items-center justify-center text-text-primary-light dark:text-text-primary-dark hover:bg-gray-400 dark:hover:bg-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-gray-500/50 opacity-50 cursor-not-allowed" disabled>
+                            class="absolute right-14 top-2 h-10 w-10 rounded-full bg-gray-300 dark:bg-gray-700 flex items-center justify-center text-text-primary-light dark:text-text-primary-dark hover:bg-gray-400 dark:hover:bg-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-gray-500/50 opacity-50 cursor-not-allowed"
+                            disabled>
                             <span aria-hidden="true" class="material-symbols-outlined !font-thin">refresh</span>
                         </button>
                     </div>
@@ -515,7 +543,8 @@
                         </label>
 
                         <!-- Character Count -->
-                        <div class="flex items-center justify-between text-xs text-text-secondary-light dark:text-text-secondary-dark">
+                        <div
+                            class="flex items-center justify-between text-xs text-text-secondary-light dark:text-text-secondary-dark">
                             <span>字數統計</span>
                             <span id="prompt-char-count" class="font-mono">0 字元</span>
                         </div>
@@ -526,8 +555,10 @@
                         <p class="text-xs font-medium text-text-secondary-light dark:text-text-secondary-dark">
                             RAG 模板結構（自動添加）
                         </p>
-                        <div class="p-3 rounded-lg bg-neutral-100 dark:bg-neutral-800 border border-border-light dark:border-border-dark">
-                            <pre class="text-xs font-mono text-text-primary-light dark:text-text-primary-dark leading-relaxed whitespace-pre-wrap">---
+                        <div
+                            class="p-3 rounded-lg bg-neutral-100 dark:bg-neutral-800 border border-border-light dark:border-border-dark">
+                            <pre
+                                class="text-xs font-mono text-text-primary-light dark:text-text-primary-dark leading-relaxed whitespace-pre-wrap">---
 上下文:
 <span class="text-primary font-bold">{context}</span>
 ---

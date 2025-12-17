@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -12,28 +13,36 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200"
+        rel="stylesheet">
 
     <!-- Custom Styles -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
+
 <body class="bg-gray-50 font-['Inter']">
 
     <!-- Tab Bar -->
-    <div class="flex-shrink-0 bg-[#dee1e6] dark:bg-[#202124] pt-2 px-3 flex items-end gap-1 border-b border-gray-200 dark:border-gray-700 select-none">
-        <a href="/chat" class="flex items-center gap-2 px-4 py-2 rounded-t-lg text-sm font-medium transition-colors duration-200 text-gray-600 dark:text-gray-400 hover:bg-black/5 dark:hover:bg-white/5 min-w-[120px] justify-center">
+    <div
+        class="flex-shrink-0 bg-[#dee1e6] dark:bg-[#202124] pt-2 px-3 flex items-end gap-1 border-b border-gray-200 dark:border-gray-700 select-none">
+        <a href="/chat"
+            class="flex items-center gap-2 px-4 py-2 rounded-t-lg text-sm font-medium transition-colors duration-200 text-gray-600 dark:text-gray-400 hover:bg-black/5 dark:hover:bg-white/5 min-w-[120px] justify-center">
             <span class="material-symbols-outlined text-[18px]">chat_bubble</span>
             Chat
         </a>
-        <a href="/" class="flex items-center gap-2 px-4 py-2 rounded-t-lg text-sm font-medium transition-colors duration-200 text-gray-600 dark:text-gray-400 hover:bg-black/5 dark:hover:bg-white/5 min-w-[120px] justify-center">
+        <a href="/"
+            class="flex items-center gap-2 px-4 py-2 rounded-t-lg text-sm font-medium transition-colors duration-200 text-gray-600 dark:text-gray-400 hover:bg-black/5 dark:hover:bg-white/5 min-w-[120px] justify-center">
             <span class="material-symbols-outlined text-[18px]">science</span>
             RAG LAB
         </a>
-        <a href="/search" class="flex items-center gap-2 px-4 py-2 rounded-t-lg text-sm font-medium transition-colors duration-200 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 shadow-sm z-10 min-w-[120px] justify-center">
+        <a href="/collection_search"
+            class="flex items-center gap-2 px-4 py-2 rounded-t-lg text-sm font-medium transition-colors duration-200 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 shadow-sm z-10 min-w-[120px] justify-center">
             <span class="material-symbols-outlined text-[18px]">manage_search</span>
             Vector Search
         </a>
-        <a href="/compare" class="flex items-center gap-2 px-4 py-2 rounded-t-lg text-sm font-medium transition-colors duration-200 text-gray-600 dark:text-gray-400 hover:bg-black/5 dark:hover:bg-white/5 min-w-[120px] justify-center">
+        <a href="/compare"
+            class="flex items-center gap-2 px-4 py-2 rounded-t-lg text-sm font-medium transition-colors duration-200 text-gray-600 dark:text-gray-400 hover:bg-black/5 dark:hover:bg-white/5 min-w-[120px] justify-center">
             <span class="material-symbols-outlined text-[18px]">compare_arrows</span>
             Compare
         </a>
@@ -49,7 +58,8 @@
                         <p class="text-sm text-gray-500 mt-0.5">Manage and Monitor Qdrant Vector Collections</p>
                     </div>
                 </div>
-                <button id="refreshBtn" class="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                <button id="refreshBtn"
+                    class="flex items-center space-x-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
                     <span class="material-symbols-outlined">refresh</span>
                     <span>Refresh</span>
                 </button>
@@ -143,4 +153,5 @@
     <!-- JavaScript -->
     <script src="{{ url_for('static', filename='js/vector_search.js') }}"></script>
 </body>
+
 </html>
