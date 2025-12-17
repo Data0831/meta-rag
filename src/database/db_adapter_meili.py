@@ -247,6 +247,11 @@ def build_meili_filter(filters: SearchFilters) -> Optional[str]:
         months_str = ", ".join([f"'{m}'" for m in filters.months])
         conditions.append(f"month IN [{months_str}]")
 
+    # Link filters (OR condition for multiple links)
+    if filters.links:
+        links_str = ", ".join([f"'{l}'" for l in filters.links])
+        conditions.append(f"link IN [{links_str}]")
+
     # Category filter
     if filters.category:
         cat_val = (
@@ -313,7 +318,8 @@ def transform_doc_for_meilisearch(
     return {
         "id": doc.id,  # Meilisearch requires 'id' field
         "title": doc.title,
-        "content": doc.original_content,
+        "content": doc.original_content,  # Keep original for display
+        "content_clean": doc.content_clean,  # Cleaned content for search
         "month": doc.month,
         "link": doc.link,
         "metadata": metadata_dict,

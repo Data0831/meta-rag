@@ -170,14 +170,6 @@ class SearchService:
                     "⚠ Embedding generation failed. Falling back to keyword-only search."
                 )
 
-        # Append boost keywords to the keyword query to enhance relevance
-        # Meilisearch 'words' ranking rule will prioritize documents containing these terms
-        if intent.boost_keywords:
-            boost_query_part = " ".join(intent.boost_keywords)
-            # We append them to the user's keyword query
-            intent.keyword_query = f"{intent.keyword_query} {boost_query_part}".strip()
-            print(f"🚀 Applied boost keywords: {boost_query_part}")
-
         # 4. Single Meilisearch API call (Hybrid Search)
         results = self.meili_adapter.search(
             query=intent.keyword_query,

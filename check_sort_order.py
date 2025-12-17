@@ -12,10 +12,28 @@ def main():
     service = SearchService()
 
     query = "三個月內「AI 雲合作夥伴計劃」相關公告"
-    print(f"Searching for: '{query}'")
+    print(f"Searching for: '{query}'\n")
 
-    # Search with limit 10
-    response = service.search(query, limit=10, semantic_ratio=0.5)
+    # Search with limit 7
+    response = service.search(query, limit=7, semantic_ratio=0.5)
+
+    # Display search intent and filters
+    intent = response.get("intent", {})
+    print("=" * 80)
+    print("SEARCH INTENT & FILTERS")
+    print("=" * 80)
+    print(f"Keyword Query: {intent.get('keyword_query', 'N/A')}")
+    print(f"Semantic Query: {intent.get('semantic_query', 'N/A')}")
+    print(f"Semantic Ratio: {intent.get('recommended_semantic_ratio', 0.5):.2f}")
+    print(f"Limit: {intent.get('limit', 7)}")
+
+    filters = intent.get("filters", {})
+    print(f"\nFilters:")
+    print(f"  - Months: {filters.get('months', [])}")
+    print(f"  - Category: {filters.get('category', 'None')}")
+    print(f"  - Impact Level: {filters.get('impact_level', 'None')}")
+    print("=" * 80)
+    print()
 
     results = response["results"]
     print(f"Found {len(results)} results.\n")
@@ -39,12 +57,18 @@ def main():
         elif has_vector:
             match_type = "Semantic"
 
-        print(f"Result {i+1:2}: Score={score:.6f} | Type={match_type} | ID={res['id']}")
+        title = res.get("title", "No title")
+        link = res.get("link", "No link")
+
+        print(f"Result {i+1:2}: Score={score:.6f} | Type={match_type}")
+        print(f"  Title: {title}")
+        print(f"  Link: {link}")
 
         if score > last_score:
             print(f"  ❌ ERROR: Order violation! {score:.6f} > {last_score:.6f}")
             is_sorted = False
         last_score = score
+        print()  # Add blank line for readability
 
     if is_sorted:
         print("\n✅ Results are properly sorted by ranking score.")

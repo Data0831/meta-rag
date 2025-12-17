@@ -52,6 +52,10 @@ class AnnouncementDoc(BaseModel):
     title: str = Field(..., description="Announcement title")
     link: Optional[str] = Field(None, description="Source URL")
     original_content: str = Field(..., description="Original raw content")
+    content_clean: Optional[str] = Field(
+        None,
+        description="Cleaned content with URLs removed/simplified (used for search and embedding)"
+    )
 
     # Metadata fields flattened or nested - adhering to the spec's flat structure illustration
     # but using the Metadata class as a container might be cleaner.
@@ -110,6 +114,10 @@ class SearchFilters(BaseModel):
     months: List[str] = Field(
         default_factory=list,
         description="List of months (YYYY-MM format). For ranges like 'past 3 months', include all months.",
+    )
+    links: List[str] = Field(
+        default_factory=list,
+        description="List of source URLs to filter by.",
     )
     category: Optional[Category] = Field(None, description="Category")
     impact_level: Optional[ImpactLevel] = Field(None, description="Impact Level")

@@ -19,6 +19,8 @@ load_dotenv()
 def create_enriched_text(doc: AnnouncementDoc) -> str:
     """
     Constructs the synthetic context string for embedding.
+    Uses content_clean (URLs removed) for better semantic representation.
+
     Format based on GEMINI.md:
     Title: {title}
     Impact Level: {meta_impact_level}
@@ -26,7 +28,7 @@ def create_enriched_text(doc: AnnouncementDoc) -> str:
     Products: {meta_products}
     Change Type: {meta_change_type}
     Summary: {meta_summary}
-    Content: {original_content}
+    Content: {content_clean}
     """
     meta = doc.metadata
 
@@ -39,6 +41,10 @@ def create_enriched_text(doc: AnnouncementDoc) -> str:
     change_type = meta.meta_change_type if meta.meta_change_type else "Unknown"
     summary = meta.meta_summary if meta.meta_summary else ""
 
+    # Use content_clean for embedding (URLs removed) to improve semantic quality
+    # Fall back to original_content if content_clean is not available (for backward compatibility)
+    content = doc.content_clean if doc.content_clean else doc.original_content
+
     text = (
         f"Title: {doc.title}\n"
         f"Impact Level: {impact}\n"
@@ -46,7 +52,7 @@ def create_enriched_text(doc: AnnouncementDoc) -> str:
         f"Products: {products}\n"
         f"Change Type: {change_type}\n"
         f"Summary: {summary}\n"
-        f"Content: {doc.original_content}"
+        f"Content: {content}"
     )
     return text
 

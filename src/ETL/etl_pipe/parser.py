@@ -10,6 +10,7 @@ if project_root not in sys.path:
     sys.path.insert(0, project_root)
 
 from src.schema.schemas import AnnouncementDoc, AnnouncementMetadata
+from src.ETL.content_cleaner import clean_content_for_search
 
 
 def parse_json_data(file_path: str) -> List[Dict[str, Any]]:
@@ -58,6 +59,10 @@ def parse_json_data(file_path: str) -> List[Dict[str, Any]]:
                 # Since we don't have one in the source, we generate a id.
                 doc_id = str(uuid.uuid4())
 
+                # Clean content for search and embedding
+                # Remove URLs but preserve anchor text
+                content_clean = clean_content_for_search(content)
+
                 # Initialize empty metadata needed for schema validation later
                 # Ensure it validates against our schema
                 try:
@@ -67,6 +72,7 @@ def parse_json_data(file_path: str) -> List[Dict[str, Any]]:
                         title=title,
                         link=link,
                         original_content=content,
+                        content_clean=content_clean,
                         metadata=AnnouncementMetadata(),
                     )
                     cleaned_items.append(doc.model_dump())

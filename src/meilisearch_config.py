@@ -27,10 +27,7 @@ RANKING_RULES = [
 # Attributes that can be used in the 'filter' parameter
 FILTERABLE_ATTRIBUTES = [
     "month",
-    "metadata.meta_category",
-    "metadata.meta_audience",
-    "metadata.meta_products",
-    "metadata.meta_impact_level",
+    "link",
 ]
 
 # Searchable Attributes
@@ -40,7 +37,7 @@ SEARCHABLE_ATTRIBUTES = [
     "title",
     "metadata.meta_summary",
     # "metadata.meta_summary_segmented",
-    "content",
+    "content_clean",  # Use cleaned content (URLs removed) for better search quality
 ]
 
 # Embedding Configuration

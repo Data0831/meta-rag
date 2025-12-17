@@ -56,3 +56,13 @@
 
 ## 2025-12-17 (14:30)
 **混合搜尋排序修復 (Hybrid Search Sorting Fix)**：診斷並修復混合搜尋結果排序錯誤問題。發現 Meilisearch 的預設 Ranking Rules（words, typo, proximity, attribute, exactness）導致關鍵字結果優先於語意結果，即使語意結果分數更高也被排在後面。實作後處理排序方案：在 `db_adapter_meili.py:147-151` 新增手動排序邏輯，於搜尋返回結果後按 `_rankingScore` 降序重新排序，確保混合搜尋的最終分數能正確反映在結果順序上。建立 `check_sort_order.py` 測試腳本驗證排序正確性。此修復使混合搜尋真正實現統一排名，高分語意結果不再被低分關鍵字結果壓制。
+
+## 2025-12-17 (14:57)
+**URL 清理解決方案 (URL Cleaning Solution)**：實作雙欄位策略解決超連結對搜索品質的影響。在 `schemas.py` 新增 `content_clean` 欄位，建立 `content_cleaner.py` 模組實作 URL 清理邏輯（移除獨立 URL、保留 Markdown 錨點文字）。更新 `parser.py` 在 ETL 階段自動清理內容，修改 `vector_utils.py` 使用清理後內容生成 embedding，調整 `meilisearch_config.py` 僅搜索 `content_clean` 欄位。建立測試腳本 (`test_content_cleaner.py`) 與快速更新工具 (`update_content_clean.py`)，撰寫完整說明文檔 (`URL_CLEANING_GUIDE.md`)。此方案確保 `original_content` 保留完整 URL 供顯示，`content_clean` 提供純淨語義內容用於搜索與向量化，有效提升搜索精準度並避免 URL 路徑重複匹配問題。
+
+## 2025-12-17 (15:05)
+**連結過濾與 Metadata 移除**：
+調整 Meilisearch 搜尋過濾機制：
+1. 修改 `meilisearch_config.py`：移除 metadata 屬性，新增 `link` 為可過濾欄位。
+2. 更新 `schemas.py`：在 `SearchFilters` 中加入 `links` 欄位支援多連結篩選。
+3. 更新 `db_adapter_meili.py`：實作 `link` 的 `IN` 過濾邏輯。
