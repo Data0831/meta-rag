@@ -4,6 +4,42 @@ from pathlib import Path
 import re
 
 
+def clean_content(content: str) -> str:
+    """
+    Clean the content by removing noise and keeping key information.
+
+    Cleaning steps:
+    1. Remove URLs (http/https)
+    2. Remove Markdown links (keep anchor text)
+    3. Remove template Markdown headers (#### 現已推出, etc.)
+    4. Remove metadata fields (日期, 工作區, 受影響的群體)
+    """
+    if not content:
+        return ""
+
+    text = content
+
+    # 1. Remove URLs
+    text = re.sub(r'https?://\S+', '', text)
+
+    # 2. Remove Markdown links but keep anchor text
+    text = re.sub(r'\[(.*?)\]\([^)]*?\)', r'\1', text)
+
+    # 3. Remove template Markdown headers (multiline mode)
+    text = re.sub(r'^#{3,6}\s*(現已推出|即將到來的事項|提醒|後續步驟)\s*$', '', text, flags=re.MULTILINE)
+
+    # 4. Remove metadata field lines
+    text = re.sub(r'^\*\s*\*\*日期\*\*[：:].*\r?\n?', '', text, flags=re.MULTILINE)
+    text = re.sub(r'^\*\s*\*\*工作區\*\*[：:].*\r?\n?', '', text, flags=re.MULTILINE)
+    text = re.sub(r'^\*\s*\*\*受影響的群體\*\*[：:].*\r?\n?', '', text, flags=re.MULTILINE)
+
+    # 5. Clean up excessive whitespace and newlines
+    text = re.sub(r'\n{3,}', '\n\n', text)  # Replace 3+ newlines with 2
+    text = text.strip()
+
+    return text
+
+
 def extract_metadata_from_content(content: str) -> Dict[str, str]:
     """
     Extract metadata from content markdown.
@@ -124,14 +160,17 @@ def parse_json_data(file_path: str) -> List[Dict[str, Any]]:
                 # Extract metadata from content
                 metadata = extract_metadata_from_content(content)
 
+                # Clean content for better search/RAG performance
+                cleaned = clean_content(content)
+
                 # Build output document
                 parsed_doc = {
                     "link": link,
                     "year-month": year_month,
-                    "Announced": metadata["announced"],
                     "Workspace": metadata["workspace"],
                     "title": title,
-                    "content": content,
+                    "content": content,  # Keep original content
+                    "cleaned_content": cleaned,  # Add cleaned version
                 }
 
                 parsed_items.append(parsed_doc)

@@ -50,7 +50,7 @@ class SearchService:
     """
 
     def __init__(self):
-        print("🔧 SearchService.__init__() called")
+        print(" SearchService.__init__() called")
         print(f"  MEILISEARCH_HOST: {MEILISEARCH_HOST}")
         print(f"  MEILISEARCH_INDEX: {MEILISEARCH_INDEX}")
 
