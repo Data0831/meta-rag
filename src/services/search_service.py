@@ -10,12 +10,12 @@ No more RRF fusion needed - Meilisearch handles it internally!
 """
 
 from typing import Dict, Any, Optional
-from src.llm.client import LLMClient
-from src.llm.search_prompts import SEARCH_INTENT_PROMPT
-from src.schema.schemas import SearchIntent, SearchFilters
-from src.database.db_adapter_meili import MeiliAdapter, build_meili_filter
-from src.database import vector_utils
-from src.config import MEILISEARCH_HOST, MEILISEARCH_API_KEY, MEILISEARCH_INDEX
+from llm.client import LLMClient
+from llm.search_prompts import SEARCH_INTENT_PROMPT
+from schema.schemas import SearchIntent, SearchFilters
+from database.db_adapter_meili import MeiliAdapter, build_meili_filter
+from database import vector_utils
+from config import MEILISEARCH_HOST, MEILISEARCH_API_KEY, MEILISEARCH_INDEX
 from meilisearch_config import DEFAULT_SEMANTIC_RATIO
 from datetime import datetime
 
