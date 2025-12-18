@@ -52,8 +52,8 @@ def test_search(query: str):
         # Show applied filters
         filters = intent["filters"]
         print(f"\n[Filters Applied]")
-        if filters.get("months"):
-            print(f"  Months:       {filters['months']}")
+        if filters.get("year_months"):
+            print(f"  Year-Months:  {filters['year_months']}")
         if filters.get("category"):
             print(f"  Category:     {filters['category']}")
         if filters.get("impact_level"):

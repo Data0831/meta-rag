@@ -157,9 +157,9 @@ class SearchService:
             print(f"🎯 Using LLM-recommended semantic_ratio: {semantic_ratio:.2f}")
 
         # Convert month format from YYYY-MM to YYYY-monthname
-        if intent.filters.months:
+        if intent.filters.year_months:
             converted_months = []
-            for month_str in intent.filters.months:
+            for month_str in intent.filters.year_months:
                 # Check if format is YYYY-MM
                 if "-" in month_str and len(month_str.split("-")) == 2:
                     year, month_num = month_str.split("-")
@@ -172,7 +172,7 @@ class SearchService:
                         converted_months.append(month_str)
                 else:
                     converted_months.append(month_str)
-            intent.filters.months = converted_months
+            intent.filters.year_months = converted_months
 
         # 2. Build Meilisearch filter expression
         meili_filter = build_meili_filter(intent.filters)

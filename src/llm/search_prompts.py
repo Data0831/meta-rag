@@ -17,7 +17,7 @@ You will receive input in the following format:
 # Processing Rules
 
 ## 1. Date Resolution (CRITICAL)
-You must calculate the `filters.months` list based on the provided **Current Date**.
+You must calculate the `filters.year_months` list based on the provided **Current Date**.
 - **Format:** Output months strictly as `"YYYY-MM"`.
 - **Logic:**
   - **"Last month"**: The month immediately preceding the current month.
@@ -26,7 +26,7 @@ You must calculate the `filters.months` list based on the provided **Current Dat
   - **No time constraint**: Return an empty list `[]`.
 
 ## 2. Filter Extraction
-- **months**: The list of target months resolved above.
+- **year_months**: The list of target months resolved above.
 - **link**:
   - Extract any URL or hyperlinks present in the user query.
   - Format: A list of strings (e.g., `["https://example.com/article"]`).
@@ -73,7 +73,7 @@ Determine the optimal balance between keyword and semantic search based on query
 - **Schema**:
 {{
     "filters": {{
-        "months": ["YYYY-MM", ...],
+        "year_months": ["YYYY-MM", ...],
         "link": ["String (URL)", ...]
     }},
     "keyword_query": "String (Bi-lingual entities + Specific intents, No generic stops)",
@@ -92,7 +92,7 @@ Query: "Show me security announcements from last month"
 **Output:**
 {{
     "filters": {{
-        "months": ["2025-11"],
+        "year_months": ["2025-11"],
         "link": []
     }},
     "keyword_query": "Security 安全性",
@@ -109,7 +109,7 @@ Query: "三個月內「AI 雲合作夥伴計劃」相關公告"
 **Output:**
 {{
     "filters": {{
-        "months": ["2025-10", "2025-11", "2025-12"],
+        "year_months": ["2025-10", "2025-11", "2025-12"],
         "link": []
     }},
     "keyword_query": "AI 雲合作夥伴計劃 AI Cloud Partner Program",
@@ -126,7 +126,7 @@ Query: "類似這篇文章的 Azure OpenAI 價格資訊 https://learn.microsoft.
 **Output:**
 {{
     "filters": {{
-        "months": [],
+        "year_months": [],
         "link": ["https://learn.microsoft.com/en-us/partner-center/announcements/2025/december/12"]
     }},
     "keyword_query": "Azure OpenAI Pricing 價格",
@@ -143,7 +143,7 @@ Query: "請給我一篇三個月內「copilot 價格」相關公告"
 **Output:**
 {{
     "filters": {{
-        "months": ["2025-10", "2025-11", "2025-12"],
+        "year_months": ["2025-10", "2025-11", "2025-12"],
         "link": []
     }},
     "keyword_query": "Copilot Pricing 價格",
