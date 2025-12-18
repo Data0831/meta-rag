@@ -7,7 +7,7 @@
     <title>{{ collection_name }} - Vector Search</title>
 
     <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.tailwindcss.com" onerror="console.error('❌ Failed to load Tailwind CSS from CDN')"></script>
 
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -18,7 +18,8 @@
         rel="stylesheet">
 
     <!-- Custom Styles -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}"
+          onerror="console.error('❌ Failed to load custom CSS:', this.href)">
 
     <style>
         .material-symbols-outlined {
@@ -49,6 +50,35 @@
     <script>
         // Pass collection name to JavaScript
         window.COLLECTION_NAME = "{{ collection_name }}";
+
+        // Debug: Check if Tailwind CSS is loaded
+        window.addEventListener('DOMContentLoaded', function() {
+            console.log('🎨 Checking CSS resources...');
+
+            // Check if Tailwind is loaded
+            const testDiv = document.createElement('div');
+            testDiv.className = 'bg-blue-500';
+            document.body.appendChild(testDiv);
+            const bgColor = window.getComputedStyle(testDiv).backgroundColor;
+            document.body.removeChild(testDiv);
+
+            if (bgColor === 'rgb(59, 130, 246)') {
+                console.log('✅ Tailwind CSS loaded successfully');
+            } else {
+                console.error('❌ Tailwind CSS NOT loaded! Background color:', bgColor);
+            }
+
+            // Check custom CSS
+            const styleSheets = document.styleSheets;
+            console.log(`📄 Total stylesheets loaded: ${styleSheets.length}`);
+            for (let i = 0; i < styleSheets.length; i++) {
+                try {
+                    console.log(`  ${i + 1}. ${styleSheets[i].href || 'inline'}`);
+                } catch(e) {
+                    console.log(`  ${i + 1}. (CORS blocked)`);
+                }
+            }
+        });
     </script>
 </head>
 

@@ -33,6 +33,9 @@ const searchTimeValue = document.getElementById('searchTimeValue');
 
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
+    console.log('🚀 Collection Search initialized');
+    console.log('📍 Collection Name:', window.COLLECTION_NAME);
+    console.log('⚙️ Initial Config:', searchConfig);
     setupEventListeners();
     setupSearchConfig();
 });
@@ -117,7 +120,12 @@ function setupEventListeners() {
 async function performSearch() {
     const query = searchInput.value.trim();
 
+    console.log('🔍 Starting search...');
+    console.log('  Query:', query);
+    console.log('  Config:', searchConfig);
+
     if (!query) {
+        console.warn('⚠️ Empty query');
         showError('請輸入搜尋查詢');
         return;
     }
@@ -126,51 +134,84 @@ async function performSearch() {
 
     const startTime = performance.now();
 
+    const requestBody = {
+        query: query,
+        limit: searchConfig.limit,
+        semantic_ratio: searchConfig.semanticRatio,
+        enable_llm: searchConfig.enableLlm
+    };
+
+    console.log('📤 Request Body:', requestBody);
+
     try {
         const response = await fetch('/api/collection_search', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({
-                query: query,
-                limit: searchConfig.limit,
-                semantic_ratio: searchConfig.semanticRatio,
-                enable_llm: searchConfig.enableLlm
-            })
+            body: JSON.stringify(requestBody)
         });
 
         const endTime = performance.now();
         const duration = Math.round(endTime - startTime);
 
+        console.log('📥 Response Status:', response.status);
+        console.log('⏱️ Duration:', duration + 'ms');
+
         if (!response.ok) {
-            const error = await response.json();
-            throw new Error(error.error || `HTTP error! status: ${response.status}`);
+            console.error('❌ Response not OK:', response.status, response.statusText);
+            const errorText = await response.text();
+            console.error('❌ Error Body:', errorText);
+
+            let errorMessage;
+            try {
+                const error = JSON.parse(errorText);
+                errorMessage = error.error || `HTTP error! status: ${response.status}`;
+            } catch {
+                errorMessage = errorText || `HTTP error! status: ${response.status}`;
+            }
+            throw new Error(errorMessage);
         }
 
         const data = await response.json();
+        console.log('✅ Response Data:', data);
+        console.log('  Results count:', data.results?.length || 0);
+        console.log('  Intent:', data.intent);
+
         renderResults(data, duration);
 
     } catch (error) {
+        console.error('❌ Search failed:', error);
+        console.error('  Error message:', error.message);
+        console.error('  Error stack:', error.stack);
         showError(error.message);
     }
 }
 
 // Render Search Results
 function renderResults(data, duration) {
+    console.log('🎨 Rendering results...');
+    console.log('  Data:', data);
+    console.log('  Duration:', duration);
+
     hideAllStates();
 
     // Extract results and intent from SearchService response
     const results = data.results || [];
     const intent = data.intent;
 
+    console.log('  Results array:', results);
+    console.log('  Intent:', intent);
+
     if (results.length === 0) {
+        console.log('ℹ️ No results found');
         showEmpty('沒有找到相關結果', '請嘗試不同的搜尋查詢');
         return;
     }
 
     // Update Intent Display
     if (intent && searchConfig.enableLlm) {
+        console.log('🧠 Updating intent display');
         updateIntentDisplay(intent);
     }
 
@@ -190,6 +231,8 @@ function renderResults(data, duration) {
     resultsContainer.innerHTML = results.map((result, index) => {
         return renderResultCard(result, index + 1);
     }).join('');
+
+    console.log('✅ Results rendered successfully');
 }
 
 function updateIntentDisplay(intent) {
@@ -409,12 +452,14 @@ ${result.content || 'N/A'}
 
 // UI State Management
 function showLoading() {
+    console.log('⏳ Showing loading state');
     hideAllStates();
     loadingState.classList.remove('hidden');
     loadingState.classList.add('flex');
 }
 
 function showError(message) {
+    console.error('🚨 Showing error:', message);
     hideAllStates();
     errorMessage.textContent = message;
     errorState.classList.remove('hidden');
