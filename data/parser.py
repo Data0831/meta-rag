@@ -20,21 +20,28 @@ def clean_content(content: str) -> str:
     text = content
 
     # 1. Remove URLs
-    text = re.sub(r'https?://\S+', '', text)
+    text = re.sub(r"https?://\S+", "", text)
 
     # 2. Remove Markdown links but keep anchor text
-    text = re.sub(r'\[(.*?)\]\([^)]*?\)', r'\1', text)
+    text = re.sub(r"\[(.*?)\]\([^)]*?\)", r"\1", text)
 
     # 3. Remove template Markdown headers (multiline mode)
-    text = re.sub(r'^#{3,6}\s*(現已推出|即將到來的事項|提醒|後續步驟)\s*$', '', text, flags=re.MULTILINE)
+    text = re.sub(
+        r"^#{3,6}\s*(現已推出|即將到來的事項|提醒|後續步驟)\s*$",
+        "",
+        text,
+        flags=re.MULTILINE,
+    )
 
     # 4. Remove metadata field lines
-    text = re.sub(r'^\*\s*\*\*日期\*\*[：:].*\r?\n?', '', text, flags=re.MULTILINE)
-    text = re.sub(r'^\*\s*\*\*工作區\*\*[：:].*\r?\n?', '', text, flags=re.MULTILINE)
-    text = re.sub(r'^\*\s*\*\*受影響的群體\*\*[：:].*\r?\n?', '', text, flags=re.MULTILINE)
+    text = re.sub(r"^\*\s*\*\*日期\*\*[：:].*\r?\n?", "", text, flags=re.MULTILINE)
+    text = re.sub(r"^\*\s*\*\*工作區\*\*[：:].*\r?\n?", "", text, flags=re.MULTILINE)
+    text = re.sub(
+        r"^\*\s*\*\*受影響的群體\*\*[：:].*\r?\n?", "", text, flags=re.MULTILINE
+    )
 
     # 5. Clean up excessive whitespace and newlines
-    text = re.sub(r'\n{3,}', '\n\n', text)  # Replace 3+ newlines with 2
+    text = re.sub(r"\n{3,}", "\n\n", text)  # Replace 3+ newlines with 2
     text = text.strip()
 
     return text
@@ -157,6 +164,11 @@ def parse_json_data(file_path: str) -> List[Dict[str, Any]]:
                 content = item.get("content", "").strip()
                 link = item.get("link", "").strip()
 
+                # Skip items with empty content
+                if not content:
+                    print(f"⚠ 內容為空，跳過: {title}: {link}")
+                    continue
+
                 # Extract metadata from content
                 metadata = extract_metadata_from_content(content)
 
@@ -190,9 +202,9 @@ if __name__ == "__main__":
         docs = parse_json_data(str(data_path))
         print(f"Successfully parsed {len(docs)} documents.")
 
-        if len(docs) > 0:
-            print("\nSample doc:")
-            print(json.dumps(docs[0], indent=4, ensure_ascii=False))
+        # if len(docs) > 0:
+        #     print("\nSample doc:")
+        #     print(json.dumps(docs[0], indent=4, ensure_ascii=False))
 
         # Save to parse.json
         output_path = Path("data/parse.json")

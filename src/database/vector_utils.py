@@ -5,12 +5,13 @@ from dotenv import load_dotenv
 from datetime import date
 import sys
 import uuid
-from schema.schemas import AnnouncementMetadata, AnnouncementDoc
 
 # Add project root to sys.path
-project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 if project_root not in sys.path:
     sys.path.insert(0, project_root)
+
+from src.schema.schemas import AnnouncementMetadata, LegacyAnnouncementDoc
 
 
 load_dotenv()
@@ -20,8 +21,12 @@ OLLAMA_HOST = os.getenv("OLLAMA_HOST", "http://localhost:11434")
 ollama_client = ollama.Client(host=OLLAMA_HOST)
 
 
-def create_enriched_text(doc: AnnouncementDoc) -> str:
+def create_enriched_text(doc: LegacyAnnouncementDoc) -> str:
     """
+    [DEPRECATED] Legacy function for creating enriched text from metadata.
+    This function is no longer used with the simplified schema.
+    Kept for backward compatibility only.
+
     Constructs the synthetic context string for embedding.
     Uses content_clean (URLs removed) for better semantic representation.
 
@@ -82,7 +87,7 @@ def get_embedding(text: str, model: str = "bge-m3") -> List[float]:
 
 
 if __name__ == "__main__":
-    from src.schema.schemas import AnnouncementMetadata, AnnouncementDoc
+    from src.schema.schemas import AnnouncementMetadata, LegacyAnnouncementDoc
     from datetime import date
 
     # Create a dummy AnnouncementMetadata
@@ -97,8 +102,8 @@ if __name__ == "__main__":
         meta_change_type="New Feature",
     )
 
-    # Create a dummy AnnouncementDoc
-    dummy_doc = AnnouncementDoc(
+    # Create a dummy LegacyAnnouncementDoc (for testing legacy functionality)
+    dummy_doc = LegacyAnnouncementDoc(
         id=str(uuid.uuid4()),
         month="2023-01",
         title="Introducing New Collaboration Features in Teams",

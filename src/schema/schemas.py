@@ -4,6 +4,24 @@ from pydantic import BaseModel, Field
 from datetime import date
 
 
+# Simplified schema matching parse.example.json format
+class AnnouncementDoc(BaseModel):
+    """
+    Simplified announcement document schema.
+    Matches the new parse.json format without complex metadata.
+    """
+    link: str = Field(..., description="Source URL")
+    year_month: str = Field(..., alias="year-month", description="Year and month e.g. 2025-12")
+    workspace: str = Field(..., alias="Workspace", description="Workspace category e.g. General")
+    title: str = Field(..., description="Announcement title")
+    content: str = Field(..., description="Original content")
+    cleaned_content: str = Field(..., description="Cleaned content for search and embedding")
+
+    class Config:
+        populate_by_name = True  # Allow field population by alias or name
+
+
+# Legacy schemas - kept for backward compatibility if needed
 class ImpactLevel(str, Enum):
     HIGH = "High"
     MEDIUM = "Medium"
@@ -46,7 +64,8 @@ class AnnouncementMetadata(BaseModel):
     )
 
 
-class AnnouncementDoc(BaseModel):
+class LegacyAnnouncementDoc(BaseModel):
+    """Legacy schema with complex metadata - deprecated"""
     id: str = Field(..., description="Unique identifier")
     month: str = Field(..., description="Month of the announcement e.g. 2025-12")
     title: str = Field(..., description="Announcement title")
@@ -56,12 +75,6 @@ class AnnouncementDoc(BaseModel):
         None,
         description="Cleaned content with URLs removed/simplified (used for search and embedding)"
     )
-
-    # Metadata fields flattened or nested - adhering to the spec's flat structure illustration
-    # but using the Metadata class as a container might be cleaner.
-    # However, for flat storage in SQLite, mixing them is fine.
-    # Let's include the metadata object directly to be Pythonic,
-    # and we can flatten it for SQLite storage later.
     metadata: AnnouncementMetadata = Field(..., description="Extracted metadata")
 
 
@@ -111,16 +124,21 @@ class BatchMetaExtraction(BaseModel):
 class SearchFilters(BaseModel):
     """Search filters extracted from user query (STRICT filters only)"""
 
-    months: List[str] = Field(
+    year_months: List[str] = Field(
         default_factory=list,
-        description="List of months (YYYY-MM format). For ranges like 'past 3 months', include all months.",
+        description="List of year-months (YYYY-MM format). For ranges like 'past 3 months', include all months.",
     )
     links: List[str] = Field(
         default_factory=list,
         description="List of source URLs to filter by.",
     )
-    category: Optional[Category] = Field(None, description="Category")
-    impact_level: Optional[ImpactLevel] = Field(None, description="Impact Level")
+    workspaces: List[str] = Field(
+        default_factory=list,
+        description="List of workspaces to filter by e.g. General, Security",
+    )
+    # Legacy filters - kept for backward compatibility
+    category: Optional[Category] = Field(None, description="Category (legacy)")
+    impact_level: Optional[ImpactLevel] = Field(None, description="Impact Level (legacy)")
 
 
 class SearchIntent(BaseModel):

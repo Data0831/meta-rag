@@ -240,14 +240,6 @@
         "cleaned_content": "## Microsoft 重命名其 Microsoft 365 E5 迷你套件\n\n*從 2025 年 10 月 1 日開始，Microsoft 將重新命名其 Microsoft 365 E5 迷你套件。*\n\n* **受影響的對象**：所有合作夥伴\n\n從 2025 年 10 月 1 日開始，Microsoft 將重新命名其 Microsoft 365 E5 迷你套件。 Microsoft 365 E5 安全性會變成 Microsoft Defender 套件，而 Microsoft 365 E5 合規性會變成 Microsoft Purview 套件。\n\n這些套件使組織能夠透過單一整合解決方案有效處理外部網路威脅和內部資料風險。\n\n#### Microsoft Defender 套件\n\n* Entra ID P2：以風險為基礎的條件式存取、風險登入和使用者行為異常的可見度。 ID 治理和特權身份管理。\n* 適用於身分識別的 Defender：雲端式身分識別安全性解決方案，會使用內部部署 Active Directory 訊號來識別、偵測及調查針對組織的進階威脅、遭入侵的身分識別，以及惡意內部人員動作。\n* MDO P2：具備自動化調查和回應功能的進階電子郵件及協作安全性，並提供終端使用者網路釣魚模擬培訓。\n* MDE P2：端點安全性和 EDR，搭配進階威脅狩獵功能，並提供與威脅專家的溝通管道以進行更多調查。\n* 適用於雲端的 Defender Apps：SaaS 安全性解決方案，可根據風險層級、異常使用者活動或資料共用行為自動探索和封鎖應用程式，以防範複雜的 SaaS 型攻擊。\n\n#### Microsoft Purview 套件\n\n* 自動探索、分類和標記敏感資料，並透過整合的資訊保護和 DLP 防止其在應用程式、服務和裝置上未經授權使用。\n* 了解使用者使用敏感資料的意圖，並透過內部風險管理和調適性保護來防禦內部風險，以根據風險等級自動調整策略。\n* 保護 Microsoft 365 Copilot 資料免於意外過度共用、資料外洩或不合規使用。\n* 使用合規性管理員中的預先建置範本，推動遵守常見的產業和區域法規 （例如歐盟 AI 法案、ISO 等）。\n* 使用稽核保留原則和稽核見解來簡化事件和調查的回應，並透過電子文件探索工作流程和分析來提高調查效率。"
     },
     {
-        "link": "https://learn.microsoft.com/zh-tw/partner-center/announcements/2025-september#15",
-        "year-month": "2025-09",
-        "Workspace": "",
-        "title": "立即上線！ 合作夥伴中心技術角部落格系列：2025 年 9 月版",
-        "content": "",
-        "cleaned_content": ""
-    },
-    {
         "link": "https://learn.microsoft.com/zh-tw/partner-center/announcements/2025-september#14",
         "year-month": "2025-09",
         "Workspace": "General",

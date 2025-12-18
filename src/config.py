@@ -19,10 +19,6 @@ PAGE_JSON = os.path.join(DATA_DIR, "page.json")
 PAGE_EXAMPLE_JSON = os.path.join(DATA_DIR, "page.example.json")
 PARSE_JSON = os.path.join(DATA_DIR, "parse.json")
 
-# Processed output files
-PROCESSED_OUTPUT = os.path.join(PROCESSED_DIR, "processed.json")
-ERROR_LIST_OUTPUT = os.path.join(DATA_DIR, "errorlist.json")
-
 # Database files (Legacy - will be removed)
 SQLITE_DB = os.path.join(DATABASE_DIR, "announcements.db")
 QDRANT_STORAGE = os.path.join(DATABASE_DIR, "qdrant_storage")

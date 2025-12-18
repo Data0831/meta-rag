@@ -5,8 +5,8 @@ Unified search engine for hybrid search (keyword + semantic + filters)
 
 import meilisearch
 from typing import List, Dict, Any, Optional
-from schema.schemas import AnnouncementDoc, SearchFilters
-from meilisearch_config import (
+from src.schema.schemas import AnnouncementDoc, SearchFilters
+from src.meilisearch_config import (
     RANKING_RULES,
     FILTERABLE_ATTRIBUTES,
     SEARCHABLE_ATTRIBUTES,
@@ -236,22 +236,28 @@ def build_meili_filter(filters: SearchFilters) -> Optional[str]:
         Filter string in Meilisearch syntax, or None if no filters
 
     Examples:
-        - months=['2025-11'] -> "month IN ['2025-11']"
-        - category='Security' -> "metadata.meta_category = 'Security'"
-        - Combined -> "month IN ['2025-11'] AND metadata.meta_category = 'Security'"
+        - year_months=['2025-12'] -> "year_month IN ['2025-12']"
+        - workspaces=['General'] -> "workspace IN ['General']"
+        - Combined -> "year_month IN ['2025-12'] AND workspace IN ['General']"
     """
     conditions = []
 
-    # Month filters (OR condition for multiple months)
-    if filters.months:
-        months_str = ", ".join([f"'{m}'" for m in filters.months])
-        conditions.append(f"month IN [{months_str}]")
+    # Year-month filters (OR condition for multiple months)
+    if filters.year_months:
+        months_str = ", ".join([f"'{m}'" for m in filters.year_months])
+        conditions.append(f"year_month IN [{months_str}]")
 
     # Link filters (OR condition for multiple links)
     if filters.links:
         links_str = ", ".join([f"'{l}'" for l in filters.links])
         conditions.append(f"link IN [{links_str}]")
 
+    # Workspace filters (OR condition for multiple workspaces)
+    if filters.workspaces:
+        workspace_str = ", ".join([f"'{w}'" for w in filters.workspaces])
+        conditions.append(f"workspace IN [{workspace_str}]")
+
+    # Legacy filters (kept for backward compatibility)
     # Category filter
     if filters.category:
         cat_val = (
@@ -280,48 +286,27 @@ def transform_doc_for_meilisearch(
     Transform AnnouncementDoc to Meilisearch document format.
 
     Args:
-        doc: AnnouncementDoc object
+        doc: AnnouncementDoc object (simplified schema)
         embedding_vector: Embedding vector for the document
 
     Returns:
         Dictionary in Meilisearch format with _vectors field
     """
-    meta = doc.metadata
+    # Serialize doc to dict
+    doc_dict = doc.model_dump() if hasattr(doc, "model_dump") else doc.dict()
 
-    # Serialize metadata to dict
-    metadata_dict = meta.model_dump() if hasattr(meta, "model_dump") else meta.dict()
-
-    # Convert dates to strings for JSON compatibility
-    for date_field in [
-        "meta_date_effective",
-        "meta_action_deadline",
-        "meta_date_announced",
-    ]:
-        if metadata_dict.get(date_field):
-            metadata_dict[date_field] = str(metadata_dict[date_field])
-
-    # Convert enums to strings
-    if metadata_dict.get("meta_category"):
-        metadata_dict["meta_category"] = (
-            metadata_dict["meta_category"].value
-            if hasattr(metadata_dict["meta_category"], "value")
-            else metadata_dict["meta_category"]
-        )
-
-    if metadata_dict.get("meta_impact_level"):
-        metadata_dict["meta_impact_level"] = (
-            metadata_dict["meta_impact_level"].value
-            if hasattr(metadata_dict["meta_impact_level"], "value")
-            else metadata_dict["meta_impact_level"]
-        )
+    # Generate a unique ID from link (use hash or sanitized URL)
+    # Since new format doesn't have explicit ID, we'll use link as identifier
+    import hashlib
+    doc_id = hashlib.md5(doc.link.encode()).hexdigest()
 
     return {
-        "id": doc.id,  # Meilisearch requires 'id' field
-        "title": doc.title,
-        "content": doc.original_content,  # Keep original for display
-        "content_clean": doc.content_clean,  # Cleaned content for search
-        "month": doc.month,
+        "id": doc_id,  # Generated ID from link
         "link": doc.link,
-        "metadata": metadata_dict,
+        "year_month": doc.year_month,  # YYYY-MM format
+        "workspace": doc.workspace,  # e.g., General, Security
+        "title": doc.title,
+        "content": doc.content,  # Original content for display
+        "cleaned_content": doc.cleaned_content,  # Cleaned content for search
         "_vectors": {"default": embedding_vector},  # Vector for hybrid search
     }
