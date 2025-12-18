@@ -36,6 +36,7 @@ def test_search(query: str):
         print("\n" + "-" * 80)
         print("[Search Strategy]")
         print(f"  Keyword Query:  {intent.get('keyword_query', 'N/A')}")
+        print(f"  Must Have Keywords: {intent.get('must_have_keywords', [])}")
         print(f"  Semantic Query: {intent.get('semantic_query', 'N/A')}")
 
         # Show semantic ratio with visual indicator
@@ -52,18 +53,10 @@ def test_search(query: str):
         # Show applied filters
         filters = intent["filters"]
         print(f"\n[Filters Applied]")
-        if filters.get("year_months"):
-            print(f"  Year-Months:  {filters['year_months']}")
-        if filters.get("category"):
-            print(f"  Category:     {filters['category']}")
-        if filters.get("impact_level"):
-            print(f"  Impact Level: {filters['impact_level']}")
+        if filters.get("year_month"):
+            print(f"  Year_Month:  {filters['year_month']}")
         if not any(filters.values()):
             print(f"  (No filters)")
-
-        if intent.get("boost_keywords"):
-            print(f"\n[Boost Keywords] {intent['boost_keywords']}")
-
         if intent.get("limit"):
             print(f"\n[Result Limit] LLM specified: {intent['limit']}")
         else:
@@ -77,37 +70,21 @@ def test_search(query: str):
         for idx, doc in enumerate(results["results"], 1):
             print(f"\n[{idx}] {doc.get('title', 'No Title')}")
             print(f"{'─' * 80}")
-            print(f"  ID:           {doc['id']}")
-            print(f"  Month:        {doc.get('month', 'N/A')}")
+            print(f"  year_month:   {doc.get('year_month', 'N/A')}")
+            print(f"  Workspace:    {doc.get('workspace', 'N/A')}")
             print(f"  Ranking Score: {doc.get('_rankingScore', 0):.4f}")
 
             # Display detailed score breakdown
             if "_rankingScoreDetails" in doc:
                 details = doc["_rankingScoreDetails"]
-                print(f"\n  Score Breakdown:")
-                for key, value in details.items():
-                    if isinstance(value, dict):
-                        print(f"    {key}:")
-                        for sub_key, sub_value in value.items():
-                            print(f"      {sub_key}: {sub_value}")
-                    else:
-                        print(f"    {key}: {value}")
-
-            # Show metadata if available
-            if "metadata" in doc:
-                meta = doc["metadata"]
-                print(f"\n  Metadata:")
-                if meta.get("meta_category"):
-                    print(f"    Category:     {meta['meta_category']}")
-                if meta.get("meta_impact_level"):
-                    print(f"    Impact Level: {meta['meta_impact_level']}")
-                if meta.get("meta_products"):
-                    print(f"    Products:     {', '.join(meta['meta_products'][:3])}")
-                if meta.get("meta_summary"):
-                    summary = meta["meta_summary"]
-                    print(
-                        f"    Summary:      {summary[:150]}{'...' if len(summary) > 150 else ''}"
-                    )
+                # print(f"\n  Score Breakdown:")
+                # for key, value in details.items():
+                #     if isinstance(value, dict):
+                #         print(f"    {key}:")
+                #         for sub_key, sub_value in value.items():
+                #             print(f"      {sub_key}: {sub_value}")
+                #     else:
+                #         print(f"    {key}: {value}")
 
             print(f"\n  Link: {doc.get('link', 'N/A')}")
 
@@ -133,7 +110,9 @@ def main():
         # "Azure OpenAI pricing",
         # "Copilot for Microsoft 365 更新",
         # Balanced queries (expected ratio: 0.4-0.5)
-        "三個月內「AI 雲合作夥伴計劃」相關公告",
+        # "三個月內「AI 雲合作夥伴計劃」相關公告",
+        "2025 年 4 月份價格相關公告",
+        # "「AI 雲合作夥伴計劃」相關公告",
         # "安全性最佳實踐",
         # # Semantic-heavy queries (expected ratio: 0.6-0.8)
         # "如何提升雲端安全",

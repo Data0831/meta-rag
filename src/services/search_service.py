@@ -4,7 +4,6 @@ Search Service - Simplified with Meilisearch Hybrid Search
 This service uses Meilisearch for unified hybrid search that combines:
 - Keyword search (with fuzzy matching and typo tolerance)
 - Semantic vector search
-- Strict metadata filtering
 
 No more RRF fusion needed - Meilisearch handles it internally!
 """
@@ -20,23 +19,6 @@ from meilisearch_config import DEFAULT_SEMANTIC_RATIO
 from datetime import datetime
 
 
-# Month format conversion mapping (YYYY-MM -> YYYY-monthname)
-MONTH_NUM_TO_NAME = {
-    "01": "january",
-    "02": "february",
-    "03": "march",
-    "04": "april",
-    "05": "may",
-    "06": "june",
-    "07": "july",
-    "08": "august",
-    "09": "september",
-    "10": "october",
-    "11": "november",
-    "12": "december",
-}
-
-
 class SearchService:
     """
     Simplified Search Service using Meilisearch.
@@ -49,10 +31,12 @@ class SearchService:
     5. Return results with ranking scores
     """
 
-    def __init__(self):
-        print(" SearchService.__init__() called")
-        print(f"  MEILISEARCH_HOST: {MEILISEARCH_HOST}")
-        print(f"  MEILISEARCH_INDEX: {MEILISEARCH_INDEX}")
+    def __init__(self, show_init_messages: bool = False):
+
+        if show_init_messages:
+            print(" SearchService.__init__() called")
+            print(f"  MEILISEARCH_HOST: {MEILISEARCH_HOST}")
+            print(f"  MEILISEARCH_INDEX: {MEILISEARCH_INDEX}")
 
         try:
             print("  Initializing LLMClient...")
@@ -156,24 +140,6 @@ class SearchService:
             semantic_ratio = intent.recommended_semantic_ratio
             print(f"🎯 Using LLM-recommended semantic_ratio: {semantic_ratio:.2f}")
 
-        # Convert month format from YYYY-MM to YYYY-monthname
-        if intent.filters.year_months:
-            converted_months = []
-            for month_str in intent.filters.year_months:
-                # Check if format is YYYY-MM
-                if "-" in month_str and len(month_str.split("-")) == 2:
-                    year, month_num = month_str.split("-")
-                    if month_num in MONTH_NUM_TO_NAME:
-                        # Convert to YYYY-monthname format to match database
-                        converted_months.append(
-                            f"{year}-{MONTH_NUM_TO_NAME[month_num]}"
-                        )
-                    else:
-                        converted_months.append(month_str)
-                else:
-                    converted_months.append(month_str)
-            intent.filters.year_months = converted_months
-
         # 2. Build Meilisearch filter expression
         meili_filter = build_meili_filter(intent.filters)
 
@@ -185,15 +151,15 @@ class SearchService:
         #   If a doc is missing these terms, its keyword score will near-zero, dragging down the final hybrid score
         #   even if the vector score is high.
         if intent.must_have_keywords:
-            # Repeat 3 times for strong boosting
+            # Repeat 2 times for strong boosting (3x might be too aggressive)
             boosted_keywords = []
             for kw in intent.must_have_keywords:
-                boosted_keywords.extend([kw] * 3)
+                boosted_keywords.extend([kw] * 2)
 
             intent.keyword_query = (
                 f"{intent.keyword_query} {' '.join(boosted_keywords)}"
             )
-            print(f"🚀 Boosting critical keywords (3x): {intent.must_have_keywords}")
+            # print(f"🚀 Boosting critical keywords (2x): {intent.must_have_keywords}")
 
         # 3. Generate query embedding for semantic search
         query_vector = None

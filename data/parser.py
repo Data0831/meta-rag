@@ -49,20 +49,10 @@ def clean_content(content: str) -> str:
 
 def extract_metadata_from_content(content: str) -> Dict[str, str]:
     """
-    Extract metadata from content markdown.
-    Looks for patterns like:
-    * **日期**：2025年12月10日
-    * **工作區**：一般
+    Extract workspace from content markdown.
+    Looks for pattern: * **工作區**：一般
     """
-    metadata = {"announced": "", "workspace": ""}
-
-    # Extract date (日期)
-    date_pattern = r"\*\s*\*\*日期\*\*[：:]\s*(\d{4})年(\d{1,2})月(\d{1,2})日"
-    date_match = re.search(date_pattern, content)
-    if date_match:
-        month = date_match.group(2).zfill(2)
-        day = date_match.group(3).zfill(2)
-        metadata["announced"] = f"{month}-{day}"
+    metadata = {"workspace": ""}
 
     # Extract workspace (工作區)
     workspace_pattern = r"\*\s*\*\*工作區\*\*[：:]\s*(.+?)(?:\n|\*|$)"
@@ -124,7 +114,7 @@ def parse_json_data(file_path: str) -> List[Dict[str, Any]]:
     [
         {
             "link": "...",
-            "year-month": "2025-12",
+            "year_month": "2025-12",
             "Announced": "12-10",
             "Workspace": "General",
             "title": "...",
@@ -151,7 +141,7 @@ def parse_json_data(file_path: str) -> List[Dict[str, Any]]:
             if not isinstance(items, list):
                 continue
 
-            # Convert month key to year-month format
+            # Convert month key to year_month format
             year_month = convert_month_to_numeric(month_key)
 
             for item in items:
@@ -178,7 +168,7 @@ def parse_json_data(file_path: str) -> List[Dict[str, Any]]:
                 # Build output document
                 parsed_doc = {
                     "link": link,
-                    "year-month": year_month,
+                    "year_month": year_month,
                     "Workspace": metadata["workspace"],
                     "title": title,
                     "content": content,  # Keep original content

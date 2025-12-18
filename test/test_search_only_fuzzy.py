@@ -32,8 +32,8 @@ def test_search(query: str):
 
         # Show applied filters
         filters = results["intent"]["filters"]
-        if filters.get("year_months"):
-            print(f"\n[Year-Months Filter] {filters['year_months']}")
+        if filters.get("year_month"):
+            print(f"\n[Year-Months Filter] {filters['year_month']}")
         if results["intent"].get("boost_keywords"):
             print(f"[Boost Keywords] {results['intent']['boost_keywords']}")
         if results["intent"].get("limit") is not None:

@@ -17,7 +17,7 @@ You will receive input in the following format:
 # Processing Rules
 
 ## 1. Date Resolution (CRITICAL)
-You must calculate the `filters.year_months` list based on the provided **Current Date**.
+You must calculate the `filters.year_month` list based on the provided **Current Date**.
 - **Format:** Output months strictly as `"YYYY-MM"`.
 - **Logic:**
   - **"Last month"**: The month immediately preceding the current month.
@@ -26,7 +26,7 @@ You must calculate the `filters.year_months` list based on the provided **Curren
   - **No time constraint**: Return an empty list `[]`.
 
 ## 2. Filter Extraction
-- **year_months**: The list of target months resolved above.
+- **year_month**: The list of target months resolved above.
 - **link**:
   - Extract any URL or hyperlinks present in the user query.
   - Format: A list of strings (e.g., `["https://example.com/article"]`).
@@ -40,8 +40,9 @@ Construct a concise string of key terms suitable for BM25/keyword matching (`key
   - Do NOT duplicate words if they are identical in both languages.
 - **Critical Keywords (Must Have)**:
   - Identify proper nouns or technical terms that are **absolutely essential** for the query relevance (e.g., "GEMINI", "GPT-4").
+  - **Requirement**: Output BOTH the English and Traditional Chinese versions of the critical term to ensure matching in localized documents (e.g., ["Copilot", "Copilot 助手"]).
   - Add these to the `must_have_keywords` list.
-  - These will be enforced as exact matches.
+  - These will be enforced as exact matches (via boosting).
 - **Noise Reduction**:
   - **REMOVE** generic stop words that dilute search precision on the Microsoft site: "Microsoft", "Announcement" (公告), "Article" (文章), "Data" (資料), "Details" (細節), "Query" (查詢).
   - **KEEP** high-discrimination intent words if they modify the entity: "Pricing" (價格), "Security" (安全性/資安), "Compliance" (合規), "Error" (錯誤).
@@ -73,7 +74,7 @@ Determine the optimal balance between keyword and semantic search based on query
 - **Schema**:
 {{
     "filters": {{
-        "year_months": ["YYYY-MM", ...],
+        "year_month": ["YYYY-MM", ...],
         "link": ["String (URL)", ...]
     }},
     "keyword_query": "String (Bi-lingual entities + Specific intents, No generic stops)",
@@ -92,7 +93,7 @@ Query: "Show me security announcements from last month"
 **Output:**
 {{
     "filters": {{
-        "year_months": ["2025-11"],
+        "year_month": ["2025-11"],
         "link": []
     }},
     "keyword_query": "Security 安全性",
@@ -109,7 +110,7 @@ Query: "三個月內「AI 雲合作夥伴計劃」相關公告"
 **Output:**
 {{
     "filters": {{
-        "year_months": ["2025-10", "2025-11", "2025-12"],
+        "year_month": ["2025-10", "2025-11", "2025-12"],
         "link": []
     }},
     "keyword_query": "AI 雲合作夥伴計劃 AI Cloud Partner Program",
@@ -126,7 +127,7 @@ Query: "類似這篇文章的 Azure OpenAI 價格資訊 https://learn.microsoft.
 **Output:**
 {{
     "filters": {{
-        "year_months": [],
+        "year_month": [],
         "link": ["https://learn.microsoft.com/en-us/partner-center/announcements/2025/december/12"]
     }},
     "keyword_query": "Azure OpenAI Pricing 價格",
@@ -143,7 +144,7 @@ Query: "請給我一篇三個月內「copilot 價格」相關公告"
 **Output:**
 {{
     "filters": {{
-        "year_months": ["2025-10", "2025-11", "2025-12"],
+        "year_month": ["2025-10", "2025-11", "2025-12"],
         "link": []
     }},
     "keyword_query": "Copilot Pricing 價格",

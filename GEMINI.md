@@ -36,14 +36,14 @@
 project_root/
 ├── data/
 │   ├── parse.json              # 來源資料 (簡化格式)
+│   ├── parser.py               # 資料解析工具
 │   └── vectorPreprocessing.py  # 向量計算與 Index Reset 工具
 ├── src/
 │   ├── config.py               # 全域設定 (Meilisearch Host, Key 等)
 │   ├── meilisearch_config.py   # Meilisearch 索引配置
-│   ├── app.py                  # [Future] Flask 入口點
+│   ├── app.py                  # Flask 入口點
 │   ├── services/               # [核心] 業務邏輯服務層
 │   │   ├── search_service.py   # 處理 Intent Parsing 與 Meili Search 呼叫
-│   │   └── rag_service.py      # [Future] RAG 對話邏輯
 │   ├── database/               # 資料庫轉接器 (DAL)
 │   │   ├── db_adapter_meili.py # [唯一] Meilisearch Adapter
 │   │   └── vector_utils.py     # 向量生成工具

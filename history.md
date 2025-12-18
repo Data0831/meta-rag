@@ -12,7 +12,7 @@
 **簡化數據格式重構 (Metadata Removal & Schema Simplification)**：移除複雜的 metadata 結構，改用 parse.json 的扁平化格式，大幅簡化系統架構。
 - **核心變更**：
     - 更新 `schemas.py`：新增簡化的 `AnnouncementDoc`，包含 `link`, `year_month`, `workspace`, `title`, `content`, `cleaned_content` 六個基本欄位；舊版本重命名為 `LegacyAnnouncementDoc`。
-    - 更新 `SearchFilters`：新增 `year_months` 和 `workspaces` 欄位以適配新格式。
+    - 更新 `SearchFilters`：新增 `year_month` 和 `workspaces` 欄位以適配新格式。
     - 簡化 `vectorPreprocessing.py`：移除 `create_enriched_text` 功能，直接使用 `cleaned_content` 生成 embedding。
     - 更新 `db_adapter_meili.py`：修改 `transform_doc_for_meilisearch` 函數，使用 MD5 hash 從 link 生成唯一 ID；更新 `build_meili_filter` 支援新欄位過濾。
     - 更新 `meilisearch_config.py`：調整 `FILTERABLE_ATTRIBUTES` 為 `year_month`, `workspace`, `link`；簡化 `SEARCHABLE_ATTRIBUTES` 為 `title`, `cleaned_content`, `content`。
