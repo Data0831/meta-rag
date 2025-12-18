@@ -3,14 +3,21 @@ Flask Application Entry Point
 Web interface for the Microsoft RAG system using Meilisearch
 """
 
+import sys
+from pathlib import Path
+
+# Add project root to Python path
+project_root = Path(__file__).parent.parent
+sys.path.insert(0, str(project_root))
+
 from flask import Flask, render_template, jsonify, request
 import os
 from dotenv import load_dotenv
 from typing import Dict, Any
 
-from database.db_adapter_meili import MeiliAdapter
-from services.search_service import SearchService
-from config import MEILISEARCH_HOST, MEILISEARCH_API_KEY, MEILISEARCH_INDEX
+from src.database.db_adapter_meili import MeiliAdapter
+from src.services.search_service import SearchService
+from src.config import MEILISEARCH_HOST, MEILISEARCH_API_KEY, MEILISEARCH_INDEX
 
 # Load environment variables
 load_dotenv()
@@ -88,15 +95,25 @@ def search():
         JSON response with search results
     """
     try:
+        print("\n" + "=" * 60)
+        print("🔍 /api/collection_search called")
+
         data = request.get_json()
+        print(f"📥 Request data: {data}")
 
         if not data or "query" not in data:
+            print("❌ Missing 'query' field")
             return jsonify({"error": "Missing 'query' field in request body"}), 400
 
         query = data["query"]
         limit = data.get("limit", 20)
         semantic_ratio = data.get("semantic_ratio", 0.5)
         enable_llm = data.get("enable_llm", True)
+
+        print(f"  Query: {query}")
+        print(f"  Limit: {limit}")
+        print(f"  Semantic Ratio: {semantic_ratio}")
+        print(f"  Enable LLM: {enable_llm}")
 
         # Validate parameters
         if not isinstance(limit, int) or limit < 1 or limit > 100:
@@ -124,7 +141,10 @@ def search():
             )
 
         # Perform search
+        print("🚀 Initializing SearchService...")
         search_service = SearchService()
+
+        print("🔎 Calling search_service.search()...")
         results = search_service.search(
             user_query=query,
             limit=limit,
@@ -132,9 +152,17 @@ def search():
             enable_llm=enable_llm,
         )
 
+        print(f"✅ Search completed. Results count: {len(results.get('results', []))}")
+        print("=" * 60 + "\n")
         return jsonify(results)
 
     except Exception as e:
+        print(f"❌ ERROR in /api/collection_search: {e}")
+        print(f"   Error type: {type(e).__name__}")
+        import traceback
+
+        print(f"   Traceback:\n{traceback.format_exc()}")
+        print("=" * 60 + "\n")
         return jsonify({"error": str(e)}), 500
 
 
@@ -199,26 +227,26 @@ def get_collections():
                     "vectors": {
                         "default": {
                             "size": 1024,  # BGE-M3 dimension
-                            "distance": "Cosine"
+                            "distance": "Cosine",
                         }
                     },
-                    "shard_number": 1
+                    "shard_number": 1,
                 },
                 "optimizer_config": {
                     "indexing_threshold": stats.get("isIndexing", False)
-                }
-            }
+                },
+            },
         }
 
         return jsonify({"collections": [collection]})
 
     except Exception as e:
         # Return error collection if connection fails
-        error_collection = {
-            "name": MEILISEARCH_INDEX,
-            "error": str(e)
-        }
-        return jsonify({"collections": [error_collection]}), 200  # Still return 200 to show error in UI
+        error_collection = {"name": MEILISEARCH_INDEX, "error": str(e)}
+        return (
+            jsonify({"collections": [error_collection]}),
+            200,
+        )  # Still return 200 to show error in UI
 
 
 # ============================================================================

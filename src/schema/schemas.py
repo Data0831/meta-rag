@@ -131,6 +131,10 @@ class SearchIntent(BaseModel):
     semantic_query: str = Field(
         ..., description="Optimized semantic query for Vector DB"
     )
+    must_have_keywords: List[str] = Field(
+        default_factory=list,
+        description="Critical keywords that MUST be present in the document (enforces exact match/presence)",
+    )
     boost_keywords: List[str] = Field(
         default_factory=list,
         description="Soft-match keywords (e.g., product names) to boost relevance, not filter",

@@ -1,0 +1,18 @@
+[
+    {
+        "link": "https://learn.microsoft.com/zh-tw/partner-center/announcements/2025-december#9",
+        "year-month": "2025-09",
+        "Announced": "12-10",
+        "Workspace": "General",
+        "title": "介紹 Microsoft Sentinel 預購計畫",
+        "content": "## 介紹 Microsoft Sentinel 預購計畫\n\n*透過 Microsoft Sentinel 預購計畫，解鎖新的利潤率與客戶價值。*\n\n* **日期**：2025年12月10日\n* **工作區**：一般\n* **受影響對象**：雲端解決方案供應商分銷商、間接經銷商、直接帳單合作夥伴\n\n透過 [Microsoft Sentinel 預購計畫（P3），](https://learn.microsoft.com/zh-tw/azure/sentinel/billing-pre-purchase-plan)您可以以折扣價取得 Microsoft Sentinel 預承諾單位（CU）。 這讓您有機會幫助更多客戶保護資料並降低風險。\n\n* 價格可預測：年度預購能更符合購買週期，減少支出波動。\n* 大幅節省：購買 Microsoft Sentinel 的 5k CUs 方案時，可節省 44%。 此外，當您使用方案等級時，還能解鎖高達73% 的折扣（具體省下的折扣百分比會因地區定價和所使用的方案等級而異）。\n* 最大化 Microsoft Sentinel 節省：符合資格的 Microsoft Sentinel 零售成本會自動先從 Microsoft Sentinel CU 扣除，從而最大化節省。\n\n#### 後續步驟\n\n請參考可用資源，包括 [常見問題、合作夥伴提案簡報和交易指南](https://microsoftpartners.microsoft.com/Microsoft-Security-Partners/sell-through-csp/)，幫助你開始。"
+    },
+    {
+        "link": "https://learn.microsoft.com/zh-tw/partner-center/announcements/2025-december#2",
+        "year-month": "2025-12",
+        "Announced": "12-2",
+        "Workspace": "General",
+        "title": "更聰明的推薦投稿在這裡",
+        "content": "## 更聰明的推薦投稿在這裡\n\n*更聰明的推薦投稿來了！ 透過智慧提示提升準確性，提供更快的處理速度，並提升賣家參與度，合作夥伴中心將於今年一月啟動。*\n\n* **日期**：2025年12月2日\n* **更新**日期：2005年12月9日\n* **工作區**：一般\n* **受影響對象**：所有透過合作夥伴中心介面提交推薦的 Microsoft 共同銷售夥伴，針對中小企業及企業機會。\n\n#### 以更智慧的推薦體驗推動合作夥伴成功\n\n合作夥伴中心提供自動化推薦資格審核流程，加速機會創造並強化賣家參與度。 透過簡化預先資格審查並確保轉介提交流程的完整性，合作夥伴能更快處理且資料品質提升。\n\n這些提升提升了即時洞察、高品質評分與智慧路由，幫助合作夥伴自信地創造高價值機會。\n\n#### 合作夥伴中心將會有什麼新內容？\n\n推薦提交增強功能的啟動將分階段推出：\n\n* 智能化提示透過改進缺失或低品質的細節來驗證 BANT，從而帶來更強的推薦。\n* AI 驅動的智慧提示，幫助表達顧客需求——提升相關性並減少打字時間。\n* 關於使用 Campaign ID 改善 Microsoft 託管活動的交易追蹤建議。\n* 增強使用者體驗，當你開始在清單中輸入商品名稱時，系統會建議相關的產品名稱。\n\n備註\n\n第一階段的強化重點在於合作夥伴中心的使用者介面。 透過批量上傳和 API 的推薦提交流程也沒有變動。\n\n#### 第一階段（可於2026年1月開放）\n\n入站的共銷推薦將接受自動化完整性檢查，作為強化投稿體驗的一部分。 此更新引入驗證機制，確保只有高品質的推薦能順利進行，無需合作夥伴額外行動。\n\n主要功能：\n\n* 估算交易價值：必須是現實的;像「0 USD」或「00 million」這類佔位值會觸發警告。\n* 預計交割日期：必須是未來的日期;過去日期或未來七天內的日期無效。\n* 客戶需求：必須明確定義，包括產品/服務需求及商業背景。 提供基於 AI 的自動筆記生成技術。\n* 客戶聯絡資訊：必須提供有效的聯絡資訊，否則合作夥伴必須選擇同意勾選框，日後分享資訊。\n\n其他資訊：\n\n* 全面供應：預計於 2026 年 1 月推出\n* 合作夥伴中心 [學習文件](https://learn.microsoft.com/zh-tw/partner-center/)\n* 不需要合作夥伴行動，變更已嵌入提交流程中\n\n#### 後續步驟\n\n* 向團隊溝通變更。\n* 請為即將到來的一月自動化推廣做好準備。 培訓資源即將推出。\n* 欲了解更多更新資訊，請參閱 [合作夥伴中心的「管理共同銷售機會](https://learn.microsoft.com/zh-tw/partner-center/referrals/manage-co-sell-opportunities)」。\n\n#### 提問\n\n如果您有任何疑問，請透過 [合作夥伴中心支援頁面](https://partner.microsoft.com/support/?stage=1)提交支援單。"
+    }
+]

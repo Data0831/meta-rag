@@ -38,10 +38,14 @@ Construct a concise string of key terms suitable for BM25/keyword matching (`key
   - Identify core entities: Product names, Program names, Technical terms (e.g., "雲合作夥伴計劃", "Azure", "Copilot").
   - **Requirement**: Output BOTH the English and Traditional Chinese versions of the entity to maximize recall. (e.g., "雲合作夥伴計劃 Cloud Partner Program").
   - Do NOT duplicate words if they are identical in both languages.
+- **Critical Keywords (Must Have)**:
+  - Identify proper nouns or technical terms that are **absolutely essential** for the query relevance (e.g., "GEMINI", "GPT-4").
+  - Add these to the `must_have_keywords` list.
+  - These will be enforced as exact matches.
 - **Noise Reduction**:
   - **REMOVE** generic stop words that dilute search precision on the Microsoft site: "Microsoft", "Announcement" (公告), "Article" (文章), "Data" (資料), "Details" (細節), "Query" (查詢).
   - **KEEP** high-discrimination intent words if they modify the entity: "Pricing" (價格), "Security" (安全性/資安), "Compliance" (合規), "Error" (錯誤).
-- **Format**: Space-separated string.
+- **Format**: Space-separated string for `keyword_query`. List of strings for `must_have_keywords`.
 
 ## 4. Semantic Query Strategy (Vector Search)
 Construct a natural language sentence for vector embedding (`semantic_query`).
@@ -73,6 +77,7 @@ Determine the optimal balance between keyword and semantic search based on query
         "link": ["String (URL)", ...]
     }},
     "keyword_query": "String (Bi-lingual entities + Specific intents, No generic stops)",
+    "must_have_keywords": ["String (Critical Entity)", ...],
     "semantic_query": "String (Natural sentence)",
     "limit": Integer or null,
     "recommended_semantic_ratio": Float (0.0-1.0)
@@ -91,6 +96,7 @@ Query: "Show me security announcements from last month"
         "link": []
     }},
     "keyword_query": "Security 安全性",
+    "must_have_keywords": ["Security"],
     "semantic_query": "2025年11月的安全性公告",
     "limit": null,
     "recommended_semantic_ratio": 0.5
@@ -107,6 +113,7 @@ Query: "三個月內「AI 雲合作夥伴計劃」相關公告"
         "link": []
     }},
     "keyword_query": "AI 雲合作夥伴計劃 AI Cloud Partner Program",
+    "must_have_keywords": ["AI Cloud Partner Program"],
     "semantic_query": "過去三個月 AI 雲合作夥伴計劃的相關公告",
     "limit": null,
     "recommended_semantic_ratio": 0.4
@@ -123,6 +130,7 @@ Query: "類似這篇文章的 Azure OpenAI 價格資訊 https://learn.microsoft.
         "link": ["https://learn.microsoft.com/en-us/partner-center/announcements/2025/december/12"]
     }},
     "keyword_query": "Azure OpenAI Pricing 價格",
+    "must_have_keywords": ["Azure OpenAI"],
     "semantic_query": "類似指定連結的 Azure OpenAI 價格資訊",
     "limit": null,
     "recommended_semantic_ratio": 0.3
@@ -139,6 +147,7 @@ Query: "請給我一篇三個月內「copilot 價格」相關公告"
         "link": []
     }},
     "keyword_query": "Copilot Pricing 價格",
+    "must_have_keywords": ["Copilot"],
     "semantic_query": "「copilot 價格」相關公告",
     "limit": 1,
     "recommended_semantic_ratio": 0.3
