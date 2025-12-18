@@ -1,20 +1,20 @@
+# Project History
+
+## 2025-12-15
+- **初期建置**：完成專案基礎架構 (Phase 1-2)，包含 ETL Pipeline、資料攝取與 Pydantic Schema。
+- **優化**：實作自動化 ETL，整合 Gemini LLM 進行 Metadata 提取，並優化配置管理與 API 穩定性，建立 `metadata.json` 聚合輸出。
+
+## 2025-12-16
+- **架構遷移 (Phase 3-5)**：完成向量攝取與 Hybrid Search 核心後，執行重大決策遷移至 **Meilisearch** 單一引擎，移除 SQLite/Qdrant 雙資料庫架構，搜尋延遲降至 ~30ms。
+- **中文優化**：實作 `jieba` 分詞方案 (`meta_summary_segmented`)，並在 ETL 中整合分詞處理，大幅提升中文關鍵字匹配準確度。
+- **系統重構**：統一資料庫適配器為 `db_adapter_meili.py`，簡化 `SearchService` 邏輯，建立 `MIGRATION.md`。
+
+## 2025-12-17
+- **前端整合**：發布 Collection Search 介面，支援動態相似度閾值、語意權重調整 (Semantic Ratio) 與 LLM 意圖重寫開關。
+- **搜尋調優**：建立 `meilisearch_config.py` 集中管理排序規則，修復混合搜尋結果排序問題 (Ranking Score Fix)，並實作 LLM 動態推薦語意權重。
+- **路由修復**：修正 Flask 路由與前端導航，確保 Collection 與 Vector Search 頁面連結正常。
 
 ## 2025-12-18
-**強制關鍵字策略實作 (Strict Keyword Enforcement via Soft Boosting)**：針對使用者反饋「語意搜尋分數過高導致不相關結果浮現」的問題，提出並實作「軟性強制 (Soft Enforcement)」方案。
-- **設計理念**：不使用雙引號強制完全匹配（保留 Typo Tolerance），改用「重複關鍵字加權 (Keyword Repetition Boosting)」策略，利用 Meilisearch 的關鍵字頻率權重機制創造分數斷層。
-- **實作細節**：
-    - 更新 `schemas.py`：新增 `SearchIntent.must_have_keywords` 欄位。
-    - 更新 `search_prompts.py`：指導 LLM 識別必須存在的關鍵字（如專有名詞 GEMINI）。
-    - 修改 `search_service.py`：將識別出的關鍵字在查詢字串中重複 3 次 (e.g., `GEMINI GEMINI GEMINI`)。
-- **效果**：若文檔缺失關鍵字，BM25 分數歸零，即使向量分數高，總分也會被大幅拖累沉底；若文檔有關鍵字（含錯字），BM25 分數滿分，總分顯著提升。有效解決了向量搜尋發散問題，同時保留了模糊搜尋的容錯優勢。
-
-## 2025-12-18 (下午)
-**簡化數據格式重構 (Metadata Removal & Schema Simplification)**：移除複雜的 metadata 結構，改用 parse.json 的扁平化格式，大幅簡化系統架構。
-- **核心變更**：
-    - 更新 `schemas.py`：新增簡化的 `AnnouncementDoc`，包含 `link`, `year_month`, `workspace`, `title`, `content`, `cleaned_content` 六個基本欄位；舊版本重命名為 `LegacyAnnouncementDoc`。
-    - 更新 `SearchFilters`：新增 `year_month` 和 `workspaces` 欄位以適配新格式。
-    - 簡化 `vectorPreprocessing.py`：移除 `create_enriched_text` 功能，直接使用 `cleaned_content` 生成 embedding。
-    - 更新 `db_adapter_meili.py`：修改 `transform_doc_for_meilisearch` 函數，使用 MD5 hash 從 link 生成唯一 ID；更新 `build_meili_filter` 支援新欄位過濾。
-    - 更新 `meilisearch_config.py`：調整 `FILTERABLE_ATTRIBUTES` 為 `year_month`, `workspace`, `link`；簡化 `SEARCHABLE_ATTRIBUTES` 為 `title`, `cleaned_content`, `content`。
-    - 修復導入路徑：統一使用 `from src.schema.schemas` 和 `from src.meilisearch_config` 絕對路徑。
-- **效果**：消除了複雜的 LLM metadata 提取流程，減少向量生成的合成文本依賴，降低系統複雜度，提升可維護性。
+- **搜尋策略優化**：實作「軟性強制關鍵字」(Soft Keyword Enforcement) 與「雙語關鍵字擴展」(Bilingual Expansion)，利用重複關鍵字加權 (Boosting) 解決向量搜尋發散與中英匹配問題。
+- **架構輕量化 (Phase 6)**：徹底移除 Metadata 與 Enriched Text 複雜結構，改採 parse.json 扁平化格式，大幅簡化 ETL 流程與 Schema。
+- **代碼清理**：修復 Meilisearch 過濾器語法 (`IN` operator)，並刪除約 165 行廢棄代碼 (Legacy Code Removal)，系統進入穩定期。
