@@ -1,580 +1,290 @@
 <!DOCTYPE html>
-
-<html class="light" lang="en">
+<html lang="zh-Hant">
 
 <head>
     <meta charset="utf-8" />
     <meta content="width=device-width, initial-scale=1.0" name="viewport" />
-    <title>RAG Chat Dashboard</title>
-    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;display=swap"
+    <title>Microsoft 搜尋型問答資料庫</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,typography"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&amp;display=swap"
         rel="stylesheet" />
-    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@300,0..1&amp;display=swap"
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet" />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200"
         rel="stylesheet" />
     <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet" />
-    <script id="tailwind-config">
+    <script>
         tailwind.config = {
             darkMode: "class",
             theme: {
                 extend: {
                     colors: {
-                        "primary": "#007aff",
-                        "background-light": "#ffffff",
-                        "background-dark": "#0f1923",
-                        "sidebar-light": "#f5f5f7",
-                        "sidebar-dark": "#1c1c1e",
-                        "border-light": "#e5e5ea",
-                        "border-dark": "#38383a",
-                        "text-primary-light": "#1c1c1e",
-                        "text-primary-dark": "#f2f2f7",
-                        "text-secondary-light": "#8e8e93",
-                        "text-secondary-dark": "#8e8e93",
-                        "bubble-ai-light": "#f2f2f7",
-                        "bubble-ai-dark": "#2c2c2e",
+                        primary: "#7da3b1", // Muted teal from screenshot
+                        secondary: "#5f8595", // Darker teal
+                        "background-light": "#f8fafd",
+                        "background-dark": "#1a202c",
+                        "surface-light": "#ffffff",
+                        "surface-dark": "#2d3748",
+                        "card-light": "#e4eff3", // Light blueish gray from sidebar
+                        "card-dark": "#3c4a5c", // Dark version
+                        "accent": "#7da3b1",
                     },
                     fontFamily: {
-                        "display": ["Inter", "-apple-system", "BlinkMacSystemFont", "Helvetica Neue", "Arial", "sans-serif"]
+                        display: ["Noto Sans TC", "sans-serif"],
+                        body: ["Noto Sans TC", "sans-serif"],
                     },
                     borderRadius: {
-                        "DEFAULT": "0.75rem", /* 12px */
-                        "lg": "1.125rem",  /* 18px */
-                        "xl": "1.5rem",   /* 24px */
-                        "full": "9999px"
+                        DEFAULT: "0.5rem",
+                        'xl': '1rem',
+                        '2xl': '1.5rem',
                     },
                     boxShadow: {
-                        'soft': '0 4px 12px rgba(0, 0, 0, 0.08)',
-                        'medium': '0 6px 20px rgba(0, 0, 0, 0.1)'
+                        'soft': '0 4px 20px -2px rgba(0, 0, 0, 0.05)',
+                        'glow': '0 0 15px rgba(125, 163, 177, 0.3)',
                     }
                 },
             },
-        }
+        };
     </script>
+    <style>
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+        }
+
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e0;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #a0aec0;
+        }
+
+        .range-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #7da3b1;
+            cursor: pointer;
+            border: 2px solid white;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .dark .range-slider::-webkit-slider-thumb {
+            border-color: #2d3748;
+        }
+
+        /* Added for JS functionality */
+        .dimmed-result {
+            opacity: 0.4;
+            filter: grayscale(100%);
+            transition: all 0.3s ease;
+        }
+    </style>
 </head>
 
-<body class="bg-background-light dark:bg-background-dark font-display">
-    <div class="flex flex-col h-screen w-full">
-        <!-- Tab Bar -->
-        <div
-            class="flex-shrink-0 bg-[#dee1e6] dark:bg-[#202124] pt-2 px-3 flex items-end justify-between gap-1 border-b border-border-light dark:border-border-dark select-none">
-            <!-- Tabs (Left) -->
-            <div class="flex items-end gap-1">
-                <a href="/chat"
-                    class="flex items-center gap-2 px-4 py-2 rounded-t-lg text-sm font-medium transition-colors duration-200 text-text-secondary-light dark:text-text-secondary-dark hover:bg-black/5 dark:hover:bg-white/5 min-w-[120px] justify-center">
-                    <span class="material-symbols-outlined text-[18px]">chat_bubble</span>
-                    Chat
-                </a>
-                <a href="/"
-                    class="flex items-center gap-2 px-4 py-2 rounded-t-lg text-sm font-medium transition-colors duration-200 bg-background-light dark:bg-background-dark text-text-primary-light dark:text-text-primary-dark shadow-sm z-10 min-w-[120px] justify-center">
-                    <span class="material-symbols-outlined text-[18px]">science</span>
-                    RAG LAB
-                </a>
-                <a href="/vector_search"
-                    class="flex items-center gap-2 px-4 py-2 rounded-t-lg text-sm font-medium transition-colors duration-200 text-text-secondary-light dark:text-text-secondary-dark hover:bg-black/5 dark:hover:bg-white/5 min-w-[120px] justify-center">
-                    <span class="material-symbols-outlined text-[18px]">manage_search</span>
-                    Vector Search
-                </a>
-                <a href="/compare"
-                    class="flex items-center gap-2 px-4 py-2 rounded-t-lg text-sm font-medium transition-colors duration-200 text-text-secondary-light dark:text-text-secondary-dark hover:bg-black/5 dark:hover:bg-white/5 min-w-[120px] justify-center">
-                    <span class="material-symbols-outlined text-[18px]">compare_arrows</span>
-                    Compare
-                </a>
+<body
+    class="bg-background-light dark:bg-background-dark text-slate-700 dark:text-slate-200 min-h-screen flex overflow-hidden">
+    <aside
+        class="w-80 flex-shrink-0 bg-primary h-screen overflow-y-auto flex flex-col shadow-xl z-20 transition-colors duration-300">
+        <div class="p-8 pb-4">
+            <h1 class="text-3xl font-bold text-white mb-1 tracking-wide">Microsoft</h1>
+            <h2 class="text-2xl font-bold text-white mb-6 tracking-wider">搜尋型問答資料庫</h2>
+            <p class="text-white/80 text-sm leading-relaxed mb-6 font-light">
+                此處為模型技術使用說明<br />
+                此處為模型技術使用說明<br />
+                此處為模型技術使用說明
+            </p>
+        </div>
+        <div class="flex-1 bg-white dark:bg-slate-800 rounded-tr-3xl p-6 space-y-6">
+            <div class="bg-card-light dark:bg-card-dark rounded-xl p-5 shadow-sm transition-colors duration-300">
+                <div class="flex items-center justify-between mb-2">
+                    <div class="flex items-center space-x-2 text-slate-700 dark:text-slate-200">
+                        <span class="material-icons-round text-xl">tune</span>
+                        <h3 class="font-bold">相似度閾值</h3>
+                    </div>
+                    <span id="thresholdValue" class="text-primary font-bold text-lg">0%</span>
+                </div>
+                <input id="similarityThreshold"
+                    class="range-slider w-full h-2 bg-slate-300 dark:bg-slate-600 rounded-lg appearance-none cursor-pointer mb-3"
+                    max="100" min="0" type="range" value="0" />
+                <p class="text-xs text-slate-500 dark:text-slate-400">相似度低於此值結果將以暗淡效果顯示</p>
             </div>
-
-            <!-- Info Badges (Right) -->
             <div
-                class="flex items-center gap-3 pb-2 pr-2 text-[11px] text-text-secondary-light dark:text-text-secondary-dark">
-                <!-- Backend Info -->
-                <div class="flex items-center gap-1">
-                    <span class="material-symbols-outlined !text-sm">cloud</span>
-                    <span class="font-medium">Flask+Qdrant</span>
+                class="bg-card-light dark:bg-card-dark rounded-xl p-5 shadow-sm transition-colors duration-300 space-y-4">
+                <div class="flex items-center space-x-2 text-slate-700 dark:text-slate-200 mb-2">
+                    <span class="material-icons-round text-xl">settings</span>
+                    <h3 class="font-bold">搜尋設定</h3>
                 </div>
-
-                <!-- Collection Info -->
-                <div class="flex items-center gap-1">
-                    <span class="material-symbols-outlined !text-sm">database</span>
-                    <span id="collection-display-header" class="font-mono text-primary">nomic-hybrid-coll</span>
-                    <span id="vectors-count-header"
-                        class="text-text-secondary-light dark:text-text-secondary-dark">(<span>0</span>)</span>
+                <div>
+                    <div class="flex justify-between mb-1">
+                        <label class="text-xs font-medium text-slate-600 dark:text-slate-300">語意搜尋權重</label>
+                        <span id="semanticRatioValue" class="text-primary font-bold text-sm">50%</span>
+                    </div>
+                    <input id="semanticRatioSlider"
+                        class="range-slider w-full h-2 bg-slate-300 dark:bg-slate-600 rounded-lg appearance-none cursor-pointer"
+                        max="100" min="0" step="1" type="range" value="50" />
                 </div>
-
-                <!-- Retrieval Mode Info -->
-                <div class="flex items-center gap-1">
-                    <span class="material-symbols-outlined !text-sm">layers</span>
-                    <span id="retrieval-mode-header" class="font-medium text-primary">Hybrid</span>
+                <div>
+                    <label class="block text-xs font-medium text-slate-600 dark:text-slate-300 mb-2">搜尋結果數量</label>
+                    <div class="relative">
+                        <input id="limitInput"
+                            class="w-full bg-white dark:bg-slate-700 border-none rounded-lg py-2 px-3 text-sm focus:ring-2 focus:ring-primary shadow-sm dark:text-white"
+                            type="number" value="5" min="1" max="50" />
+                    </div>
                 </div>
-
-                <!-- Embedding Model Info -->
-                <div class="flex items-center gap-1">
-                    <span class="material-symbols-outlined !text-sm">memory</span>
-                    <span id="dense-model-name-header">nomic-embed-text</span>
-                    <span id="vector-dimension-header"
-                        class="text-text-secondary-light dark:text-text-secondary-dark">(768d)</span>
-                    <span id="sparse-model-info-header"
-                        class="text-text-secondary-light dark:text-text-secondary-dark">+ BM42</span>
+                <div class="flex items-center space-x-2 pt-1">
+                    <input
+                        class="w-4 h-4 text-primary bg-white dark:bg-slate-700 border-slate-300 dark:border-slate-500 rounded focus:ring-primary"
+                        id="llmRewriteCheckbox" type="checkbox" />
+                    <label class="text-sm text-slate-700 dark:text-slate-300 cursor-pointer" for="llmRewriteCheckbox">啟用
+                        LLM 查詢重寫</label>
                 </div>
-
-                <!-- Text Splitter Info -->
-                <div class="flex items-center gap-1">
-                    <span class="material-symbols-outlined !text-sm">splitscreen</span>
-                    <span id="splitter-method-header" class="font-medium">RecursiveChar</span>
+            </div>
+            <div
+                class="bg-card-light dark:bg-card-dark rounded-xl p-5 shadow-sm transition-colors duration-300 space-y-4">
+                <div class="flex items-center space-x-2 text-slate-700 dark:text-slate-200 mb-2">
+                    <span class="material-icons-round text-xl">schedule</span>
+                    <h3 class="font-bold">時間範圍</h3>
                 </div>
-
-
+                <input
+                    class="w-full bg-white dark:bg-slate-700 border-none rounded-lg py-2 px-3 text-sm text-slate-600 dark:text-slate-200 focus:ring-2 focus:ring-primary shadow-sm"
+                    type="date" value="2025-06-18" />
+                <input
+                    class="w-full bg-white dark:bg-slate-700 border-none rounded-lg py-2 px-3 text-sm text-slate-600 dark:text-slate-200 focus:ring-2 focus:ring-primary shadow-sm"
+                    placeholder="結束時間" type="text" />
             </div>
         </div>
-
-        <!-- Main Content with Sidebar and Chat -->
-        <div class="flex flex-1 overflow-hidden">
-            <!-- Sidebar -->
-            <aside
-                class="flex-shrink-0 w-[280px] bg-sidebar-light/80 dark:bg-sidebar-dark/80 sidebar-backdrop-blur border-r border-border-light dark:border-border-dark flex flex-col p-1">
-                <div class="flex flex-col gap-6 flex-1 overflow-y-auto p-2">
-
-                    <div class="flex flex-col gap-4">
-
-
-                        <!-- LLM MODEL Section -->
-                        <section>
-                            <label class="flex flex-col">
-                                <p
-                                    class="text-xs font-semibold text-text-secondary-light dark:text-text-secondary-dark uppercase tracking-widest px-2 pb-2">
-                                    LLM Model</p>
-                                <select id="llm-select"
-                                    class="form-select w-full rounded-lg border-none bg-[#e9e9eb] dark:bg-[#3a3a3c] text-text-primary-light dark:text-text-primary-dark text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all duration-200 h-10">
-                                    <option disabled selected>Loading models...</option>
-                                </select>
-                            </label>
-                        </section>
-
-                        <!-- INTELLIGENT ROUTING Section -->
-                        <section>
-                            <div
-                                class="bg-[#e9e9eb] dark:bg-[#3a3a3c] rounded-lg overflow-hidden transition-all duration-300">
-                                <!-- Section Header (Clickable for Collapse/Expand) -->
-                                <button id="routing-header-btn"
-                                    class="w-full flex items-center justify-between px-4 py-3 hover:bg-black/5 dark:hover:bg-white/5 transition-colors">
-                                    <div class="flex items-center gap-3">
-                                        <span aria-hidden="true"
-                                            class="material-symbols-outlined text-text-secondary-light dark:text-text-secondary-dark !font-thin">alt_route</span>
-                                        <p
-                                            class="text-text-primary-light dark:text-text-primary-dark text-sm font-medium">
-                                            Intelligent Routing</p>
-                                    </div>
-                                    <span id="routing-arrow"
-                                        class="material-symbols-outlined text-text-secondary-light dark:text-text-secondary-dark !text-lg transform transition-transform duration-300">expand_more</span>
-                                </button>
-
-                                <!-- Collapsible Content -->
-                                <div id="routing-content"
-                                    class="hidden border-t border-border-light dark:border-border-dark">
-                                    <!-- Toggle 1: Query Rewrite -->
-                                    <div
-                                        class="flex flex-col border-b border-border-light/50 dark:border-border-dark/50">
-                                        <div class="flex items-center justify-between px-4 py-2">
-                                            <p
-                                                class="text-xs text-text-secondary-light dark:text-text-secondary-dark font-medium pl-7">
-                                                Query Rewrite</p>
-                                            <div class="shrink-0">
-                                                <label
-                                                    class="relative inline-flex h-[24px] w-[40px] cursor-pointer items-center">
-                                                    <input id="optimize-query-toggle" class="sr-only peer"
-                                                        type="checkbox" />
-                                                    <div
-                                                        class="w-full h-full rounded-full bg-neutral-300 dark:bg-neutral-600 peer-checked:bg-primary transition-colors duration-300">
-                                                    </div>
-                                                    <div class="absolute left-[2px] top-[2px] h-[20px] w-[20px] rounded-full bg-white peer-checked:translate-x-full transition-transform duration-300"
-                                                        style="box-shadow: 0 1px 3px rgba(0,0,0,0.1);"></div>
-                                                </label>
-                                            </div>
-                                        </div>
-                                        <!-- Model Select for Rewrite (Hidden by default) -->
-                                        <div id="rewrite-model-config" class="hidden px-4 pb-2 pl-11">
-                                            <select id="rewrite-model-select"
-                                                class="w-full rounded-md border-none bg-neutral-200 dark:bg-neutral-700 text-text-primary-light dark:text-text-primary-dark text-xs p-1.5 focus:outline-none focus:ring-1 focus:ring-primary/50">
-                                                <option disabled selected>Loading...</option>
-                                            </select>
-                                        </div>
-                                    </div>
-
-                                    <!-- Toggle 2: Relevance Check -->
-                                    <div class="flex flex-col">
-                                        <div class="flex items-center justify-between px-4 py-2">
-                                            <p
-                                                class="text-xs text-text-secondary-light dark:text-text-secondary-dark font-medium pl-7">
-                                                Relevance Check</p>
-                                            <div class="shrink-0">
-                                                <label
-                                                    class="relative inline-flex h-[24px] w-[40px] cursor-pointer items-center">
-                                                    <input id="relevance-check-toggle" class="sr-only peer"
-                                                        type="checkbox" />
-                                                    <div
-                                                        class="w-full h-full rounded-full bg-neutral-300 dark:bg-neutral-600 peer-checked:bg-primary transition-colors duration-300">
-                                                    </div>
-                                                    <div class="absolute left-[2px] top-[2px] h-[20px] w-[20px] rounded-full bg-white peer-checked:translate-x-full transition-transform duration-300"
-                                                        style="box-shadow: 0 1px 3px rgba(0,0,0,0.1);"></div>
-                                                </label>
-                                            </div>
-                                        </div>
-                                        <!-- Model Select for Relevance (Hidden by default) -->
-                                        <div id="relevance-model-config" class="hidden px-4 pb-2 pl-11">
-                                            <select id="relevance-model-select"
-                                                class="w-full rounded-md border-none bg-neutral-200 dark:bg-neutral-700 text-text-primary-light dark:text-text-primary-dark text-xs p-1.5 focus:outline-none focus:ring-1 focus:ring-primary/50">
-                                                <option disabled selected>Loading...</option>
-                                            </select>
-                                        </div>
-                                    </div>
-
-                                    <!-- Collection Description (shown when either is enabled) -->
-                                    <div id="optimize-query-config"
-                                        class="hidden px-4 pb-3 pt-2 border-t border-border-light dark:border-border-dark bg-black/5 dark:bg-white/5">
-                                        <label class="flex flex-col gap-2">
-                                            <p
-                                                class="text-xs font-medium text-text-secondary-light dark:text-text-secondary-dark">
-                                                Collection Description</p>
-                                            <textarea id="collection-description-input" rows="3"
-                                                class="w-full rounded-md border-none bg-background-light dark:bg-background-dark text-text-primary-light dark:text-text-primary-dark text-xs p-2 focus:outline-none focus:ring-1 focus:ring-primary/50 resize-none shadow-sm"
-                                                placeholder="Describe the content of your collection (e.g., Student Leave Rules)..."></textarea>
-                                        </label>
-                                    </div>
-                                </div>
-                            </div>
-                        </section>
-
-                        <!-- RERANKER Section -->
-                        <section>
-                            <div class="bg-[#e9e9eb] dark:bg-[#3a3a3c] rounded-lg overflow-hidden">
-                                <!-- Reranker Toggle Header -->
-                                <div class="flex items-center justify-between gap-4 px-4 min-h-12">
-                                    <div class="flex items-center gap-3">
-                                        <span aria-hidden="true"
-                                            class="material-symbols-outlined text-text-secondary-light dark:text-text-secondary-dark !font-thin">model_training</span>
-                                        <p
-                                            class="text-text-primary-light dark:text-text-primary-dark text-sm font-medium flex-1 truncate">
-                                            Reranker</p>
-                                    </div>
-                                    <div class="shrink-0">
-                                        <label
-                                            class="relative inline-flex h-[28px] w-[48px] cursor-pointer items-center">
-                                            <input id="reranker-toggle" class="sr-only peer" type="checkbox" />
-                                            <div
-                                                class="w-full h-full rounded-full bg-neutral-300 dark:bg-neutral-600 peer-checked:bg-primary transition-colors duration-300">
-                                            </div>
-                                            <div class="absolute left-[3px] top-[3px] h-[22px] w-[22px] rounded-full bg-white peer-checked:translate-x-full transition-transform duration-300"
-                                                style="box-shadow: 0 1px 3px rgba(0,0,0,0.1);"></div>
-                                        </label>
-                                    </div>
-                                </div>
-                                <!-- Reranker Top-N Slider (shown when enabled) -->
-                                <div id="reranker-config"
-                                    class="hidden px-4 pb-3 pt-1 border-t border-border-light dark:border-border-dark">
-                                    <label class="flex flex-col gap-2 mb-4">
-                                        <div class="flex justify-between items-baseline">
-                                            <p
-                                                class="text-xs font-medium text-text-secondary-light dark:text-text-secondary-dark">
-                                                Rerank Top-N</p>
-                                            <span id="rerank-topn-display"
-                                                class="text-xs font-medium text-text-primary-light dark:text-text-primary-dark">5</span>
-                                        </div>
-                                        <input id="rerank-topn-slider"
-                                            class="w-full h-1.5 bg-neutral-300 dark:bg-neutral-600 rounded-full appearance-none cursor-pointer accent-primary"
-                                            max="20" min="1" type="range" value="5" />
-                                    </label>
-
-                                    <!-- Integrated Rerank Threshold -->
-                                    <div class="pt-2 border-t border-border-light/50 dark:border-border-dark/50">
-                                        <input id="rerank-threshold-toggle" type="checkbox" class="hidden" checked />
-                                        <div id="rerank-threshold-config">
-                                            <label class="flex flex-col gap-2">
-                                                <div class="flex justify-between items-baseline">
-                                                    <p
-                                                        class="text-xs font-medium text-text-secondary-light dark:text-text-secondary-dark">
-                                                        Minimum Relevance</p>
-                                                    <span id="rerank-threshold-value-display"
-                                                        class="text-xs font-medium text-text-primary-light dark:text-text-primary-dark">0.00</span>
-                                                </div>
-                                                <input id="rerank-threshold-value-slider"
-                                                    class="w-full h-1.5 bg-neutral-300 dark:bg-neutral-600 rounded-full appearance-none cursor-pointer accent-primary"
-                                                    max="1.0" min="0.0" step="0.05" type="range" value="0.00" />
-                                                <p
-                                                    class="text-xs text-text-secondary-light dark:text-text-secondary-dark italic mt-1">
-                                                    💡 低於此 Relevance Score 的結果不會加入 Context，但會在 Reference 中標記為「未引用」
-                                                </p>
-                                            </label>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </section>
-
-                        <!-- RETRIEVAL TOP-K Slider Section -->
-                        <section>
-                            <label class="flex flex-col gap-2">
-                                <div class="flex justify-between items-baseline px-2">
-                                    <p
-                                        class="text-xs font-semibold text-text-secondary-light dark:text-text-secondary-dark uppercase tracking-widest">
-                                        Retrieval Top-K</p>
-                                    <span id="top-k-display"
-                                        class="text-sm font-medium text-text-primary-light dark:text-text-primary-dark">5</span>
-                                </div>
-                                <input id="top-k-slider"
-                                    class="w-full h-1.5 bg-neutral-300 dark:bg-neutral-600 rounded-full appearance-none cursor-pointer accent-primary"
-                                    max="20" min="1" type="range" value="5" />
-                            </label>
-                        </section>
-
-                        <!-- CHUNK SIZE Slider Section -->
-                        <section>
-                            <label class="flex flex-col gap-2">
-                                <div class="flex justify-between items-baseline px-2">
-                                    <p
-                                        class="text-xs font-semibold text-text-secondary-light dark:text-text-secondary-dark uppercase tracking-widest">
-                                        Chunk Size</p>
-                                    <span id="chunk-size-display"
-                                        class="text-sm font-medium text-text-primary-light dark:text-text-primary-dark">300</span>
-                                </div>
-                                <input id="chunk-size-slider"
-                                    class="w-full h-1.5 bg-neutral-300 dark:bg-neutral-600 rounded-full appearance-none cursor-pointer accent-primary"
-                                    max="500" min="50" step="10" type="range" value="300" />
-                            </label>
-                        </section>
-
-                        <!-- SIMILARITY THRESHOLD Section -->
-                        <section class="border-t border-border-light dark:border-border-dark pt-4 mt-4">
-                            <div class="bg-[#e9e9eb] dark:bg-[#3a3a3c] rounded-lg overflow-hidden">
-                                <!-- Threshold Toggle Header -->
-                                <div class="flex items-center justify-between gap-4 px-4 min-h-12">
-                                    <div class="flex items-center gap-3">
-                                        <span aria-hidden="true"
-                                            class="material-symbols-outlined text-text-secondary-light dark:text-text-secondary-dark !font-thin">filter_alt</span>
-                                        <p
-                                            class="text-text-primary-light dark:text-text-primary-dark text-sm font-medium flex-1 truncate">
-                                            Similarity Threshold</p>
-                                    </div>
-                                    <div class="shrink-0">
-                                        <label
-                                            class="relative inline-flex h-[28px] w-[48px] cursor-pointer items-center">
-                                            <input id="threshold-toggle" class="sr-only peer" type="checkbox"
-                                                disabled />
-                                            <div
-                                                class="w-full h-full rounded-full bg-neutral-300 dark:bg-neutral-600 peer-checked:bg-primary peer-disabled:opacity-40 peer-disabled:cursor-not-allowed transition-colors duration-300">
-                                            </div>
-                                            <div class="absolute left-[3px] top-[3px] h-[22px] w-[22px] rounded-full bg-white peer-checked:translate-x-full peer-disabled:opacity-60 transition-transform duration-300"
-                                                style="box-shadow: 0 1px 3px rgba(0,0,0,0.1);"></div>
-                                        </label>
-                                    </div>
-                                </div>
-                                <!-- Threshold Value Slider (shown when enabled) -->
-                                <div id="threshold-config"
-                                    class="hidden px-4 pb-3 pt-1 border-t border-border-light dark:border-border-dark">
-                                    <label class="flex flex-col gap-2">
-                                        <div class="flex justify-between items-baseline">
-                                            <p
-                                                class="text-xs font-medium text-text-secondary-light dark:text-text-secondary-dark">
-                                                Minimum Score</p>
-                                            <span id="threshold-value-display"
-                                                class="text-xs font-medium text-text-primary-light dark:text-text-primary-dark">0.50</span>
-                                        </div>
-                                        <input id="threshold-value-slider"
-                                            class="w-full h-1.5 bg-neutral-300 dark:bg-neutral-600 rounded-full appearance-none cursor-pointer accent-primary"
-                                            max="1.0" min="0.0" step="0.05" type="range" value="0.50" />
-                                        <p
-                                            class="text-xs text-text-secondary-light dark:text-text-secondary-dark italic mt-1">
-                                            💡 低於此分數的結果不會加入 Context，但會在 Reference 中標記為「未引用」
-                                        </p>
-                                    </label>
-                                </div>
-                            </div>
-                            <div id="threshold-disabled-notice"
-                                class="mt-2 px-2 py-2 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg hidden">
-                                <p class="text-xs text-amber-700 dark:text-amber-400 flex items-center gap-1">
-                                    <span class="material-symbols-outlined !text-sm">info</span>
-                                    此功能僅在「Dense 模式」且「未啟用 Rerank」時可用
-                                </p>
-                            </div>
-                        </section>
-
-                        <!-- DOCUMENT UPLOAD Section -->
-                        <section class="border-t border-border-light dark:border-border-dark pt-4 mt-4">
-                            <h3
-                                class="text-xs font-semibold text-text-secondary-light dark:text-text-secondary-dark uppercase tracking-widest px-2 pb-3">
-                                Document Upload</h3>
-
-                            <!-- Collection Name Select -->
-                            <div class="mb-3">
-                                <label class="flex flex-col gap-2">
-                                    <p
-                                        class="text-xs font-medium text-text-secondary-light dark:text-text-secondary-dark px-2">
-                                        Collection Name</p>
-                                    <select id="collection-name-input"
-                                        class="form-select w-full rounded-lg border-none bg-[#e9e9eb] dark:bg-[#3a3a3c] text-text-primary-light dark:text-text-primary-dark text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all duration-200 h-10">
-                                        <option value="nomic-hybrid-coll">nomic-hybrid-coll</option>
-                                        <option value="nomic-coll">nomic-coll</option>
-                                        <option value="bge-hybrid-coll">bge-hybrid-coll</option>
-                                        <option value="bge-coll">bge-coll</option>
-                                    </select>
-                                </label>
-                            </div>
-
-                            <!-- File Upload -->
-                            <div class="mb-3">
-                                <div class="flex flex-col gap-2">
-                                    <p
-                                        class="text-xs font-medium text-text-secondary-light dark:text-text-secondary-dark px-2">
-                                        Select File (.txt, .md, .pdf)</p>
-                                    <div class="relative">
-                                        <input id="file-input" type="file" accept=".txt,.md,.pdf" class="hidden" />
-                                        <div id="file-display"
-                                            class="w-full bg-[#e9e9eb] dark:bg-[#3a3a3c] text-text-secondary-light dark:text-text-secondary-dark rounded-lg px-3 py-2 text-sm flex items-center gap-2 hover:bg-[#d5d5d7] dark:hover:bg-[#4a4a4c] transition-all cursor-pointer">
-                                            <span class="material-symbols-outlined !text-base">upload_file</span>
-                                            <span id="file-name">No file selected</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Upload Button -->
-                            <button id="upload-btn" disabled
-                                class="w-full mb-2 flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-primary/50 text-white text-sm font-medium transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed hover:enabled:bg-primary">
-                                <span class="material-symbols-outlined !text-base">cloud_upload</span>
-                                <span>Upload to Qdrant</span>
-                            </button>
-
-                            <!-- Clear Collection Button -->
-                            <button id="clear-collection-btn"
-                                class="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg hover:bg-orange-500/10 border border-orange-500/30 transition-all duration-200">
-                                <span class="material-symbols-outlined text-orange-500 !text-base">delete_sweep</span>
-                                <p class="text-orange-500 text-sm font-medium">Clear Collection</p>
-                            </button>
-
-                            <!-- Status Message -->
-                            <div id="upload-status" class="mt-3 hidden">
-                                <div class="bg-[#e9e9eb] dark:bg-[#3a3a3c] rounded-lg px-3 py-2">
-                                    <p id="upload-status-text"
-                                        class="text-xs text-text-primary-light dark:text-text-primary-dark"></p>
-                                </div>
-                            </div>
-                        </section>
+    </aside>
+    <main class="flex-1 h-screen overflow-y-auto relative">
+        <div class="max-w-5xl mx-auto px-8 py-10 pb-24">
+            <div class="mb-8">
+                <div class="relative group">
+                    <div id="searchIconBtn"
+                        class="absolute inset-y-0 left-0 pl-4 flex items-center cursor-pointer hover:text-primary transition-colors">
+                        <span
+                            class="material-icons-round text-3xl text-slate-400 group-focus-within:text-primary transition-colors">search</span>
                     </div>
+                    <input id="searchInput"
+                        class="w-full pl-14 pr-6 py-4 rounded-full border-2 border-primary/30 dark:border-primary/50 bg-white dark:bg-slate-800 text-lg shadow-soft focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all dark:text-white dark:placeholder-slate-400"
+                        placeholder="例如：2025 年 4 月份價格相關公告" type="text" />
                 </div>
-                <!-- Footer Action -->
-                <div class="pt-4 flex-shrink-0">
-                    <button id="clear-chat-btn"
-                        class="flex w-full items-center justify-center gap-2 px-3 py-2 rounded-lg hover:bg-red-500/10 transition-colors duration-200">
-                        <span aria-hidden="true" class="material-symbols-outlined text-red-500 !font-thin">delete</span>
-                        <p class="text-red-500 text-sm font-medium">Clear Chat</p>
-                    </button>
-                </div>
-            </aside>
-            <!-- Main Chat Area -->
-            <main class="flex-1 flex flex-col bg-background-light dark:bg-background-dark overflow-hidden min-w-0">
-                <!-- Top Bar -->
-                <header class="flex-shrink-0 py-3 px-6 border-b border-border-light dark:border-border-dark">
-                    <div
-                        class="flex items-center justify-center gap-6 flex-wrap text-xs text-text-secondary-light dark:text-text-secondary-dark">
-                        <!-- Token Stats -->
-                        <div class="flex items-center gap-1.5">
-                            <span class="material-symbols-outlined !text-base">summarize</span>
-                            <span class="font-medium">Tokens:</span>
-                            <span id="token-stats-header" class="font-mono text-primary">0 / 200K</span>
-                            <span id="token-percentage-header"
-                                class="text-text-secondary-light dark:text-text-secondary-dark">(0%)</span>
-                        </div>
+            </div>
 
-                        <!-- Session History Stats -->
-                        <div class="flex items-center gap-1.5 border-l border-border-light dark:border-border-dark pl-4"
-                            title="Accumulated tokens in conversation memory">
-                            <span class="material-symbols-outlined !text-base">history</span>
-                            <span class="font-medium">History:</span>
-                            <span id="history-token-stats-header"
-                                class="font-mono text-purple-600 dark:text-purple-400">0</span>
-                        </div>
-                    </div>
-                </header>
-                <!-- Chat Stream -->
-                <div id="chat-container" class="flex-1 overflow-y-auto p-6 md:px-12 lg:px-24 space-y-8 scroll-smooth">
+            <!-- Info & Stats -->
+            <div id="resultsInfo"
+                class="hidden flex justify-end mb-4 text-xs text-slate-500 dark:text-slate-400 text-right space-y-1">
+                <div>
+                    <p id="searchTime" class="hidden">檢索耗時：<span id="searchTimeValue">0</span>ms</p>
+                    <p>找到 <span id="resultsCount">0</span> 筆結果</p>
                 </div>
-                <!-- Input Area -->
-                <footer class="flex-shrink-0 p-4 md:px-12 lg:px-24">
-                    <div class="relative">
-                        <input id="chat-input"
-                            class="w-full bg-sidebar-light dark:bg-sidebar-dark text-text-primary-light dark:text-text-primary-dark placeholder:text-text-secondary-light dark:placeholder:text-text-secondary-dark border-none rounded-xl h-14 pl-5 pr-16 text-base focus:ring-2 focus:ring-primary/50 transition duration-200"
-                            placeholder="Ask anything..." type="text" />
-                        <button id="send-btn"
-                            class="absolute right-2 top-2 h-10 w-10 rounded-full bg-primary flex items-center justify-center text-white hover:bg-primary/90 transition-colors focus:outline-none focus:ring-2 focus:ring-primary/50">
-                            <span aria-hidden="true" class="material-symbols-outlined !font-thin">arrow_upward</span>
-                        </button>
-                        <button id="retry-btn" title="Retry Last Message"
-                            class="absolute right-14 top-2 h-10 w-10 rounded-full bg-gray-300 dark:bg-gray-700 flex items-center justify-center text-text-primary-light dark:text-text-primary-dark hover:bg-gray-400 dark:hover:bg-gray-600 transition-colors focus:outline-none focus:ring-2 focus:ring-gray-500/50 opacity-50 cursor-not-allowed"
-                            disabled>
-                            <span aria-hidden="true" class="material-symbols-outlined !font-thin">refresh</span>
-                        </button>
-                    </div>
-                </footer>
-            </main>
+            </div>
 
-            <!-- Right Sidebar - System Prompt Configuration -->
-            <aside
-                class="flex-shrink-0 w-[320px] bg-sidebar-light/80 dark:bg-sidebar-dark/80 sidebar-backdrop-blur border-l border-border-light dark:border-border-dark flex flex-col p-4">
-                <div class="flex flex-col gap-4 h-full">
-                    <!-- Header -->
-                    <div class="flex items-center gap-2 pb-2 border-b border-border-light dark:border-border-dark">
-                        <span class="material-symbols-outlined text-primary !text-xl">edit_note</span>
-                        <h3 class="text-sm font-semibold text-text-primary-light dark:text-text-primary-dark">
-                            系統提示詞配置
+            <!-- Loading State -->
+            <div id="loadingState" class="hidden flex-col items-center justify-center py-20 space-y-4">
+                <div class="flex space-x-2">
+                    <div class="w-3 h-3 bg-primary rounded-full typing-dot"></div>
+                    <div class="w-3 h-3 bg-primary rounded-full typing-dot"></div>
+                    <div class="w-3 h-3 bg-primary rounded-full typing-dot"></div>
+                </div>
+                <p class="text-slate-500">正在搜尋中...</p>
+            </div>
+
+            <!-- Error State -->
+            <div id="errorState"
+                class="hidden bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-6 mb-10 text-center">
+                <p id="errorMessage" class="text-red-600 dark:text-red-400 font-medium"></p>
+            </div>
+
+            <!-- Empty State -->
+            <div id="emptyState" class="hidden flex flex-col items-center justify-center py-20 text-center">
+                <span class="material-icons-round text-slate-300 dark:text-slate-600 text-6xl mb-4">search_off</span>
+                <h3 class="text-lg font-medium text-slate-700 dark:text-slate-300">沒有找到相關結果</h3>
+                <p class="text-sm text-slate-500 dark:text-slate-400 mt-2">請嘗試不同的關鍵字或調整篩選條件</p>
+            </div>
+
+            <!-- LLM Intent Display -->
+            <div id="intentContainer"
+                class="hidden bg-card-light dark:bg-slate-800 rounded-xl p-6 mb-10 shadow-sm border border-slate-100 dark:border-slate-700">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-2">
+                    <div class="space-y-3">
+                        <h3 class="text-lg font-bold text-secondary dark:text-primary mb-3 flex items-center gap-2">
+                            LLM 解析結果
                         </h3>
-                    </div>
-
-                    <!-- System Prompt Textarea (Editable Part) -->
-                    <div class="flex flex-col gap-2 flex-1 min-h-0">
-                        <label class="flex flex-col gap-2 flex-1 min-h-0">
-                            <div class="flex items-center justify-between">
-                                <p class="text-xs font-medium text-text-secondary-light dark:text-text-secondary-dark">
-                                    自定義系統指令（可編輯）
-                                </p>
-                                <button id="reset-prompt-btn"
-                                    class="text-xs text-primary hover:text-primary/80 transition-colors">
-                                    重置為預設
-                                </button>
+                        <div class="flex items-start gap-3">
+                            <span class="text-sm font-bold text-slate-700 dark:text-slate-300 min-w-[80px]">關鍵字查詢
+                                :</span>
+                            <div class="flex flex-wrap gap-2">
+                                <span id="intentKeywordQuery"
+                                    class="px-2 py-1 bg-white dark:bg-slate-700 rounded text-xs text-slate-600 dark:text-slate-200 border border-slate-200 dark:border-slate-600"></span>
                             </div>
-                            <textarea id="system-instruction-input"
-                                class="flex-1 min-h-0 resize-none rounded-lg border-none bg-[#e9e9eb] dark:bg-[#3a3a3c] text-text-primary-light dark:text-text-primary-dark text-sm leading-relaxed p-3 focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all duration-200"
-                                placeholder="請輸入系統指令...">請根據以下提供的「上下文」來回答「問題」。
-如果上下文中沒有足夠的資訊，請「根據我所擁有的資料，回應，並提示資料中缺乏的資訊。」</textarea>
-                        </label>
-
-                        <!-- Character Count -->
-                        <div
-                            class="flex items-center justify-between text-xs text-text-secondary-light dark:text-text-secondary-dark">
-                            <span>字數統計</span>
-                            <span id="prompt-char-count" class="font-mono">0 字元</span>
+                        </div>
+                        <div class="flex items-start gap-3">
+                            <span class="text-sm font-bold text-slate-700 dark:text-slate-300 min-w-[80px]">語意查詢
+                                :</span>
+                            <div class="flex flex-wrap gap-2">
+                                <span id="intentSemanticQuery"
+                                    class="px-2 py-1 bg-white dark:bg-slate-700 rounded text-xs text-slate-600 dark:text-slate-200 border border-slate-200 dark:border-slate-600"></span>
+                            </div>
                         </div>
                     </div>
-
-                    <!-- Fixed Template Structure (Read-only) -->
-                    <div class="flex flex-col gap-2">
-                        <p class="text-xs font-medium text-text-secondary-light dark:text-text-secondary-dark">
-                            RAG 模板結構（自動添加）
-                        </p>
-                        <div
-                            class="p-3 rounded-lg bg-neutral-100 dark:bg-neutral-800 border border-border-light dark:border-border-dark">
-                            <pre
-                                class="text-xs font-mono text-text-primary-light dark:text-text-primary-dark leading-relaxed whitespace-pre-wrap">---
-上下文:
-<span class="text-primary font-bold">{context}</span>
----
-
-問題: <span class="text-primary font-bold">{query}</span></pre>
+                    <div class="space-y-3 md:mt-10">
+                        <div class="flex items-start gap-3">
+                            <span class="text-sm font-bold text-slate-700 dark:text-slate-300 min-w-[90px]">篩選條件
+                                (Filter) :</span>
+                            <div id="intentFilters" class="flex flex-wrap gap-2">
+                                <!-- Filters will be injected here -->
+                            </div>
                         </div>
-                        <p class="text-xs text-text-secondary-light dark:text-text-secondary-dark italic">
-                            💡 系統會將您的指令與上方結構自動組合，發送給 LLM。
-                        </p>
                     </div>
                 </div>
-            </aside>
+            </div>
+
+            <!-- Results Container -->
+            <div id="resultsContainer" class="hidden">
+                <!-- Results will be injected here -->
+            </div>
+
+            <!-- Summary Section (Placeholder - currently hidden as JS doesn't populate it) -->
+            <div id="summaryContainer" class="hidden mb-10 animate-fade-in-up">
+                <div class="flex items-center gap-3 mb-4">
+                    <div
+                        class="w-8 h-8 rounded-full border border-primary flex items-center justify-center text-primary bg-white dark:bg-slate-800">
+                        <span class="material-icons-round text-lg">lightbulb</span>
+                    </div>
+                    <h3 class="text-xl font-medium text-slate-800 dark:text-white">以下為相關公告總結：</h3>
+                </div>
+                <div class="pl-11 space-y-2 text-slate-600 dark:text-slate-300 leading-relaxed">
+                    <p>等待實作...</p>
+                </div>
+            </div>
+
+        </div>
+    </main>
+    <div class="fixed right-0 top-1/2 -translate-y-1/2 flex flex-col items-center z-50">
+        <div
+            class="bg-primary/90 backdrop-blur-sm text-white rounded-l-2xl py-6 px-3 shadow-lg flex flex-col items-center gap-6 cursor-pointer hover:bg-primary transition-colors hover:pl-5 duration-300">
+            <span class="material-icons-round text-2xl">chevron_left</span>
+            <span class="material-icons-round text-3xl">chat_bubble_outline</span>
+            <div class="writing-mode-vertical text-lg font-bold tracking-widest"
+                style="writing-mode: vertical-rl; text-orientation: upright;">
+                問答機器人
+            </div>
         </div>
     </div>
 
-    <script type="module" src="{{ url_for('static', filename='js/main.js') }}"></script>
+    <script type="module" src="{{ url_for('static', filename='js/search.js') }}"></script>
 </body>
 
 </html>

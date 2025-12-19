@@ -27,6 +27,10 @@ QDRANT_STORAGE = os.path.join(DATABASE_DIR, "qdrant_storage")
 MEILISEARCH_HOST = os.getenv("MEILISEARCH_HOST", "http://localhost:7700")
 MEILISEARCH_API_KEY = os.getenv("MEILISEARCH_API_KEY", "masterKey")
 MEILISEARCH_INDEX = "announcements"
+## search.js init config
+DEFAULT_SEARCH_LIMIT = 5
+DEFAULT_SIMILARITY_THRESHOLD = 0.8
+DEFAULT_SEMANTIC_RATIO = 0.5
 
 # ETL Settings
 DEFAULT_BATCH_SIZE = 10  # Number of documents to process per batch

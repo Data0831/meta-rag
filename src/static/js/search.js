@@ -1,11 +1,13 @@
 // Collection Search - Meilisearch Hybrid Search Interface
 // Supports keyword search, semantic search, and metadata filtering
 
+const COLLECTION_NAME = 'announcements';
+
 /**
  * Search Configuration
  */
 let searchConfig = {
-    limit: 10,  // Number of results to return
+    limit: 5,  // Number of results to return
     semanticRatio: 0.5,  // Weight for semantic search (0.0 = pure keyword, 1.0 = pure semantic)
     similarityThreshold: 0,  // Similarity threshold (0-100), results below this will be dimmed
     enableLlm: false
@@ -34,8 +36,46 @@ const searchTimeValue = document.getElementById('searchTimeValue');
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
     console.log('🚀 Collection Search initialized');
-    console.log('📍 Collection Name:', window.COLLECTION_NAME);
-    console.log('⚙️ Initial Config:', searchConfig);
+    console.log('📍 Collection Name:', COLLECTION_NAME);
+
+    // Fetch configuration from backend
+    fetch('/api/config')
+        .then(response => response.json())
+        .then(config => {
+            console.log('📥 Backend Config:', config);
+
+            // Update Limit
+            if (config.default_limit !== undefined) {
+                searchConfig.limit = config.default_limit;
+                const limitInput = document.getElementById('limitInput');
+                if (limitInput) limitInput.value = config.default_limit;
+            }
+
+            // Update Similarity Threshold
+            if (config.default_similarity_threshold !== undefined) {
+                searchConfig.similarityThreshold = config.default_similarity_threshold;
+                const thresholdInput = document.getElementById('similarityThreshold');
+                const thresholdValue = document.getElementById('thresholdValue');
+                if (thresholdInput) thresholdInput.value = config.default_similarity_threshold * 100;
+                if (thresholdValue) thresholdValue.textContent = Math.round(config.default_similarity_threshold * 100) + '%';
+            }
+
+            // Update Semantic Ratio
+            if (config.default_semantic_ratio !== undefined) {
+                searchConfig.semanticRatio = config.default_semantic_ratio;
+                const ratioInput = document.getElementById('semanticRatioSlider');
+                const ratioValue = document.getElementById('semanticRatioValue');
+                if (ratioInput) ratioInput.value = config.default_semantic_ratio * 100;
+                if (ratioValue) ratioValue.textContent = Math.round(config.default_semantic_ratio * 100) + '%';
+            }
+
+            console.log('⚙️ Final Config:', searchConfig);
+        })
+        .catch(error => {
+            console.error('❌ Failed to load config:', error);
+            console.log('⚙️ Using default Config:', searchConfig);
+        });
+
     setupEventListeners();
     setupSearchConfig();
 });
@@ -58,11 +98,12 @@ function setupSearchConfig() {
     const semanticRatioSlider = document.getElementById('semanticRatioSlider');
     if (semanticRatioSlider) {
         semanticRatioSlider.addEventListener('input', (e) => {
-            searchConfig.semanticRatio = parseFloat(e.target.value);
+            const val = parseInt(e.target.value);
+            searchConfig.semanticRatio = val / 100;
             // Update label if it exists
             const label = document.getElementById('semanticRatioValue');
             if (label) {
-                label.textContent = Math.round(searchConfig.semanticRatio * 100) + '%';
+                label.textContent = val + '%';
             }
         });
     }
@@ -90,7 +131,7 @@ function setupSearchConfig() {
 function applyThresholdToResults() {
     if (!currentResults || currentResults.length === 0) return;
 
-    const resultCards = resultsContainer.querySelectorAll('.result-card');
+    const resultCards = resultsContainer.querySelectorAll('.result-card-container');
     resultCards.forEach((card, index) => {
         if (index < currentResults.length) {
             const result = currentResults[index];
@@ -279,176 +320,129 @@ function updateIntentDisplay(intent) {
 
 // Render Single Result Card
 function renderResultCard(result, rank) {
-    // Extract score from Meilisearch response
     const score = result._rankingScore || 0;
     const scorePercent = Math.round(score * 100);
-    const scoreColor = getScoreColor(scorePercent);
+    const id = rank - 1; // 0-based index for IDs
+    const isFirst = rank === 1;
 
-    // Extract text from Meilisearch document
-    const text = result.content || result.title || '';
-    const truncatedText = text.length > 300 ? text.substring(0, 300) + '...' : text;
+    // Map fields
+    const title = result.title || '無標題';
+    const workspace = result.workspace || 'N/A';
+    const date = result.year_month || 'N/A';
+    const link = result.link || '#';
+    const content = result.content ? marked.parse(result.content) : '';
 
-    // Get metadata fields to display
-    const metadata = [];
-    if (result.metadata) {
-        // Show important metadata fields
-        const metaEntries = Object.entries(result.metadata)
-            .filter(([key, value]) => value != null && value !== '')
-            .slice(0, 3); // Show max 3 metadata fields
-        metadata.push(...metaEntries);
-    }
+    // Colors based on score
+    let badgeClass = "px-2 py-1 bg-primary/20 dark:bg-primary/30 text-primary dark:text-primary-light text-xs font-bold rounded";
+    let containerClass = "result-card-container bg-white dark:bg-slate-800 rounded-xl border border-primary/30 dark:border-primary/20 shadow-sm overflow-hidden mb-6 group hover:shadow-md transition-all duration-300";
+    let arrowClass = "material-icons-round text-slate-400 group-hover:text-primary transition-colors";
+    let arrowText = "keyboard_arrow_right";
+    let numberTextClass = "font-bold text-slate-500 dark:text-slate-400";
+    let bodyClass = "hidden p-8";
 
-    // Add month if available
-    if (result.month) {
-        metadata.unshift(['month', result.month]);
-    }
-
-    // Check if result is below threshold
-    const isDimmed = scorePercent < searchConfig.similarityThreshold;
-    const dimmedClass = isDimmed ? 'dimmed-result' : '';
-
-        // Score Details Analysis
-        let scoreDetailsHtml = '';
-        let matchTypeBadge = '';
-        
-        if (result._rankingScoreDetails) {
-            const detailsObj = result._rankingScoreDetails;
-            const hasKeywords = detailsObj.words !== undefined;
-            const hasVector = detailsObj.vectorSort !== undefined || detailsObj.semantic !== undefined;
-            
-            // Determine Match Type Badge
-            if (hasKeywords && hasVector) {
-                matchTypeBadge = `<span class="ml-2 px-1.5 py-0.5 rounded text-[10px] font-bold border border-orange-200 bg-orange-50 text-orange-600 dark:bg-orange-900/30 dark:border-orange-800 dark:text-orange-300">Hybrid</span>`;
-            } else if (hasKeywords) {
-                matchTypeBadge = `<span class="ml-2 px-1.5 py-0.5 rounded text-[10px] font-bold border border-blue-200 bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:border-blue-800 dark:text-blue-300">Keyword</span>`;
-            } else if (hasVector) {
-                matchTypeBadge = `<span class="ml-2 px-1.5 py-0.5 rounded text-[10px] font-bold border border-purple-200 bg-purple-50 text-purple-600 dark:bg-purple-900/30 dark:border-purple-800 dark:text-purple-300">Semantic</span>`;
-            }
-    
-            const details = Object.entries(detailsObj)            .map(([key, value]) => {
-                // Handle various formats of value
-                let valStr = '';
-                if (typeof value === 'object' && value !== null && value.score !== undefined) {
-                    valStr = Math.round(value.score * 100) + '%';
-                } else if (typeof value === 'number') {
-                    valStr = Math.round(value * 100) + '%';
-                } else {
-                    return null;
-                }
-
-                // Translate key
-                let label = key;
-                let icon = '';
-                if (key === 'vectorSort' || key === 'semantic') { label = 'Dense (Vector)'; icon = 'hub'; }
-                if (key === 'words') { label = 'Keywords'; icon = 'abc'; }
-                if (key === 'typo') { label = 'Fuzzy (Typo)'; icon = 'spellcheck'; }
-                if (key === 'proximity') { label = 'Proximity'; icon = 'format_align_center'; }
-                if (key === 'attribute') { label = 'Attribute'; icon = 'sell'; }
-                if (key === 'exactness') { label = 'Exactness'; icon = 'done_all'; }
-
-                return `<div class="flex flex-col items-center bg-gray-100 dark:bg-gray-700/50 rounded px-2 py-1 min-w-[60px]">
-                    <span class="text-[10px] text-gray-500 dark:text-gray-400 uppercase tracking-wider flex items-center gap-1">
-                        ${icon ? `<span class="material-symbols-outlined text-[10px]">${icon}</span>` : ''} ${label}
-                    </span>
-                    <span class="text-xs font-bold text-gray-700 dark:text-gray-300">${valStr}</span>
-                </div>`;
-            })
-            .filter(Boolean)
-            .join('');
-
-        if (details) {
-            scoreDetailsHtml = `
-                <div class="mt-3 pt-2 border-t border-gray-100 dark:border-gray-700/50 flex flex-wrap gap-2">
-                    ${details}
-                </div>
-            `;
-        }
+    if (isFirst) {
+        containerClass = "result-card-container bg-white dark:bg-slate-800 rounded-xl border-2 border-primary/40 dark:border-primary/40 shadow-glow overflow-hidden mb-6 relative";
+        arrowClass = "material-icons-round text-slate-800 dark:text-white font-bold";
+        arrowText = "keyboard_arrow_down";
+        numberTextClass = "font-bold text-slate-800 dark:text-white";
+        badgeClass = "px-2 py-1 bg-primary text-white text-xs font-bold rounded";
+        bodyClass = "p-8";
     }
 
     return `
-        <div class="result-card rounded-lg bg-gray-50 dark:bg-gray-800 p-5 card-shadow transition-all duration-300 hover:shadow-lg ${dimmedClass}">
-            <!-- Header -->
-            <div class="flex justify-between items-start mb-3">
-                <div class="flex items-center gap-2">
-                    <span class="flex items-center justify-center w-6 h-6 rounded-full bg-blue-600 text-white text-xs font-bold">
-                        ${rank}
-                    </span>
-                    <p class="text-xs font-mono text-gray-500 dark:text-gray-400">
-                        ID: <span class="text-gray-700 dark:text-gray-300">${result.id.substring(0, 8)}...</span>
-                    </p>
-                    ${matchTypeBadge}
-                </div>
-                <span class="px-2 py-1 rounded-full text-xs font-semibold ${scoreColor.bg} ${scoreColor.text}">
-                    ${scorePercent}% Match
-                </span>
+    <div id="result-card-${id}" class="${containerClass}">
+        <div onclick="toggleResult(${id})" class="px-6 py-4 flex items-center justify-between border-b border-slate-100 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-800/50 cursor-pointer">
+            <div class="flex items-center gap-4">
+                <span id="result-arrow-${id}" class="${arrowClass}">${arrowText}</span>
+                <span id="result-number-${id}" class="${numberTextClass}">No.${rank}</span>
+                <div class="h-4 w-[1px] bg-slate-300 dark:bg-slate-600"></div>
+                <h4 class="font-bold text-lg text-slate-800 dark:text-white">${title}</h4>
             </div>
-
-            <!-- Content -->
-            <p class="text-base text-gray-900 dark:text-white leading-relaxed mb-3">
-                ${truncatedText}
-            </p>
-
-            <!-- Metadata -->
-            ${metadata.length > 0 ? `
-                <div class="flex flex-wrap gap-2 pt-3 border-t border-gray-200 dark:border-gray-700">
-                    ${metadata.map(([key, value]) => `
-                        <span class="px-2 py-1 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded text-xs">
-                            <strong>${key}:</strong> ${String(value).substring(0, 30)}
-                        </span>
-                    `).join('')}
-                </div>
-            ` : ''}
-
-            <!-- Score Details -->
-            ${scoreDetailsHtml}
-
-            <!-- Expand Button -->
-            <button onclick="showResultDetail(${rank - 1})"
-                    class="mt-3 text-sm text-blue-600 hover:text-blue-800 transition-colors flex items-center gap-1">
-                <span>查看詳情</span>
-                <span class="material-symbols-outlined text-[18px]">arrow_forward</span>
-            </button>
+            <span id="result-badge-${id}" class="${badgeClass}">${scorePercent}% Match</span>
         </div>
+        
+        <div id="result-body-${id}" class="${bodyClass}">
+            <h2 class="text-3xl font-bold text-slate-900 dark:text-white mb-6">${title}</h2>
+            <div class="space-y-4 text-base text-slate-700 dark:text-slate-300">
+                <div class="flex items-start gap-2">
+                    <span class="font-bold min-w-[150px] text-slate-900 dark:text-white">• 類別 (Workspace) :</span>
+                    <span>${workspace}</span>
+                </div>
+                <div class="flex items-start gap-2">
+                    <span class="font-bold min-w-[150px] text-slate-900 dark:text-white">• 發布日期 (Date) :</span>
+                    <span>${date}</span>
+                </div>
+                <div class="flex items-start gap-2">
+                    <span class="font-bold min-w-[150px] text-slate-900 dark:text-white">• 原始連結 (Link) :</span>
+                    <a class="text-blue-600 dark:text-blue-400 hover:underline font-medium" href="${link}" target="_blank">點此查看</a>
+                </div>
+                 <div class="mt-4 pt-4 border-t border-slate-100 dark:border-slate-700">
+                    <div class="prose dark:prose-invert max-w-none text-slate-700 dark:text-slate-300">
+                        ${content}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
     `;
 }
 
-// Get score color based on percentage
-function getScoreColor(percent) {
-    if (percent >= 80) {
-        return { bg: 'bg-green-100 dark:bg-green-900/50', text: 'text-green-700 dark:text-green-400' };
-    } else if (percent >= 60) {
-        return { bg: 'bg-blue-100 dark:bg-blue-900/50', text: 'text-blue-700 dark:text-blue-400' };
-    } else if (percent >= 40) {
-        return { bg: 'bg-orange-100 dark:bg-orange-900/50', text: 'text-orange-700 dark:text-orange-400' };
+// Function to toggle result expansion
+window.toggleResult = function (index) {
+    const container = document.getElementById(`result-card-${index}`);
+    const body = document.getElementById(`result-body-${index}`);
+    const arrow = document.getElementById(`result-arrow-${index}`);
+    const badge = document.getElementById(`result-badge-${index}`);
+    const numberText = document.getElementById(`result-number-${index}`);
+
+    const isExpanded = !body.classList.contains('hidden');
+
+    if (isExpanded) {
+        // Collapse
+        body.classList.add('hidden');
+
+        // Update Container Style
+        container.className = "result-card-container bg-white dark:bg-slate-800 rounded-xl border border-primary/30 dark:border-primary/20 shadow-sm overflow-hidden mb-6 group hover:shadow-md transition-all duration-300";
+
+        // Update Arrow
+        arrow.textContent = 'keyboard_arrow_right';
+        arrow.className = "material-icons-round text-slate-400 group-hover:text-primary transition-colors";
+
+        // Update Number Text
+        numberText.className = "font-bold text-slate-500 dark:text-slate-400";
+
+        // Update Badge (Reset to light style)
+        if (badge.textContent.includes('100%') || parseInt(badge.textContent) > 80) {
+            // Keep high score style if needed, but code.html seems to dim it when collapsed?
+            // Actually code.html collapsed card has 100% Match and uses bg-primary/20.
+            // Expanded card has 87% Match and uses bg-primary (filled).
+            // It implies expanded = prominent badge.
+            badge.className = "px-2 py-1 bg-primary/20 dark:bg-primary/30 text-primary dark:text-primary-light text-xs font-bold rounded";
+        } else {
+            badge.className = "px-2 py-1 bg-primary/20 dark:bg-primary/30 text-primary dark:text-primary-light text-xs font-bold rounded";
+        }
+
     } else {
-        return { bg: 'bg-gray-100 dark:bg-gray-700', text: 'text-gray-700 dark:text-gray-400' };
+        // Expand
+        body.classList.remove('hidden');
+
+        // Update Container Style
+        container.className = "result-card-container bg-white dark:bg-slate-800 rounded-xl border-2 border-primary/40 dark:border-primary/40 shadow-glow overflow-hidden mb-6 relative";
+
+        // Update Arrow
+        arrow.textContent = 'keyboard_arrow_down';
+        arrow.className = "material-icons-round text-slate-800 dark:text-white font-bold";
+
+        // Update Number Text
+        numberText.className = "font-bold text-slate-800 dark:text-white";
+
+        // Update Badge (Prominent)
+        badge.className = "px-2 py-1 bg-primary text-white text-xs font-bold rounded";
     }
 }
 
-// Show result detail (placeholder for now)
+// Current Results Storage
 let currentResults = [];
-window.showResultDetail = function (index) {
-    if (index < 0 || index >= currentResults.length) {
-        alert('無效的結果索引');
-        return;
-    }
-
-    const result = currentResults[index];
-
-    // For now, show a detailed alert with result information
-    // You can implement a modal later
-    const details = `
-標題: ${result.title || 'N/A'}
-月份: ${result.month || 'N/A'}
-評分: ${Math.round((result._rankingScore || 0) * 100)}%
-連結: ${result.link || 'N/A'}
-
-內容:
-${result.content || 'N/A'}
-    `.trim();
-
-    alert(details);
-};
 
 // UI State Management
 function showLoading() {
@@ -469,9 +463,9 @@ function showEmpty(title, subtitle) {
     hideAllStates();
     emptyState.classList.remove('hidden');
     emptyState.innerHTML = `
-        <span class="material-symbols-outlined text-gray-400 text-6xl">search_off</span>
-        <h3 class="mt-4 text-lg font-medium text-gray-900 dark:text-white">${title}</h3>
-        <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">${subtitle}</p>
+        <span class="material-icons-round text-slate-300 dark:text-slate-600 text-6xl mb-4">search_off</span>
+        <h3 class="text-lg font-medium text-slate-700 dark:text-slate-300">${title}</h3>
+        <p class="text-sm text-slate-500 dark:text-slate-400 mt-2">${subtitle}</p>
     `;
 }
 
