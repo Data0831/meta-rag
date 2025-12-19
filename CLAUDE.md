@@ -3,8 +3,8 @@
 ## 1. 專案目標 (Objectives)
 本專案旨在建構一套高效能的 Microsoft 公告智慧檢索系統，並為未來擴充為對話機器人 (Chatbot) 奠定基礎。
 *   **統一檢索 (Unified Search)**：採用 **Meilisearch** 作為單一核心引擎，同時處理「關鍵字精準匹配」、「中文分詞」、「屬性過濾」與「語意向量檢索 (Hybrid Search)」。
-*   **自動化 ETL**：利用 LLM (Gemini) 自動提取高價值 Metadata 並進行文本增強，直接適配搜尋引擎索引結構。
-*   **輕量化架構**：移除複雜的資料庫同步邏輯 (No SQL, No Fusion Code)，大幅降低維護成本與系統延遲。
+*   **簡化 ETL**：直接使用清洗後的內容生成向量，無需複雜的 Metadata 提取，適配搜尋引擎索引結構。
+*   **輕量化架構**：移除複雜的資料庫同步邏輯與 Metadata 合成 (No SQL, No Fusion Code, No Enriched Text)，大幅降低維護成本與系統延遲。
 
 ## 2. 系統核心架構 (Core Architecture)
 
@@ -18,7 +18,7 @@
     *   核心業務邏輯所在。
     *   **SearchService**: 負責「意圖識別」(Intent Parsing) 與「單一檢索呼叫」(One-Shot Search)。它將使用者的自然語言轉換為 Meilisearch 的 `filter` 表達式與 Hybrid Search 參數。
     *   **RAGService**: 負責 Prompt 組裝與 LLM 對話生成 (Answer Generation)。
-    *   **ETLPipeline**: 負責資料清洗、Metadata 提取、向量計算 (Embedding)，並轉換為 Meilisearch Document 格式。
+    *   **ETLPipeline**: 負責資料清洗、向量計算 (Embedding)，並轉換為 Meilisearch Document 格式。
 3.  **資料存取層 (Data Access Layer / DAL)**
     *   **`db_adapter_meili.py`**: 系統唯一的資料庫轉接器。封裝 Meilisearch SDK，處理 Index 設定、Documents Upsert 與 Hybrid Search 查詢。
     *   **Infrastructure**: 
@@ -27,7 +27,7 @@
         *   **Meilisearch Engine**: 運行於 Docker，負責儲存與計算。
 
 ### 2.2 關鍵資料流 (Data Flow)
-*   **寫入 (ETL)**: Raw Data -> LLM Extraction -> Embedding Calculation -> **Meilisearch Indexing** (JSON Documents with `_vectors`)。
+*   **寫入 (ETL)**: Raw Data (parse.json) -> Embedding Calculation (cleaned_content) -> **Meilisearch Indexing** (JSON Documents with `_vectors`)。
 *   **讀取 (Search)**: User Query -> LLM Intent Parser (Filters) -> **Meilisearch (Hybrid Search)** -> Result。
 
 ## 3. 專案檔案結構 (Project Structure)
@@ -35,24 +35,21 @@
 ```text
 project_root/
 ├── data/
-│   ├── datastructure/          # 資料結構定義文件
-│   └── ...
+│   ├── parse.json              # 來源資料 (簡化格式)
+│   ├── parser.py               # 資料解析工具
+│   └── vectorPreprocessing.py  # 向量計算與 Index Reset 工具
 ├── src/
 │   ├── config.py               # 全域設定 (Meilisearch Host, Key 等)
-│   ├── dataPreprocessing.py    # 資料前處理 (ETL 入口)
-│   ├── vectorPreprocessing.py  # 向量計算與 Index Reset 工具
-│   ├── app.py                  # [Future] Flask 入口點
+│   ├── meilisearch_config.py   # Meilisearch 索引配置
+│   ├── app.py                  # Flask 入口點
 │   ├── services/               # [核心] 業務邏輯服務層
-│   │   ├── __init__.py
 │   │   ├── search_service.py   # 處理 Intent Parsing 與 Meili Search 呼叫
-│   │   └── rag_service.py      # [Future] RAG 對話邏輯
 │   ├── database/               # 資料庫轉接器 (DAL)
-│   │   └── db_adapter_meili.py # [唯一] Meilisearch Adapter
-│   ├── etl/                    # 資料處理流程
-│   │   └── etl_pipe/           # Parser, Batch Processor, Meili Transformer
+│   │   ├── db_adapter_meili.py # [唯一] Meilisearch Adapter
+│   │   └── vector_utils.py     # 向量生成工具
 │   ├── llm/                    # LLM 客戶端封裝
 │   └── schema/                 # Pydantic 資料模型
-│       └── schemas.py          # 定義 MeiliDocument 與 SearchIntent
+│       └── schemas.py          # 定義 AnnouncementDoc 與 SearchIntent
 └── requirements.txt            # meilisearch, google-generativeai 等
 ```
 
@@ -67,13 +64,33 @@ project_root/
 *   資料交換使用 **Pydantic Models**，特別是 `MeiliDocument` Schema 須嚴格對應 Index 結構。
 
 ### 4.3 資料庫與索引設計原則 (Meilisearch Specific)
-*   **Document Structure**: 
-    *   `id`: 唯一識別碼 (原 id)。
-    *   `title`, `content`: 全文檢索欄位。
-    *   `metadata`: 巢狀物件，Meilisearch 自動攤平供過濾 (e.g., `metadata.category = 'Pricing'`)。
+*   **Document Structure** (簡化版):
+    *   `id`: 唯一識別碼 (由 link 的 MD5 hash 生成)。
+    *   `link`: 來源 URL。
+    *   `year_month`: 年月 (YYYY-MM 格式，如 2025-12)。
+    *   `workspace`: 工作區分類 (如 General, Security)。
+    *   `title`: 標題 (全文檢索欄位)。
+    *   `content`: 原始內容 (用於顯示)。
+    *   `cleaned_content`: 清洗後內容 (全文檢索與向量生成)。
     *   `_vectors`: 儲存 Embedding 向量，啟用 Hybrid Search。
-*   **Filterable Attributes**: 必須在 `db_adapter_meili.py` 初始化時明確設定 (如 `month`, `metadata.category`)，否則無法過濾。
+*   **Filterable Attributes**: 必須在 `meilisearch_config.py` 中明確設定 (如 `year_month`, `workspace`, `link`)，否則無法過濾。
 *   **Idempotency**: 使用 `id` 作為 Primary Key，重複 `add_documents` 會自動執行 Upsert (覆蓋舊資料)，確保資料一致性。
 
 ### 4.4 擴充指南
-*   未來新增過濾欄位時，僅需更新 `schemas.py` 並在 `db_adapter_meili.py` 的 `update_filterable_attributes` 列表中加入新欄位名稱即可，無需重寫搜尋邏輯。
+*   未來新增過濾欄位時，僅需更新 `schemas.py` 並在 `meilisearch_config.py` 的 `FILTERABLE_ATTRIBUTES` 列表中加入新欄位名稱即可，無需重寫搜尋邏輯。
+
+## 5. 禁止事項
+- **禁止臆測**:
+    - **數據**: 未經指示，禁用假資料。
+    - **檔案**: 操作前，必須檢查檔案是否存在。
+    - **函式**: 僅可使用專案已定義函式，不確定時先提問。
+- **禁止擅自重構**: 未經要求，禁止重構或優化程式碼。
+
+## 6. 任務執行流程
+
+當收到任務時，流程如下：
+
+1.  **專注任務**: 忽略先前任務，專注當前內容。
+2.  **分析**: 掃描相關檔案，理解專案慣例、架構與風格。
+3.  **規劃**: 制定詳細執行計畫，若有不明確處則主動提問。
+4.  **執行**: 獲取明確指令後，嚴格按計畫執行並回報。

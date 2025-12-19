@@ -6,8 +6,9 @@ Tests Intent Parsing, Filters, and Meilisearch Keyword Search
 import sys
 from pathlib import Path
 
-# Add src to path
-sys.path.insert(0, str(Path(__file__).parent))
+# Add project root to Python path
+project_root = Path(__file__).parent.parent
+sys.path.insert(0, str(project_root))
 
 from src.services.search_service import SearchService
 import json
@@ -31,8 +32,8 @@ def test_search(query: str):
 
         # Show applied filters
         filters = results["intent"]["filters"]
-        if filters.get("months"):
-            print(f"\n[Months Filter] {filters['months']}")
+        if filters.get("year_month"):
+            print(f"\n[Year-Months Filter] {filters['year_month']}")
         if results["intent"].get("boost_keywords"):
             print(f"[Boost Keywords] {results['intent']['boost_keywords']}")
         if results["intent"].get("limit") is not None:

@@ -2,116 +2,48 @@ import os
 from typing import List
 import ollama
 from dotenv import load_dotenv
-from datetime import date
-import sys
-import uuid
-from schema.schemas import AnnouncementMetadata, AnnouncementDoc
-
-# Add project root to sys.path
-project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-if project_root not in sys.path:
-    sys.path.insert(0, project_root)
-
 
 load_dotenv()
 
-
-def create_enriched_text(doc: AnnouncementDoc) -> str:
-    """
-    Constructs the synthetic context string for embedding.
-    Uses content_clean (URLs removed) for better semantic representation.
-
-    Format based on GEMINI.md:
-    Title: {title}
-    Impact Level: {meta_impact_level}
-    Target Audience: {meta_audience}
-    Products: {meta_products}
-    Change Type: {meta_change_type}
-    Summary: {meta_summary}
-    Content: {content_clean}
-    """
-    meta = doc.metadata
-
-    # Handle list fields by joining them
-    audience = ", ".join(meta.meta_audience) if meta.meta_audience else "None"
-    products = ", ".join(meta.meta_products) if meta.meta_products else "None"
-
-    # Handle enum/optional fields safely
-    impact = meta.meta_impact_level.value if meta.meta_impact_level else "Unknown"
-    change_type = meta.meta_change_type if meta.meta_change_type else "Unknown"
-    summary = meta.meta_summary if meta.meta_summary else ""
-
-    # Use content_clean for embedding (URLs removed) to improve semantic quality
-    # Fall back to original_content if content_clean is not available (for backward compatibility)
-    content = doc.content_clean if doc.content_clean else doc.original_content
-
-    text = (
-        f"Title: {doc.title}\n"
-        f"Impact Level: {impact}\n"
-        f"Target Audience: {audience}\n"
-        f"Products: {products}\n"
-        f"Change Type: {change_type}\n"
-        f"Summary: {summary}\n"
-        f"Content: {content}"
-    )
-    return text
+# Ollama configuration
+OLLAMA_HOST = os.getenv("OLLAMA_HOST", "http://localhost:11434")
+ollama_client = ollama.Client(host=OLLAMA_HOST)
 
 
 def get_embedding(text: str, model: str = "bge-m3") -> List[float]:
     """
     Generates embedding for the given text using Ollama API.
+    Uses OLLAMA_HOST environment variable for remote Ollama servers.
     """
     try:
         # Replacing newlines for consistency with common practices.
         text = text.replace("\n", " ")
 
-        response = ollama.embeddings(
+        response = ollama_client.embeddings(
             model=model,
             prompt=text,
             options={"num_ctx": 8192},  # Enforce num_ctx as specified
         )
         return response["embedding"]
     except Exception as e:
-        print(f"Error generating embedding: {e}")
+        print(f"Error generating embedding from {OLLAMA_HOST}: {e}")
         return []
 
 
 if __name__ == "__main__":
-    from src.schema.schemas import AnnouncementMetadata, AnnouncementDoc
-    from datetime import date
+    # Test embedding generation
+    test_text = "這是一個測試文本，用於生成向量嵌入。Microsoft Azure 雲端服務提供強大的計算能力。"
 
-    # Create a dummy AnnouncementMetadata
-    dummy_metadata = AnnouncementMetadata(
-        meta_date_announced=date(2023, 1, 15),
-        meta_date_effective=date(2023, 2, 1),
-        meta_products=["Microsoft Teams", "Microsoft 365"],
-        meta_category="Feature Update",
-        meta_audience=["Enterprise", "Small Business"],
-        meta_impact_level="Medium",
-        meta_summary="New features for Microsoft Teams and Microsoft 365.",
-        meta_change_type="New Feature",
-    )
-
-    # Create a dummy AnnouncementDoc
-    dummy_doc = AnnouncementDoc(
-        id=str(uuid.uuid4()),
-        month="2023-01",
-        title="Introducing New Collaboration Features in Teams",
-        original_content="Microsoft is rolling out new features to enhance collaboration in Microsoft Teams and Microsoft 365.",
-        metadata=dummy_metadata,
-    )
-
-    print("--- Testing create_enriched_text ---")
-    enriched_text = create_enriched_text(dummy_doc) * 10
-    print(len(enriched_text))
-    print("\n--- Testing get_embedding ---")
+    print("--- Testing get_embedding ---")
+    print(f"Test text: {test_text}")
 
     # You might need to have Ollama running with 'bge-m3' model pulled
     # For example: ollama pull bge-m3
 
-    embedding = get_embedding(enriched_text)
+    embedding = get_embedding(test_text)
     if embedding:
-        print(f"Successfully generated embedding. Length: {len(embedding)}")
-        # print(f"First 5 elements: {embedding[:5]}...") # Uncomment to see part of the embedding
+        print(f"✅ Successfully generated embedding")
+        print(f"   Dimension: {len(embedding)}")
+        print(f"   First 5 values: {embedding[:5]}")
     else:
-        print("Failed to generate embedding.")
+        print("❌ Failed to generate embedding")
