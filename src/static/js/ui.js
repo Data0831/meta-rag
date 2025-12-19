@@ -49,7 +49,5 @@ export function hideAllStates() {
     DOM.errorState.classList.add('hidden');
     DOM.emptyState.classList.add('hidden');
     DOM.resultsContainer.classList.add('hidden');
-    DOM.resultsInfo.classList.add('hidden');
-    DOM.searchTime.classList.add('hidden');
     if (DOM.intentContainer) DOM.intentContainer.classList.add('hidden');
 }

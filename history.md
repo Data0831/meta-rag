@@ -34,3 +34,6 @@
 
 ## 2025年12月19日 星期五 17:00
 - **前端模組化重構**：將 `search.js` (458 行) 拆分為 6 個 ES6 模組：`config.js` (配置管理)、`dom.js` (DOM 引用)、`api.js` (API 請求)、`ui.js` (狀態管理)、`render.js` (結果渲染) 與 `search.js` (主入口 114 行)，大幅提升代碼可維護性與模組化程度。
+
+## 2025年12月19日 星期五 18:00
+- **過濾條件顯示修復**：診斷並修復前端顯示 LLM 解析的過濾條件問題。在 `search_service.py` 加入序列化前後的 debug 輸出，確認 `intent.filters` 數據正確傳遞。更新 `render.js` 的 `updateIntentDisplay` 函數，實作 `year_month`（藍色）、`workspaces`（綠色）、`links`（紫色）過濾標籤的視覺化顯示，完善搜尋意圖的前端呈現。

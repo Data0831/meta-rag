@@ -99,7 +99,19 @@ async function performSearch() {
 
     try {
         const { data, duration } = await performCollectionSearch(query);
-        renderResults(data, duration);
+        
+        // Log filters if LLM rewrite is enabled
+        if (searchConfig.enableLlm) {
+            console.group('🧠 LLM Query Rewrite');
+            console.log('Filters (JSON):', data.intent?.filters);
+            if (data.meili_filter) {
+                console.log('Meilisearch Expression:', data.meili_filter);
+            }
+            console.groupEnd();
+        }
+
+        renderResults(data, duration, query);
+        applyThresholdToResults();
     } catch (error) {
         console.error('❌ Search failed:', error);
         console.error('  Error message:', error.message);

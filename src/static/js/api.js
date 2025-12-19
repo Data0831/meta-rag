@@ -11,7 +11,7 @@ import { searchConfig } from './config.js';
  * @returns {Promise<{data: Object, duration: number}>}
  */
 export async function performCollectionSearch(query) {
-    console.log('🔍 Starting search...');
+    console.log('Starting search...');
     console.log('  Query:', query);
     console.log('  Config:', searchConfig);
 
@@ -28,7 +28,7 @@ export async function performCollectionSearch(query) {
         enable_llm: searchConfig.enableLlm
     };
 
-    console.log('📤 Request Body:', requestBody);
+    console.log('Request Body:', requestBody);
 
     const response = await fetch('/api/collection_search', {
         method: 'POST',
@@ -41,13 +41,13 @@ export async function performCollectionSearch(query) {
     const endTime = performance.now();
     const duration = Math.round(endTime - startTime);
 
-    console.log('📥 Response Status:', response.status);
-    console.log('⏱️ Duration:', duration + 'ms');
+    console.log('Response Status:', response.status);
+    console.log('Duration:', duration + 'ms');
 
     if (!response.ok) {
-        console.error('❌ Response not OK:', response.status, response.statusText);
+        console.error('Response not OK:', response.status, response.statusText);
         const errorText = await response.text();
-        console.error('❌ Error Body:', errorText);
+        console.error('Error Body:', errorText);
 
         let errorMessage;
         try {
@@ -60,7 +60,7 @@ export async function performCollectionSearch(query) {
     }
 
     const data = await response.json();
-    console.log('✅ Response Data:', data);
+    console.log('Response Data:', data);
     console.log('  Results count:', data.results?.length || 0);
     console.log('  Intent:', data.intent);
 

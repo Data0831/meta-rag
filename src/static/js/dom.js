@@ -10,6 +10,8 @@ export const llmRewriteCheckbox = document.getElementById('llmRewriteCheckbox');
 
 // Intent Display Elements
 export const intentContainer = document.getElementById('intentContainer');
+export const displayQuery = document.getElementById('displayQuery');
+export const llmDetails = document.getElementById('llmDetails');
 export const intentFilters = document.getElementById('intentFilters');
 export const intentKeywordQuery = document.getElementById('intentKeywordQuery');
 export const intentSemanticQuery = document.getElementById('intentSemanticQuery');
@@ -22,7 +24,6 @@ export const emptyState = document.getElementById('emptyState');
 
 // Results Elements
 export const resultsContainer = document.getElementById('resultsContainer');
-export const resultsInfo = document.getElementById('resultsInfo');
 export const resultsCount = document.getElementById('resultsCount');
 export const searchTime = document.getElementById('searchTime');
 export const searchTimeValue = document.getElementById('searchTimeValue');

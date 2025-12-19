@@ -13,8 +13,9 @@ export let currentResults = [];
  * Render search results
  * @param {Object} data - Search response data
  * @param {number} duration - Search duration in ms
+ * @param {string} query - User search query
  */
-export function renderResults(data, duration) {
+export function renderResults(data, duration, query) {
     console.log('Rendering results...');
     console.log('  Data:', data);
     console.log('  Duration:', duration);
@@ -28,28 +29,31 @@ export function renderResults(data, duration) {
     console.log('  Results array:', results);
     console.log('  Intent:', intent);
 
+    // Show Intent & Stats Container (always shown after search)
+    DOM.intentContainer.classList.remove('hidden');
+    DOM.displayQuery.textContent = query;
+
+    // Show/Hide LLM Details
+    if (intent && searchConfig.enableLlm) {
+        console.log('Updating intent display');
+        DOM.llmDetails.classList.remove('hidden');
+        updateIntentDisplay(intent);
+    } else {
+        DOM.llmDetails.classList.add('hidden');
+    }
+
+    // Update results count and search time (now part of intentContainer)
+    DOM.resultsCount.textContent = results.length;
+    DOM.searchTimeValue.textContent = duration;
+
     if (results.length === 0) {
         console.log('No results found');
         showEmpty('沒有找到相關結果', '請嘗試不同的搜尋查詢');
         return;
     }
 
-    // Update Intent Display
-    if (intent && searchConfig.enableLlm) {
-        console.log('Updating intent display');
-        updateIntentDisplay(intent);
-    }
-
     // Store results globally for detail view
     currentResults = results;
-
-    // Show results info
-    DOM.resultsInfo.classList.remove('hidden');
-    DOM.resultsCount.textContent = results.length;
-
-    // Show search time
-    DOM.searchTime.classList.remove('hidden');
-    DOM.searchTimeValue.textContent = duration;
 
     // Render result cards
     DOM.resultsContainer.classList.remove('hidden');
@@ -77,7 +81,31 @@ function updateIntentDisplay(intent) {
     DOM.intentFilters.innerHTML = '';
     const filters = intent.filters || {};
 
-    // 1. Limit (Always show)
+    // 1. Year Month
+    if (filters.year_month && filters.year_month.length > 0) {
+        const yearMonthItems = filters.year_month.map(ym =>
+            `<span class="px-2 py-0.5 rounded border text-xs bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-300 border-blue-200 dark:border-blue-700">${ym}</span>`
+        ).join('');
+        DOM.intentFilters.innerHTML += yearMonthItems;
+    }
+
+    // 2. Workspaces
+    if (filters.workspaces && filters.workspaces.length > 0) {
+        const workspaceItems = filters.workspaces.map(ws =>
+            `<span class="px-2 py-0.5 rounded border text-xs bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-300 border-green-200 dark:border-green-700">${ws}</span>`
+        ).join('');
+        DOM.intentFilters.innerHTML += workspaceItems;
+    }
+
+    // 3. Links
+    if (filters.links && filters.links.length > 0) {
+        const linkItems = filters.links.map(link =>
+            `<span class="px-2 py-0.5 rounded border text-xs bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-300 border-purple-200 dark:border-purple-700">${link}</span>`
+        ).join('');
+        DOM.intentFilters.innerHTML += linkItems;
+    }
+
+    // 4. Limit (Always show)
     const limitVal = intent.limit !== null && intent.limit !== undefined ? intent.limit : 'Null';
     const limitClass = (intent.limit !== null && intent.limit !== undefined) ?
         "bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-300 border-gray-200 dark:border-gray-600" :

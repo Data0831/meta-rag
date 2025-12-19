@@ -41,9 +41,9 @@ class SearchService:
         try:
             print("  Initializing LLMClient...")
             self.llm_client = LLMClient()
-            print("  ✅ LLMClient initialized")
+            print("  LLMClient initialized")
         except Exception as e:
-            print(f"  ❌ LLMClient initialization failed: {e}")
+            print(f"  LLMClient initialization failed: {e}")
             raise
 
         try:
@@ -53,9 +53,9 @@ class SearchService:
                 api_key=MEILISEARCH_API_KEY,
                 collection_name=MEILISEARCH_INDEX,
             )
-            print("  ✅ MeiliAdapter initialized")
+            print("  MeiliAdapter initialized")
         except Exception as e:
-            print(f"  ❌ MeiliAdapter initialization failed: {e}")
+            print(f"  MeiliAdapter initialization failed: {e}")
             raise
 
     def parse_intent(self, user_query: str) -> Optional[SearchIntent]:
@@ -122,7 +122,7 @@ class SearchService:
         if not intent:
             if enable_llm:
                 # Fallback if intent parsing fails
-                print("⚠ Intent parsing failed. Using fallback basic search.")
+                print("Intent parsing failed. Using fallback basic search.")
 
             # Basic intent (no filters, raw query)
             intent = SearchIntent(
@@ -138,7 +138,7 @@ class SearchService:
         # Use LLM-recommended semantic_ratio (unless user explicitly overrides)
         if intent.recommended_semantic_ratio is not None:
             semantic_ratio = intent.recommended_semantic_ratio
-            print(f"🎯 Using LLM-recommended semantic_ratio: {semantic_ratio:.2f}")
+            print(f"Using LLM-recommended semantic_ratio: {semantic_ratio:.2f}")
 
         # 2. Build Meilisearch filter expression
         meili_filter = build_meili_filter(intent.filters)
@@ -159,21 +159,21 @@ class SearchService:
             intent.keyword_query = (
                 f"{intent.keyword_query} {' '.join(boosted_keywords)}"
             )
-            # print(f"🚀 Boosting critical keywords (2x): {intent.must_have_keywords}")
+            # print(f"Boosting critical keywords (2x): {intent.must_have_keywords}")
 
         # 3. Generate query embedding for semantic search
         query_vector = None
         if semantic_ratio > 0:
             # Only generate embedding if we're using semantic search
-            print(f"🧮 Generating embedding for: '{intent.semantic_query}'")
+            print(f"Generating embedding for: '{intent.semantic_query}'")
             try:
                 query_vector = vector_utils.get_embedding(intent.semantic_query)
                 if query_vector:
-                    print(f"  ✅ Embedding generated (dim: {len(query_vector)})")
+                    print(f"  Embedding generated (dim: {len(query_vector)})")
                 else:
-                    print("  ⚠ Embedding generation returned empty vector")
+                    print("  Embedding generation returned empty vector")
             except Exception as e:
-                print(f"  ❌ Embedding generation failed: {e}")
+                print(f"  Embedding generation failed: {e}")
                 import traceback
 
                 traceback.print_exc()
@@ -181,12 +181,12 @@ class SearchService:
 
             if not query_vector:
                 print(
-                    "⚠ Embedding generation failed. Falling back to keyword-only search."
+                    "Embedding generation failed. Falling back to keyword-only search."
                 )
                 semantic_ratio = 0
 
         # 4. Single Meilisearch API call (Hybrid Search)
-        print(f"🔍 Calling Meilisearch...")
+        print(f"Calling Meilisearch...")
         print(f"  Keyword query: '{intent.keyword_query}'")
         print(f"  Has vector: {query_vector is not None}")
         print(f"  Filter: {meili_filter}")
@@ -201,18 +201,28 @@ class SearchService:
                 limit=limit,
                 semantic_ratio=semantic_ratio,
             )
-            print(f"  ✅ Meilisearch returned {len(results)} results")
+            print(f"  Meilisearch returned {len(results)} results")
         except Exception as e:
-            print(f"  ❌ Meilisearch search failed: {e}")
+            print(f"  Meilisearch search failed: {e}")
             import traceback
 
             traceback.print_exc()
             raise
 
         # 5. Return results with intent
+        # Debug: Check if filters are present before serialization
+        print(f"DEBUG - Before serialization:")
+        print(f"  intent.filters.year_month: {intent.filters.year_month}")
+        print(f"  intent.filters.workspaces: {intent.filters.workspaces}")
+
+        serialized_intent = (
+            intent.model_dump() if hasattr(intent, "model_dump") else intent.dict()
+        )
+        print(f"DEBUG - After serialization:")
+        print(f"  serialized_intent['filters']: {serialized_intent.get('filters')}")
+
         return {
-            "intent": (
-                intent.model_dump() if hasattr(intent, "model_dump") else intent.dict()
-            ),
+            "intent": serialized_intent,
+            "meili_filter": meili_filter,
             "results": results,
         }

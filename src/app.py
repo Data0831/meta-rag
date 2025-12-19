@@ -17,7 +17,14 @@ from typing import Dict, Any
 
 from src.database.db_adapter_meili import MeiliAdapter
 from src.services.search_service import SearchService
-from src.config import MEILISEARCH_HOST, MEILISEARCH_API_KEY, MEILISEARCH_INDEX, DEFAULT_SEARCH_LIMIT, DEFAULT_SIMILARITY_THRESHOLD, DEFAULT_SEMANTIC_RATIO
+from src.config import (
+    MEILISEARCH_HOST,
+    MEILISEARCH_API_KEY,
+    MEILISEARCH_INDEX,
+    DEFAULT_SEARCH_LIMIT,
+    DEFAULT_SIMILARITY_THRESHOLD,
+    DEFAULT_SEMANTIC_RATIO,
+)
 
 # Load environment variables
 load_dotenv()
@@ -59,11 +66,13 @@ def get_config():
     Returns:
         JSON response with config values
     """
-    return jsonify({
-        "default_limit": DEFAULT_SEARCH_LIMIT,
-        "default_similarity_threshold": DEFAULT_SIMILARITY_THRESHOLD,
-        "default_semantic_ratio": DEFAULT_SEMANTIC_RATIO
-    })
+    return jsonify(
+        {
+            "default_limit": DEFAULT_SEARCH_LIMIT,
+            "default_similarity_threshold": DEFAULT_SIMILARITY_THRESHOLD,
+            "default_semantic_ratio": DEFAULT_SEMANTIC_RATIO,
+        }
+    )
 
 
 @app.route("/api/collection_search", methods=["POST"])
@@ -83,13 +92,13 @@ def search():
     """
     try:
         print("\n" + "=" * 60)
-        print("🔍 /api/collection_search called")
+        print("/api/collection_search called")
 
         data = request.get_json()
-        print(f"📥 Request data: {data}")
+        print(f"Request data: {data}")
 
         if not data or "query" not in data:
-            print("❌ Missing 'query' field")
+            print("Missing 'query' field")
             return jsonify({"error": "Missing 'query' field in request body"}), 400
 
         query = data["query"]
@@ -128,10 +137,10 @@ def search():
             )
 
         # Perform search
-        print("🚀 Initializing SearchService...")
+        print("Initializing SearchService...")
         search_service = SearchService()
 
-        print("🔎 Calling search_service.search()...")
+        print("Calling search_service.search()...")
         results = search_service.search(
             user_query=query,
             limit=limit,
@@ -139,12 +148,12 @@ def search():
             enable_llm=enable_llm,
         )
 
-        print(f"✅ Search completed. Results count: {len(results.get('results', []))}")
+        print(f"Search completed. Results count: {len(results.get('results', []))}")
         print("=" * 60 + "\n")
         return jsonify(results)
 
     except Exception as e:
-        print(f"❌ ERROR in /api/collection_search: {e}")
+        print(f"ERROR in /api/collection_search: {e}")
         print(f"   Error type: {type(e).__name__}")
         import traceback
 

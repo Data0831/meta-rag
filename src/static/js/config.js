@@ -16,7 +16,7 @@ export async function loadBackendConfig() {
     try {
         const response = await fetch('/api/config');
         const config = await response.json();
-        console.log('📥 Backend Config:', config);
+        console.log('Backend Config:', config);
 
         // Update Limit
         if (config.default_limit !== undefined) {
@@ -43,9 +43,9 @@ export async function loadBackendConfig() {
             if (ratioValue) ratioValue.textContent = Math.round(config.default_semantic_ratio * 100) + '%';
         }
 
-        console.log('⚙️ Final Config:', searchConfig);
+        console.log('Final Config:', searchConfig);
     } catch (error) {
-        console.error('❌ Failed to load config:', error);
-        console.log('⚙️ Using default Config:', searchConfig);
+        console.error('Failed to load config:', error);
+        console.log('Using default Config:', searchConfig);
     }
 }
