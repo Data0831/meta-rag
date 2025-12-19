@@ -64,6 +64,9 @@ export function renderResults(data, duration, query) {
     // Show summary container with mock data
     renderSummary(query);
 
+    // Apply current threshold to results immediately after rendering
+    applyThresholdToResults();
+
     console.log('Results rendered successfully');
 }
 
