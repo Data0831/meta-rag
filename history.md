@@ -31,3 +31,6 @@
 ## 2025年12月19日 星期五 16:15
 - **配置參數擴充**：於 config.py 新增 `DEFAULT_SIMILARITY_THRESHOLD` 與 `DEFAULT_SEMANTIC_RATIO`，並透過 API 暴露給前端。
 - **前端控制項優化**：更新 `index.html` 將語義權重滑桿範圍調整為 0-100 (整數)，並在 `search.js` 中實作數值轉換與初始化邏輯，確保與後端設定同步。
+
+## 2025年12月19日 星期五 17:00
+- **前端模組化重構**：將 `search.js` (458 行) 拆分為 6 個 ES6 模組：`config.js` (配置管理)、`dom.js` (DOM 引用)、`api.js` (API 請求)、`ui.js` (狀態管理)、`render.js` (結果渲染) 與 `search.js` (主入口 114 行)，大幅提升代碼可維護性與模組化程度。

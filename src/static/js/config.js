@@ -1,0 +1,51 @@
+/**
+ * Search Configuration Module
+ */
+
+export const searchConfig = {
+    limit: 5,  // Number of results to return
+    semanticRatio: 0.5,  // Weight for semantic search (0.0 = pure keyword, 1.0 = pure semantic)
+    similarityThreshold: 0,  // Similarity threshold (0-100), results below this will be dimmed
+    enableLlm: false
+};
+
+/**
+ * Fetch configuration from backend and update searchConfig
+ */
+export async function loadBackendConfig() {
+    try {
+        const response = await fetch('/api/config');
+        const config = await response.json();
+        console.log('📥 Backend Config:', config);
+
+        // Update Limit
+        if (config.default_limit !== undefined) {
+            searchConfig.limit = config.default_limit;
+            const limitInput = document.getElementById('limitInput');
+            if (limitInput) limitInput.value = config.default_limit;
+        }
+
+        // Update Similarity Threshold
+        if (config.default_similarity_threshold !== undefined) {
+            searchConfig.similarityThreshold = config.default_similarity_threshold;
+            const thresholdInput = document.getElementById('similarityThreshold');
+            const thresholdValue = document.getElementById('thresholdValue');
+            if (thresholdInput) thresholdInput.value = config.default_similarity_threshold * 100;
+            if (thresholdValue) thresholdValue.textContent = Math.round(config.default_similarity_threshold * 100) + '%';
+        }
+
+        // Update Semantic Ratio
+        if (config.default_semantic_ratio !== undefined) {
+            searchConfig.semanticRatio = config.default_semantic_ratio;
+            const ratioInput = document.getElementById('semanticRatioSlider');
+            const ratioValue = document.getElementById('semanticRatioValue');
+            if (ratioInput) ratioInput.value = config.default_semantic_ratio * 100;
+            if (ratioValue) ratioValue.textContent = Math.round(config.default_semantic_ratio * 100) + '%';
+        }
+
+        console.log('⚙️ Final Config:', searchConfig);
+    } catch (error) {
+        console.error('❌ Failed to load config:', error);
+        console.log('⚙️ Using default Config:', searchConfig);
+    }
+}
