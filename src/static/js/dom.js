@@ -27,3 +27,8 @@ export const resultsContainer = document.getElementById('resultsContainer');
 export const resultsCount = document.getElementById('resultsCount');
 export const searchTime = document.getElementById('searchTime');
 export const searchTimeValue = document.getElementById('searchTimeValue');
+
+// Summary Elements
+export const summaryContainer = document.getElementById('summaryContainer');
+export const summaryTitle = document.getElementById('summaryTitle');
+export const summaryContent = document.getElementById('summaryContent');

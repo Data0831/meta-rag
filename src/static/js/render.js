@@ -61,7 +61,33 @@ export function renderResults(data, duration, query) {
         return renderResultCard(result, index + 1);
     }).join('');
 
+    // Show summary container with mock data
+    renderSummary(query);
+
     console.log('Results rendered successfully');
+}
+
+/**
+ * Render summary section with mock data
+ * @param {string} query - User search query
+ */
+function renderSummary(query) {
+    DOM.summaryContainer.classList.remove('hidden');
+
+    // Update title with query context
+    DOM.summaryTitle.textContent = `以下為「${query}」的相關公告總結：`;
+
+    // Mock summary data (3 bullet points)
+    const mockSummaryPoints = [
+        '總結的部分總結的部分總結的部分總結的部分總結的部分總結的部分',
+        '總結的部分總結的部分總結的部分總結的部分總結的部分總結的部分',
+        '總結的部分總結的部分總結的部分總結的部分總結的部分總結的部分'
+    ];
+
+    // Render summary content
+    DOM.summaryContent.innerHTML = mockSummaryPoints.map(point =>
+        `<p>• ${point}</p>`
+    ).join('');
 }
 
 /**
@@ -148,6 +174,11 @@ function renderResultCard(result, rank) {
         numberTextClass = "font-bold text-slate-800 dark:text-white";
         badgeClass = "px-2 py-1 bg-primary text-white text-xs font-bold rounded";
         bodyClass = "p-8";
+    }
+
+    // Apply dimming if below threshold
+    if (scorePercent < searchConfig.similarityThreshold) {
+        containerClass += " dimmed-result";
     }
 
     return `

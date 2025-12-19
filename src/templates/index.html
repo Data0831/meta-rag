@@ -257,24 +257,36 @@
                 </div>
             </div>
 
-            <!-- Results Container -->
-            <div id="resultsContainer" class="hidden">
-                <!-- Results will be injected here -->
-            </div>
-
-            <!-- Summary Section (Placeholder - currently hidden as JS doesn't populate it) -->
+            <!-- Summary Section -->
             <div id="summaryContainer" class="hidden mb-10 animate-fade-in-up">
                 <div class="flex items-center gap-3 mb-4">
                     <div
                         class="w-8 h-8 rounded-full border border-primary flex items-center justify-center text-primary bg-white dark:bg-slate-800">
                         <span class="material-icons-round text-lg">lightbulb</span>
                     </div>
-                    <h3 class="text-xl font-medium text-slate-800 dark:text-white">以下為相關公告總結：</h3>
+                    <h3 id="summaryTitle" class="text-xl font-medium text-slate-800 dark:text-white">以下為相關公告總結：</h3>
                 </div>
                 <div class="pl-11 space-y-2 text-slate-600 dark:text-slate-300 leading-relaxed">
-                    <p>等待實作...</p>
+                    <div id="summaryContent">
+                        <!-- Summary content will be injected here -->
+                    </div>
+                    <div class="flex items-center gap-4 mt-4">
+                        <div
+                            class="inline-flex items-center bg-card-light dark:bg-slate-700 px-3 py-1 rounded text-xs text-primary font-medium cursor-pointer hover:bg-primary/20 transition-colors">
+                            對您是否有幫助？
+                            <span class="material-icons-round text-sm ml-1 hover:text-green-600">thumb_up</span>
+                            <span class="material-icons-round text-sm ml-1 hover:text-red-500">thumb_down</span>
+                        </div>
+                    </div>
                 </div>
             </div>
+
+            <!-- Results Container -->
+            <div id="resultsContainer" class="hidden">
+                <!-- Results will be injected here -->
+            </div>
+
+
 
         </div>
     </main>

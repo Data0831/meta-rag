@@ -111,7 +111,6 @@ async function performSearch() {
         }
 
         renderResults(data, duration, query);
-        applyThresholdToResults();
     } catch (error) {
         console.error('❌ Search failed:', error);
         console.error('  Error message:', error.message);
