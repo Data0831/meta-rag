@@ -19,14 +19,10 @@ PAGE_JSON = os.path.join(DATA_DIR, "page.json")
 PAGE_EXAMPLE_JSON = os.path.join(DATA_DIR, "page.example.json")
 DATA_JSON = os.path.join(DATA_DIR, "data.json")
 
-# Database files (Legacy - will be removed)
-SQLITE_DB = os.path.join(DATABASE_DIR, "announcements.db")
-QDRANT_STORAGE = os.path.join(DATABASE_DIR, "qdrant_storage")
-
 # Meilisearch Settings
 MEILISEARCH_HOST = os.getenv("MEILISEARCH_HOST", "http://localhost:7700")
 MEILISEARCH_API_KEY = os.getenv("MEILISEARCH_API_KEY", "masterKey")
-MEILISEARCH_INDEX = "announcements"
+MEILISEARCH_INDEX = "announcements_v2"
 ## search.js init config
 DEFAULT_SEARCH_LIMIT = 5
 DEFAULT_SIMILARITY_THRESHOLD = 0.81

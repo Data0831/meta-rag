@@ -254,11 +254,11 @@ def transform_doc_for_meilisearch(
     # Serialize doc to dict
     doc_dict = doc.model_dump() if hasattr(doc, "model_dump") else doc.dict()
 
-    # Generate a unique ID from link (use hash or sanitized URL)
-    # Since new format doesn't have explicit ID, we'll use link as identifier
+    # Generate a unique ID from link + title
+    # Since link might not be unique (e.g. multiple sections), we combine it with title
     import hashlib
 
-    doc_id = hashlib.md5(doc.link.encode()).hexdigest()
+    doc_id = hashlib.md5((doc.link + doc.title).encode()).hexdigest()
 
     return {
         "id": doc_id,  # Generated ID from link
