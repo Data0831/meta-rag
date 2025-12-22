@@ -10,7 +10,7 @@ if project_root not in sys.path:
     sys.path.insert(0, project_root)
 
 from src.config import (
-    PARSE_JSON,
+    DATA_JSON,
     MEILISEARCH_HOST,
     MEILISEARCH_API_KEY,
     MEILISEARCH_INDEX,
@@ -27,12 +27,12 @@ def load_processed_data() -> List[AnnouncementDoc]:
     Load processed data from parse.json.
     Expected format: Array of announcement objects.
     """
-    if not os.path.exists(PARSE_JSON):
-        print(f"File not found: {PARSE_JSON}")
+    if not os.path.exists(DATA_JSON):
+        print(f"File not found: {DATA_JSON}")
         return []
 
     try:
-        with open(PARSE_JSON, "r", encoding="utf-8") as f:
+        with open(DATA_JSON, "r", encoding="utf-8") as f:
             data = json.load(f)
     except json.JSONDecodeError as e:
         print(f"Error decoding JSON: {e}")

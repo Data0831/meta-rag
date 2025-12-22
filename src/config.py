@@ -17,7 +17,7 @@ LLM_DIR = os.path.join(DATA_DIR, "llm")
 # Input/Output files
 PAGE_JSON = os.path.join(DATA_DIR, "page.json")
 PAGE_EXAMPLE_JSON = os.path.join(DATA_DIR, "page.example.json")
-PARSE_JSON = os.path.join(DATA_DIR, "parse.json")
+DATA_JSON = os.path.join(DATA_DIR, "data.json")
 
 # Database files (Legacy - will be removed)
 SQLITE_DB = os.path.join(DATABASE_DIR, "announcements.db")
