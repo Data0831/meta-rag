@@ -58,7 +58,7 @@ export function renderResults(data, duration, query) {
     // Render result cards
     DOM.resultsContainer.classList.remove('hidden');
     DOM.resultsContainer.innerHTML = results.map((result, index) => {
-        return renderResultCard(result, index + 1);
+        return renderResultCard(result, index + 1, searchConfig);
     }).join('');
 
     // Show summary container with mock data
@@ -66,8 +66,6 @@ export function renderResults(data, duration, query) {
 
     // Apply current threshold to results immediately after rendering
     applyThresholdToResults();
-
-    console.log('Results rendered successfully');
 }
 
 /**
@@ -147,9 +145,10 @@ function updateIntentDisplay(intent) {
  * Render a single result card
  * @param {Object} result - Result object
  * @param {number} rank - Result rank (1-based)
+ * @param {Object} searchConfig - Search configuration object
  * @returns {string} HTML string
  */
-function renderResultCard(result, rank) {
+function renderResultCard(result, rank, searchConfig) {
     const score = result._rankingScore || 0;
     const scorePercent = Math.round(score * 100);
     const id = rank - 1; // 0-based index for IDs
@@ -239,8 +238,9 @@ export function toggleResult(index) {
         // Collapse
         body.classList.add('hidden');
 
-        // Update Container Style
-        container.className = "result-card-container bg-white dark:bg-slate-800 rounded-xl border border-primary/30 dark:border-primary/20 shadow-sm overflow-hidden mb-6 group hover:shadow-md transition-all duration-300";
+        // Update Container Style - use classList to preserve dimmed-result
+        container.classList.remove('border-2', 'border-primary/40', 'shadow-glow', 'relative');
+        container.classList.add('border', 'border-primary/30', 'shadow-sm', 'group', 'hover:shadow-md');
 
         // Update Arrow
         arrow.textContent = 'keyboard_arrow_right';
@@ -256,8 +256,9 @@ export function toggleResult(index) {
         // Expand
         body.classList.remove('hidden');
 
-        // Update Container Style
-        container.className = "result-card-container bg-white dark:bg-slate-800 rounded-xl border-2 border-primary/40 dark:border-primary/40 shadow-glow overflow-hidden mb-6 relative";
+        // Update Container Style - use classList to preserve dimmed-result
+        container.classList.remove('border', 'border-primary/30', 'shadow-sm', 'group', 'hover:shadow-md');
+        container.classList.add('border-2', 'border-primary/40', 'shadow-glow', 'relative');
 
         // Update Arrow
         arrow.textContent = 'keyboard_arrow_down';
@@ -269,6 +270,9 @@ export function toggleResult(index) {
         // Update Badge (Prominent)
         badge.className = "px-2 py-1 bg-primary text-white text-xs font-bold rounded";
     }
+
+    // Re-apply threshold to ensure dimmed-result is correctly set
+    applyThresholdToResults();
 }
 
 /**
@@ -278,6 +282,8 @@ export function applyThresholdToResults() {
     if (!currentResults || currentResults.length === 0) return;
 
     const resultCards = DOM.resultsContainer.querySelectorAll('.result-card-container');
+    let dimmedCount = 0;
+
     resultCards.forEach((card, index) => {
         if (index < currentResults.length) {
             const result = currentResults[index];
@@ -285,9 +291,12 @@ export function applyThresholdToResults() {
 
             if (score < searchConfig.similarityThreshold) {
                 card.classList.add('dimmed-result');
+                dimmedCount++;
             } else {
                 card.classList.remove('dimmed-result');
             }
         }
     });
+
+    console.log(`[Threshold] ${dimmedCount}/${resultCards.length} cards dimmed (threshold: ${searchConfig.similarityThreshold}%)`);
 }

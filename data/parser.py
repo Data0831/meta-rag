@@ -4,9 +4,10 @@ from pathlib import Path
 import re
 
 FILES_NEED_TO_BE_PROCESSED = [
-    "partner-center.json",
-    "windows-message.json",
-    "m365_roadmap_flat.json",
+    # "partner-center.json",
+    # "windows-message.json",
+    # "m365_roadmap_flat.json",
+    "fetch_result/PowerBI_dataset.json"
 ]
 
 OUTPUT_FILE = "data.json"

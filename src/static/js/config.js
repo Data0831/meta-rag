@@ -27,11 +27,13 @@ export async function loadBackendConfig() {
 
         // Update Similarity Threshold
         if (config.default_similarity_threshold !== undefined) {
-            searchConfig.similarityThreshold = config.default_similarity_threshold;
+            // Convert from 0-1 range to 0-100 range
+            const thresholdPercent = Math.round(config.default_similarity_threshold * 100);
+            searchConfig.similarityThreshold = thresholdPercent;
             const thresholdInput = document.getElementById('similarityThreshold');
             const thresholdValue = document.getElementById('thresholdValue');
-            if (thresholdInput) thresholdInput.value = config.default_similarity_threshold * 100;
-            if (thresholdValue) thresholdValue.textContent = Math.round(config.default_similarity_threshold * 100) + '%';
+            if (thresholdInput) thresholdInput.value = thresholdPercent;
+            if (thresholdValue) thresholdValue.textContent = thresholdPercent + '%';
         }
 
         // Update Semantic Ratio

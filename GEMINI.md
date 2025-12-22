@@ -35,7 +35,7 @@
 ```text
 project_root/
 ├── data/
-│   ├── parse.json              # 來源資料 (簡化格式)
+│   ├── data.json              # 來源資料 (簡化格式)
 │   ├── parser.py               # 資料解析工具
 │   └── vectorPreprocessing.py  # 向量計算與 Index Reset 工具
 ├── src/

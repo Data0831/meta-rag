@@ -30,7 +30,8 @@ function setupSearchConfig() {
     const thresholdValue = document.getElementById('thresholdValue');
     if (similarityThresholdEl && thresholdValue) {
         similarityThresholdEl.addEventListener('input', (e) => {
-            searchConfig.similarityThreshold = parseInt(e.target.value);
+            const sliderValue = parseInt(e.target.value);
+            searchConfig.similarityThreshold = sliderValue;
             thresholdValue.textContent = searchConfig.similarityThreshold + '%';
             // Apply threshold to current results if they exist
             applyThresholdToResults();
@@ -102,7 +103,7 @@ async function performSearch() {
 
         // Log filters if LLM rewrite is enabled
         if (searchConfig.enableLlm) {
-            console.group('🧠 LLM Query Rewrite');
+            console.group('LLM Query Rewrite');
             console.log('Filters (JSON):', data.intent?.filters);
             if (data.meili_filter) {
                 console.log('Meilisearch Expression:', data.meili_filter);
@@ -110,9 +111,9 @@ async function performSearch() {
             console.groupEnd();
         }
 
-        renderResults(data, duration, query);
+        renderResults(data, duration, query, searchConfig);
     } catch (error) {
-        console.error('❌ Search failed:', error);
+        console.error('Search failed:', error);
         console.error('  Error message:', error.message);
         console.error('  Error stack:', error.stack);
         showError(error.message);
