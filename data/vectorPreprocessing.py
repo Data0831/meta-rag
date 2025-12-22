@@ -10,46 +10,46 @@ if project_root not in sys.path:
     sys.path.insert(0, project_root)
 
 from src.config import (
-    PROCESSED_OUTPUT,
+    PARSE_JSON,
     MEILISEARCH_HOST,
     MEILISEARCH_API_KEY,
     MEILISEARCH_INDEX,
 )
 from src.schema.schemas import AnnouncementDoc
 from src.database.db_adapter_meili import MeiliAdapter, transform_doc_for_meilisearch
-from src.database.vector_utils import create_enriched_text, get_embedding
+from src.database.vector_utils import get_embedding
 
 load_dotenv()
 
 
 def load_processed_data() -> List[AnnouncementDoc]:
-    if not os.path.exists(PROCESSED_OUTPUT):
-        print(f"File not found: {PROCESSED_OUTPUT}")
+    """
+    Load processed data from parse.json.
+    Expected format: Array of announcement objects.
+    """
+    if not os.path.exists(PARSE_JSON):
+        print(f"File not found: {PARSE_JSON}")
         return []
 
     try:
-        with open(PROCESSED_OUTPUT, "r", encoding="utf-8") as f:
+        with open(PARSE_JSON, "r", encoding="utf-8") as f:
             data = json.load(f)
     except json.JSONDecodeError as e:
         print(f"Error decoding JSON: {e}")
         return []
 
     docs = []
-    # Handle list or dict wrapper
-    if isinstance(data, dict) and "results" in data:
-        items = data["results"]
-    elif isinstance(data, list):
-        items = data
-    else:
-        print("Unknown JSON structure. Expected list or dict with 'results' key.")
+    # New format expects a simple list
+    if not isinstance(data, list):
+        print(f"Error: Expected a list, got {type(data)}")
         return []
 
-    for item in items:
+    for i, item in enumerate(data):
         try:
             docs.append(AnnouncementDoc(**item))
         except Exception as e:
-            print(f"Error parsing document: {e}")
-            # print(f"Item: {item}") # Debug if needed
+            print(f"Error parsing document at index {i}: {e}")
+            print(f"Item: {item}")  # Debug output for troubleshooting
     return docs
 
 
@@ -69,7 +69,7 @@ def clear_all():
 def process_and_write():
     """
     Process documents and write to Meilisearch.
-    - Load processed.json
+    - Load parse.json
     - Generate embeddings
     - Transform to Meilisearch format
     - Upsert to Meilisearch
@@ -94,8 +94,8 @@ def process_and_write():
     meili_docs = []
 
     for i, doc in enumerate(docs):
-        # Generate enriched text for embedding
-        text = create_enriched_text(doc)
+        # Use cleaned_content directly for embedding (no enriched text)
+        text = doc.cleaned_content
         vector = get_embedding(text)
 
         if vector:
@@ -103,7 +103,7 @@ def process_and_write():
             meili_doc = transform_doc_for_meilisearch(doc, vector)
             meili_docs.append(meili_doc)
         else:
-            print(f"⚠ Failed to generate embedding for doc {doc.id}")
+            print(f"⚠ Failed to generate embedding for doc: {doc.title}")
 
         if (i + 1) % 10 == 0:
             print(f"  Processed {i + 1}/{len(docs)}")
@@ -142,7 +142,7 @@ def main():
                     """
         === Meilisearch Vector Preprocessing ===
         1. Clear Meilisearch index
-        2. Process and Write (Load processed.json -> Embed -> Write to Meilisearch)
+        2. Process and Write (Load parocessed.json -> Embed -> Write to Meilisearch)
         Q. Quit
 
         Enter your choice (1, 2, or Q): """
