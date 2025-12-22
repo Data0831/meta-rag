@@ -9,3 +9,4 @@ code/*
 *.tmp
 data.json
 data/data.json
+data/test/*
