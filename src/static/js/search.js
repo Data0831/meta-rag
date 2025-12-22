@@ -7,7 +7,7 @@ import { searchConfig, loadBackendConfig } from './config.js';
 import * as DOM from './dom.js';
 import { performCollectionSearch } from './api.js';
 import { showLoading, showError } from './ui.js';
-import { renderResults, applyThresholdToResults, toggleResult } from './render.js';
+import { renderResults, applyThresholdToResults, toggleResult, currentResults } from './render.js';
 
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
