@@ -479,3 +479,187 @@ function hideAllStates() {
     searchTime.classList.add('hidden');
     if (intentContainer) intentContainer.classList.add('hidden');
 }
+
+// --- Chatbot Logic (Add to end of search.js) ---
+
+// --- Chatbot Logic (Add to end of search.js) ---
+
+document.addEventListener('DOMContentLoaded', () => {
+    setupChatbot();
+});
+
+function setupChatbot() {
+    const container = document.getElementById('chatbotContainer');
+    const triggerBtn = document.getElementById('chatTriggerBtn');
+    const closeBtn = document.getElementById('closeChatBtn');
+    const iconArrow = document.getElementById('chatIconArrow');
+    const chatInput = document.getElementById('chatInput');
+    const sendBtn = document.getElementById('sendChatBtn');
+    const messagesDiv = document.getElementById('chatMessages');
+
+    if (!container || !triggerBtn) return; 
+
+    let isOpen = false;
+    let chatHistory = []; // ★★★ 這裡是用來存歷史紀錄的 ★★★
+
+    // 1. 開關側邊欄
+    function toggleChat() {
+        isOpen = !isOpen;
+        if (isOpen) {
+            container.classList.remove('translate-x-[calc(100%-4rem)]');
+            container.classList.add('translate-x-0');
+            iconArrow.textContent = 'chevron_right'; 
+        } else {
+            container.classList.add('translate-x-[calc(100%-4rem)]');
+            container.classList.remove('translate-x-0');
+            iconArrow.textContent = 'chevron_left';
+        }
+    }
+
+    triggerBtn.addEventListener('click', toggleChat);
+    closeBtn.addEventListener('click', () => {
+        if(isOpen) toggleChat();
+    });
+
+    // 2. 發送訊息邏輯 (真實 API 版本)
+    async function sendMessage() {
+        const text = chatInput.value.trim();
+        if (!text) return;
+
+        // 檢查是否有搜尋結果
+        if (!currentResults || currentResults.length === 0) {
+            appendMessage('user', text);
+            setTimeout(() => {
+                appendMessage('bot', '請先在左側搜尋欄輸入關鍵字查詢公告，我才能根據搜尋結果回答您的問題喔！');
+            }, 500);
+            chatInput.value = '';
+            return;
+        }
+
+        // 顯示使用者訊息
+        appendMessage('user', text);
+        chatInput.value = '';
+        
+        const loadingId = appendLoading();
+
+        try {
+            // 準備目前的 Context (取前 5 筆搜尋結果)
+            const currentContext = currentResults.slice(0, 5).map(item => ({
+                title: item.title,
+                content: item.content || item.cleaned_content,
+                link: item.link,
+                year_month: item.year_month
+            
+            }));
+
+            // ★★★ 這裡是用 fetch 呼叫後端，不再是 setTimeout 了 ★★★
+            const response = await fetch('/api/chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    message: text,
+                    context: currentContext,
+                    history: chatHistory // 傳送歷史紀錄
+                })
+            });
+
+            const data = await response.json();
+            
+            removeMessage(loadingId);
+
+            if (data.error) {
+                appendMessage('bot', '系統錯誤：' + data.error);
+            } else {
+                appendMessage('bot', data.answer);
+                
+                // 成功後，更新歷史紀錄
+                chatHistory.push({ role: 'user', content: text });
+                chatHistory.push({ role: 'model', content: data.answer });
+                
+                // 限制長度避免太多
+                if (chatHistory.length > 10) chatHistory = chatHistory.slice(-10);
+            }
+
+        } catch (error) {
+            removeMessage(loadingId);
+            appendMessage('bot', '網路連線錯誤，請檢查後端是否啟動。');
+            console.error(error);
+        }
+    }
+
+    sendBtn.addEventListener('click', sendMessage);
+    chatInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') sendMessage();
+    });
+
+    // 輔助函式：新增訊息
+    function appendMessage(role, text) {
+        const div = document.createElement('div');
+        const isBot = role === 'bot';
+        
+        // 增加 'items-end' 讓 User 靠右時更整齊
+        div.className = `flex flex-col gap-1 animate-fade-in-up ${isBot ? 'items-start' : 'items-end'}`; 
+        
+        const icon = isBot ? 'smart_toy' : 'person';
+        const bgClass = isBot ? 'bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200' : 'bg-primary text-white';
+        const iconBg = isBot ? 'bg-primary' : 'bg-slate-400';
+        const roundedClass = isBot ? 'rounded-tl-none' : 'rounded-tr-none';
+        
+        // ★★★ 修改重點：引入 Markdown 解析 ★★★
+        // 1. 如果是 Bot 回覆，使用 marked.parse() 來渲染 HTML
+        // 2. 加入 'prose' class 讓列表和粗體樣式生效
+        let messageContent = '';
+        if (isBot) {
+            // 使用 marked.parse 解析 Markdown (前提是你的 HTML head 裡有引入 marked.js，我看你的 index.html 有)
+            // prose, prose-sm 是 Tailwind Typography 的樣式，讓列表有圓點
+            messageContent = `<div class="prose prose-sm dark:prose-invert max-w-none leading-relaxed">
+                                ${marked.parse(text)}
+                              </div>`;
+        } else {
+            // 使用者訊息維持原樣 (只換行)
+            messageContent = text.replace(/\n/g, '<br>');
+        }
+
+        div.innerHTML = `
+            <div class="flex items-start gap-2 ${isBot ? '' : 'flex-row-reverse'}">
+                <div class="w-8 h-8 rounded-full ${iconBg} flex items-center justify-center text-white flex-shrink-0">
+                    <span class="material-icons-round text-sm">${icon}</span>
+                </div>
+                <div class="${bgClass} p-3 rounded-2xl ${roundedClass} shadow-sm text-sm border border-slate-100 dark:border-slate-600 max-w-[90%] overflow-hidden">
+                    ${messageContent}
+                </div>
+            </div>
+        `;
+        messagesDiv.appendChild(div);
+        messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        return div.id;
+    }
+
+    // 輔助函式：載入動畫
+    function appendLoading() {
+        const id = 'msg-' + Date.now();
+        const div = document.createElement('div');
+        div.id = id;
+        div.className = 'flex items-start gap-2';
+        div.innerHTML = `
+             <div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-white flex-shrink-0">
+                <span class="material-icons-round text-sm">smart_toy</span>
+            </div>
+            <div class="bg-white dark:bg-slate-700 p-4 rounded-2xl rounded-tl-none shadow-sm border border-slate-100 dark:border-slate-600">
+                 <div class="flex space-x-1">
+                    <div class="w-2 h-2 bg-slate-400 rounded-full animate-bounce"></div>
+                    <div class="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style="animation-delay: 0.1s"></div>
+                    <div class="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style="animation-delay: 0.2s"></div>
+                </div>
+            </div>
+        `;
+        messagesDiv.appendChild(div);
+        messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        return id;
+    }
+    
+    function removeMessage(id) {
+        const el = document.getElementById(id);
+        if (el) el.remove();
+    }
+}

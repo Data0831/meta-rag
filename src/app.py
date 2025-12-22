@@ -17,6 +17,7 @@ from typing import Dict, Any
 
 from src.database.db_adapter_meili import MeiliAdapter
 from src.services.search_service import SearchService
+from src.services.rag_service import RAGService
 from src.config import MEILISEARCH_HOST, MEILISEARCH_API_KEY, MEILISEARCH_INDEX, DEFAULT_SEARCH_LIMIT, DEFAULT_SIMILARITY_THRESHOLD, DEFAULT_SEMANTIC_RATIO
 
 # Load environment variables
@@ -152,6 +153,57 @@ def search():
         print("=" * 60 + "\n")
         return jsonify({"error": str(e)}), 500
 
+
+@app.route("/api/chat", methods=["POST"])
+def chat_endpoint():
+    """
+    RAG Chat Endpoint
+    處理前端傳來的聊天請求，包含上下文與歷史紀錄
+    Request JSON: { 
+        "message": "user question", 
+        "context": [...], 
+        "history": [...] 
+    }
+    """
+    try:
+        print("\n" + "=" * 60)
+        print("🤖 /api/chat called")
+
+        data = request.get_json()
+        if not data:
+            return jsonify({"error": "Invalid JSON"}), 400
+
+        user_message = data.get("message", "")
+        # 接收前端傳來的 Context (搜尋結果)
+        provided_context = data.get("context", [])
+        # 接收前端傳來的 History (對話紀錄)
+        chat_history = data.get("history", [])
+
+        print(f"  Message: {user_message}")
+        print(f"  Context items: {len(provided_context)}")
+        print(f"  History items: {len(chat_history)}")
+
+        if not user_message:
+            return jsonify({"error": "Message is required"}), 400
+
+        # 初始化 RAG Service 並執行
+        rag_service = RAGService()
+        
+        response = rag_service.chat(
+            user_query=user_message,
+            provided_context=provided_context,
+            history=chat_history
+        )
+
+        print("✅ Chat response generated")
+        print("=" * 60 + "\n")
+        return jsonify(response)
+
+    except Exception as e:
+        print(f"❌ RAG Endpoint Error: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({"error": str(e)}), 500
 
 @app.route("/api/stats")
 def get_stats():
