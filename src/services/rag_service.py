@@ -50,11 +50,11 @@ class RAGService:
                 content = doc.get('content', '') or doc.get('cleaned_content', '')
                 date = doc.get('year_month', 'N/A')
                 
+                # 簡單截斷過長的內容 (避免超過 Token 限制)
                 if len(content) > 800:
                     content = content[:800] + "..."
                 
-                # ★★★ 修改這裡：讓標題更明確，加上 "No.x" 對應前端介面 ★★★
-                context_text += f"[第 {idx} 篇搜尋結果 (No.{idx})]\n標題: {title}\n日期: {date}\n內容: {content}\n\n"
+                context_text += f"Document {idx}:\nTitle: {title}\nDate: {date}\nContent: {content}\n\n"
         else:
             # 完全無資料時的處理
             return {
@@ -99,3 +99,37 @@ class RAGService:
             "answer": answer,
             "references": results if source_type == "search" else [] # 如果是前端傳的，通常不需要再回傳 references
         }
+    
+    def summarize(self, user_query: str, search_results: List[Dict]) -> str:
+        """
+        針對搜尋結果生成摘要
+        """
+        print(f"📝 RAGService: Generating summary for '{user_query}'")
+        
+        if not search_results:
+            return ""
+
+        # 1. 準備 Context (只取前 5 筆，避免 Token 太多)
+        context_text = ""
+        for idx, doc in enumerate(search_results[:5], 1):
+            title = doc.get('title', 'No Title')
+            content = doc.get('content', '') or doc.get('cleaned_content', '')
+            # 摘要只需要部分內容即可
+            if len(content) > 500:
+                content = content[:500] + "..."
+            context_text += f"[第 {idx} 篇] 標題: {title}\n內容: {content}\n\n"
+
+        # 2. 組裝 Prompt
+        from src.llm.rag_prompts import SUMMARY_SYSTEM_PROMPT
+        prompt = SUMMARY_SYSTEM_PROMPT.format(context=context_text, query=user_query)
+        
+        messages = [{"role": "user", "content": prompt}]
+
+        # 3. 呼叫 LLM
+        try:
+            # 使用較低的 temperature (0.3) 讓摘要更穩定
+            summary = self.llm_client.call_gemini(messages=messages, temperature=0.3)
+            return summary
+        except Exception as e:
+            print(f"❌ Summary Generation Error: {e}")
+            return ""
