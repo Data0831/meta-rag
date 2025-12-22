@@ -3,6 +3,14 @@ from typing import List, Dict, Any
 from pathlib import Path
 import re
 
+FILES_NEED_TO_BE_PROCESSED = [
+    "partner-center.json",
+    "windows-message.json",
+    "m365_roadmap_flat.json",
+]
+
+OUTPUT_FILE = "data.json"
+
 
 def clean_content(content: str) -> str:
     """
@@ -47,157 +55,78 @@ def clean_content(content: str) -> str:
     return text
 
 
-def extract_metadata_from_content(content: str) -> Dict[str, str]:
+def process_files():
     """
-    Extract workspace from content markdown.
-    Looks for pattern: * **工作區**：一般
+    Process the files defined in FILES_NEED_TO_BE_PROCESSED.
+    1. Read each file.
+    2. Check required fields (link, year_month, title, content).
+    3. Truncate content if > 3000 chars.
+    4. Clean content.
+    5. Aggregate and save to parse.json.
     """
-    metadata = {"workspace": ""}
+    base_dir = Path(__file__).parent
+    output_path = base_dir / OUTPUT_FILE
+    aggregated_data = []
 
-    # Extract workspace (工作區)
-    workspace_pattern = r"\*\s*\*\*工作區\*\*[：:]\s*(.+?)(?:\n|\*|$)"
-    workspace_match = re.search(workspace_pattern, content)
-    if workspace_match:
-        workspace = workspace_match.group(1).strip()
-        # Map Chinese to English
-        workspace_map = {
-            "一般": "General",
-            "通用": "General",
-        }
-        metadata["workspace"] = workspace_map.get(workspace, workspace)
+    print(f"Processing files: {FILES_NEED_TO_BE_PROCESSED}")
 
-    return metadata
+    for filename in FILES_NEED_TO_BE_PROCESSED:
+        file_path = base_dir / filename
+        if not file_path.exists():
+            print(f"Warning: File {filename} not found. Skipping.")
+            continue
 
+        try:
+            with open(file_path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+        except json.JSONDecodeError as e:
+            print(f"Error decoding JSON from {filename}: {e}")
+            continue
 
-def convert_month_to_numeric(month_str: str) -> str:
-    """
-    Convert month string like '2025-december' to '2025-12'
-    """
-    month_map = {
-        "january": "01",
-        "february": "02",
-        "march": "03",
-        "april": "04",
-        "may": "05",
-        "june": "06",
-        "july": "07",
-        "august": "08",
-        "september": "09",
-        "october": "10",
-        "november": "11",
-        "december": "12",
-    }
+        # Ensure data is a list
+        if not isinstance(data, list):
+            print(f"Warning: Data in {filename} is not a list. Skipping.")
+            continue
 
-    parts = month_str.split("-")
-    if len(parts) == 2:
-        year = parts[0]
-        month_name = parts[1].lower()
-        month_num = month_map.get(month_name, "00")
-        return f"{year}-{month_num}"
-
-    return month_str
-
-
-def parse_json_data(file_path: str) -> List[Dict[str, Any]]:
-    """
-    Parses the raw JSON file containing announcements.
-    Expected input format:
-    {
-        "2025-december": [
-            { "title": "...", "link": "...", "content": "..." },
-            ...
-        ],
-        ...
-    }
-
-    Returns output format:
-    [
-        {
-            "link": "...",
-            "year_month": "2025-12",
-            "Announced": "12-10",
-            "Workspace": "General",
-            "title": "...",
-            "content": "..."
-        },
-        ...
-    ]
-    """
-    try:
-        with open(file_path, "r", encoding="utf-8") as f:
-            data = json.load(f)
-    except FileNotFoundError:
-        print(f"Error: File not found at {file_path}")
-        return []
-    except json.JSONDecodeError as e:
-        print(f"Error: Failed to decode JSON - {e}")
-        return []
-
-    parsed_items = []
-
-    # Iterate over each month and its list of items
-    if isinstance(data, dict):
-        for month_key, items in data.items():
-            if not isinstance(items, list):
+        for item in data:
+            # Helper to check required fields
+            if not all(
+                key in item for key in ["link", "year_month", "title", "content"]
+            ):
+                # Skip items missing required fields
                 continue
 
-            # Convert month key to year_month format
-            year_month = convert_month_to_numeric(month_key)
+            # Process Content
+            raw_content = item["content"]
 
-            for item in items:
-                # Basic validation
-                if not isinstance(item, dict):
-                    continue
+            # 1. Truncate if > 3000
+            if len(raw_content) > 3000:
+                raw_content = raw_content[:3000]
 
-                # Extract fields
-                title = item.get("title", "").strip()
-                content = item.get("content", "").strip()
-                link = item.get("link", "").strip()
+            # 2. Clean content
+            cleaned_content = clean_content(raw_content)
 
-                # Skip items with empty content
-                if not content:
-                    print(f"⚠ 內容為空，跳過: {title}: {link}")
-                    continue
+            # Extract Year from year_month (assuming YYYY-MM format)
+            year_month = item["year_month"]
+            year = year_month.split("-")[0] if "-" in year_month else year_month[:4]
 
-                # Extract metadata from content
-                metadata = extract_metadata_from_content(content)
+            # Update existing item to preserve other keys
+            item["year"] = year
+            item["content"] = raw_content
+            item["cleaned_content"] = cleaned_content
+            if "Workspace" not in item:
+                item["Workspace"] = "General"
 
-                # Clean content for better search/RAG performance
-                cleaned = clean_content(content)
+            aggregated_data.append(item)
 
-                # Build output document
-                parsed_doc = {
-                    "link": link,
-                    "year_month": year_month,
-                    "Workspace": metadata["workspace"],
-                    "title": title,
-                    "content": content,  # Keep original content
-                    "cleaned_content": cleaned,  # Add cleaned version
-                }
-
-                parsed_items.append(parsed_doc)
-
-    return parsed_items
+    # Save aggregated data
+    try:
+        with open(output_path, "w", encoding="utf-8") as f:
+            json.dump(aggregated_data, f, ensure_ascii=False, indent=4)
+        print(f"Successfully saved {len(aggregated_data)} items to {output_path}")
+    except Exception as e:
+        print(f"Error saving output file: {e}")
 
 
 if __name__ == "__main__":
-    # Test execution
-    data_path = Path("data/page.json")
-
-    if not data_path.exists():
-        print(
-            f"Warning: {data_path} does not exist. Please place 'page.example.json' in 'data/' folder."
-        )
-    else:
-        docs = parse_json_data(str(data_path))
-        print(f"Successfully parsed {len(docs)} documents.")
-
-        # if len(docs) > 0:
-        #     print("\nSample doc:")
-        #     print(json.dumps(docs[0], indent=4, ensure_ascii=False))
-
-        # Save to parse.json
-        output_path = Path("data/parse.json")
-        with open(output_path, "w", encoding="utf-8") as f:
-            json.dump(docs, f, indent=4, ensure_ascii=False)
-        print(f"\nSaved parsed data to {output_path}")
+    process_files()

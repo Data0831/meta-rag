@@ -288,21 +288,74 @@
 
 
 
-        </div>
-    </main>
-    <div class="fixed right-0 top-1/2 -translate-y-1/2 flex flex-col items-center z-50">
-        <div
-            class="bg-primary/90 backdrop-blur-sm text-white rounded-l-2xl py-6 px-3 shadow-lg flex flex-col items-center gap-6 cursor-pointer hover:bg-primary transition-colors hover:pl-5 duration-300">
-            <span class="material-icons-round text-2xl">chevron_left</span>
-            <span class="material-icons-round text-3xl">chat_bubble_outline</span>
-            <div class="writing-mode-vertical text-lg font-bold tracking-widest"
-                style="writing-mode: vertical-rl; text-orientation: upright;">
-                問答機器人
-            </div>
-        </div>
-    </div>
+            <!-- Chatbot Container (包含按鈕與側邊欄) -->
+            <div id="chatbotContainer"
+                class="fixed right-0 top-0 h-full z-50 flex transition-transform duration-300 translate-x-[calc(100%-4rem)]">
 
-    <script type="module" src="{{ url_for('static', filename='js/search.js') }}"></script>
+                <!-- 1. 觸發按鈕 (Trigger Button) -->
+                <div id="chatTriggerBtn"
+                    class="self-center -ml-4 bg-primary/90 backdrop-blur-sm text-white rounded-l-2xl py-6 px-3 shadow-lg flex flex-col items-center gap-6 cursor-pointer hover:bg-primary transition-colors duration-300 w-16">
+                    <span id="chatIconArrow"
+                        class="material-icons-round text-2xl transition-transform duration-300">chevron_left</span>
+                    <span class="material-icons-round text-3xl">chat_bubble_outline</span>
+                    <div class="writing-mode-vertical text-lg font-bold tracking-widest"
+                        style="writing-mode: vertical-rl; text-orientation: upright;">
+                        問答機器人
+                    </div>
+                </div>
+
+                <!-- 2. 聊天面板 (Chat Panel) -->
+                <div
+                    class="w-96 h-full bg-white dark:bg-slate-800 shadow-2xl flex flex-col border-l border-slate-200 dark:border-slate-700">
+                    <!-- Header -->
+                    <div class="p-4 bg-primary text-white flex justify-between items-center shadow-md">
+                        <div class="flex items-center gap-2">
+                            <span class="material-icons-round">smart_toy</span>
+                            <h3 class="font-bold text-lg">AI 知識助手</h3>
+                        </div>
+                        <button id="closeChatBtn" class="hover:bg-white/20 rounded-full p-1 transition-colors">
+                            <span class="material-icons-round text-sm">close</span>
+                        </button>
+                    </div>
+
+                    <!-- Messages Area -->
+                    <div id="chatMessages"
+                        class="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-50 dark:bg-slate-900/50">
+                        <!-- 歡迎訊息 -->
+                        <div class="flex items-start gap-2">
+                            <div
+                                class="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-white flex-shrink-0">
+                                <span class="material-icons-round text-sm">smart_toy</span>
+                            </div>
+                            <div
+                                class="bg-white dark:bg-slate-700 p-3 rounded-2xl rounded-tl-none shadow-sm text-sm text-slate-700 dark:text-slate-200 border border-slate-100 dark:border-slate-600">
+                                您好！我是您的搜尋助手。關於目前的搜尋結果或 Microsoft 合作夥伴計畫，有什麼想問的嗎？
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Input Area -->
+                    <div class="p-4 bg-white dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700">
+                        <div class="flex gap-2">
+                            <input id="chatInput" type="text"
+                                class="flex-1 bg-slate-100 dark:bg-slate-700 border-none rounded-lg py-2 px-3 text-sm focus:ring-2 focus:ring-primary shadow-inner dark:text-white"
+                                placeholder="輸入您的問題..." />
+                            <button id="sendChatBtn"
+                                class="bg-primary hover:bg-secondary text-white rounded-lg p-2 transition-colors shadow-sm">
+                                <span class="material-icons-round">send</span>
+                            </button>
+                        </div>
+                        <div class="mt-2 flex items-center gap-2">
+                            <input type="checkbox" id="chatContextCheck"
+                                class="rounded text-primary focus:ring-primary border-gray-300" checked>
+                            <label for="chatContextCheck"
+                                class="text-xs text-slate-500 dark:text-slate-400">參考當前搜尋結果</label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <script type="module" src="{{ url_for('static', filename='js/search.js') }}"></script>
 </body>
 
 </html>

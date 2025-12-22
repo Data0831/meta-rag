@@ -7,3 +7,6 @@ data/backup/*
 code/*
 *.bak
 *.tmp
+data.json
+data/data.json
+data/test/*
