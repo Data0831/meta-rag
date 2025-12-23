@@ -267,6 +267,7 @@ function setupChatbot() {
     const container = document.getElementById('chatbotContainer');
     const triggerBtn = document.getElementById('chatTriggerBtn');
     const closeBtn = document.getElementById('closeChatBtn');
+    const clearBtn = document.getElementById('clearChatBtn'); // ★ 新增
     const iconArrow = document.getElementById('chatIconArrow');
     const chatInput = document.getElementById('chatInput');
     const sendBtn = document.getElementById('sendChatBtn');
@@ -274,10 +275,84 @@ function setupChatbot() {
 
     if (!container || !triggerBtn) return;
 
-    let isOpen = false;
-    let chatHistory = []; // ★★★ 這裡是用來存歷史紀錄的 ★★★
+    // 建立建議問題容器
+    const inputArea = chatInput.parentElement.parentElement;
+    let suggestionsContainer = document.getElementById('chatSuggestions');
+    if (!suggestionsContainer) {
+        suggestionsContainer = document.createElement('div');
+        suggestionsContainer.id = 'chatSuggestions';
+        suggestionsContainer.className = 'px-4 pb-2 flex flex-wrap gap-2 justify-end'; 
+        inputArea.insertBefore(suggestionsContainer, inputArea.firstChild); 
+    }
 
-    // 1. 開關側邊欄
+    let isOpen = false;
+    let chatHistory = []; 
+
+    // 初始化
+    fetchInitialSuggestions();
+
+    async function fetchInitialSuggestions() {
+        try {
+            const response = await fetch('/api/chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ message: "", context: [], history: [] }) 
+            });
+            const data = await response.json();
+            if (data.suggestions && data.suggestions.length > 0) {
+                renderSuggestions(data.suggestions);
+            }
+        } catch (e) {
+            console.error("無法載入初始建議", e);
+            renderSuggestions(["介紹一下你自己", "最近有什麼重大公告？", "Copilot 價格是多少？"]);
+        }
+    }
+
+    function renderSuggestions(list) {
+        suggestionsContainer.innerHTML = '';
+        if (!list || list.length === 0) return;
+
+        list.forEach(text => {
+            const btn = document.createElement('button');
+            btn.textContent = text;
+            btn.className = `
+                text-xs px-3 py-1.5 rounded-full border border-slate-300 dark:border-slate-600 
+                bg-white dark:bg-slate-700 text-slate-600 dark:text-slate-300 
+                hover:bg-slate-100 dark:hover:bg-slate-600 hover:text-primary dark:hover:text-primary
+                transition-colors cursor-pointer whitespace-nowrap shadow-sm animate-fade-in-up
+            `;
+            btn.addEventListener('click', () => {
+                chatInput.value = text;
+                sendMessage(); 
+            });
+            suggestionsContainer.appendChild(btn);
+        });
+    }
+
+    // ★ 清除紀錄邏輯
+    if (clearBtn) {
+        clearBtn.addEventListener('click', () => {
+            chatHistory = []; // 清空記憶
+            messagesDiv.innerHTML = ''; // 清空畫面
+            
+            // 補回歡迎詞
+            const welcomeDiv = document.createElement('div');
+            welcomeDiv.className = 'flex items-start gap-2 animate-fade-in-up';
+            welcomeDiv.innerHTML = `
+                <div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-white flex-shrink-0">
+                    <span class="material-icons-round text-sm">smart_toy</span>
+                </div>
+                <div class="bg-white dark:bg-slate-700 p-3 rounded-2xl rounded-tl-none shadow-sm text-sm text-slate-700 dark:text-slate-200 border border-slate-100 dark:border-slate-600">
+                    您好！我是您的搜尋助手。關於目前的搜尋結果或 Microsoft 合作夥伴計畫，有什麼想問的嗎？
+                </div>
+            `;
+            messagesDiv.appendChild(welcomeDiv);
+            
+            // 重置建議
+            fetchInitialSuggestions();
+        });
+    }
+
     function toggleChat() {
         isOpen = !isOpen;
         if (isOpen) {
@@ -296,50 +371,46 @@ function setupChatbot() {
         if (isOpen) toggleChat();
     });
 
-    // 2. 發送訊息邏輯 (真實 API 版本)
     async function sendMessage() {
         const text = chatInput.value.trim();
         if (!text) return;
 
-        // 檢查是否有搜尋結果
+        suggestionsContainer.innerHTML = ''; 
+
         if (!currentResults || currentResults.length === 0) {
             appendMessage('user', text);
             setTimeout(() => {
                 appendMessage('bot', '請先在左側搜尋欄輸入關鍵字查詢公告，我才能根據搜尋結果回答您的問題喔！');
+                renderSuggestions(["如何搜尋公告？", "Copilot 是什麼？", "搜尋最新價格"]); 
             }, 500);
             chatInput.value = '';
             return;
         }
 
-        // 顯示使用者訊息
         appendMessage('user', text);
         chatInput.value = '';
 
         const loadingId = appendLoading();
 
         try {
-            // 準備目前的 Context (取前 5 筆搜尋結果)
             const currentContext = currentResults.slice(0, 5).map(item => ({
                 title: item.title,
                 content: item.content || item.cleaned_content,
                 link: item.link,
                 year_month: item.year_month
-
             }));
 
-            // ★★★ 這裡是用 fetch 呼叫後端，不再是 setTimeout 了 ★★★
             const response = await fetch('/api/chat', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     message: text,
                     context: currentContext,
-                    history: chatHistory // 傳送歷史紀錄
+                    history: chatHistory 
                 })
             });
 
             const data = await response.json();
-
             removeMessage(loadingId);
 
             if (data.error) {
@@ -347,11 +418,13 @@ function setupChatbot() {
             } else {
                 appendMessage('bot', data.answer);
 
-                // 成功後，更新歷史紀錄
+                if (data.suggestions && data.suggestions.length > 0) {
+                    renderSuggestions(data.suggestions);
+                }
+
                 chatHistory.push({ role: 'user', content: text });
                 chatHistory.push({ role: 'model', content: data.answer });
 
-                // 限制長度避免太多
                 if (chatHistory.length > 10) chatHistory = chatHistory.slice(-10);
             }
 
@@ -367,31 +440,22 @@ function setupChatbot() {
         if (e.key === 'Enter') sendMessage();
     });
 
-    // 輔助函式：新增訊息
     function appendMessage(role, text) {
         const div = document.createElement('div');
         const isBot = role === 'bot';
 
-        // 增加 'items-end' 讓 User 靠右時更整齊
         div.className = `flex flex-col gap-1 animate-fade-in-up ${isBot ? 'items-start' : 'items-end'}`;
-
         const icon = isBot ? 'smart_toy' : 'person';
         const bgClass = isBot ? 'bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200' : 'bg-primary text-white';
         const iconBg = isBot ? 'bg-primary' : 'bg-slate-400';
         const roundedClass = isBot ? 'rounded-tl-none' : 'rounded-tr-none';
 
-        // ★★★ 修改重點：引入 Markdown 解析 ★★★
-        // 1. 如果是 Bot 回覆，使用 marked.parse() 來渲染 HTML
-        // 2. 加入 'prose' class 讓列表和粗體樣式生效
         let messageContent = '';
         if (isBot) {
-            // 使用 marked.parse 解析 Markdown (前提是你的 HTML head 裡有引入 marked.js，我看你的 index.html 有)
-            // prose, prose-sm 是 Tailwind Typography 的樣式，讓列表有圓點
             messageContent = `<div class="prose prose-sm dark:prose-invert max-w-none leading-relaxed">
                                 ${marked.parse(text)}
                               </div>`;
         } else {
-            // 使用者訊息維持原樣 (只換行)
             messageContent = text.replace(/\n/g, '<br>');
         }
 
@@ -410,7 +474,6 @@ function setupChatbot() {
         return div.id;
     }
 
-    // 輔助函式：載入動畫
     function appendLoading() {
         const id = 'msg-' + Date.now();
         const div = document.createElement('div');
