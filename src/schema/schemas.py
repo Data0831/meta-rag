@@ -60,7 +60,7 @@ class SearchIntent(BaseModel):
     )
     limit: Optional[int] = Field(None, description="Max results to return")
     recommended_semantic_ratio: Optional[float] = Field(
-        0.5,
+        None,
         ge=0.0,
         le=1.0,
         description="Recommended weight for semantic search (0.0=pure keyword, 1.0=pure semantic, 0.5=balanced)",

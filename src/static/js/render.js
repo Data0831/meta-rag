@@ -33,11 +33,28 @@ export function renderResults(data, duration, query) {
     DOM.intentContainer.classList.remove('hidden');
     DOM.displayQuery.textContent = query;
 
+    // Check if LLM failed
+    const llmError = data.llm_error;
+    const llmWarningBanner = document.getElementById('llmWarningBanner');
+
+    if (llmError) {
+        // Show LLM error banner
+        console.log('LLM Error detected:', llmError);
+        if (llmWarningBanner) {
+            llmWarningBanner.classList.remove('hidden');
+        }
+    } else {
+        // Hide LLM error banner
+        if (llmWarningBanner) {
+            llmWarningBanner.classList.add('hidden');
+        }
+    }
+
     // Show/Hide LLM Details
     const toggleBtn = document.getElementById('toggleIntentBtn');
     const toggleIcon = document.getElementById('toggleIntentIcon');
 
-    if (intent && searchConfig.enableLlm) {
+    if (intent && searchConfig.enableLlm && !llmError) {
         console.log('Updating intent display');
         updateIntentDisplay(intent);
 
@@ -63,10 +80,13 @@ export function renderResults(data, duration, query) {
     // Store results globally for detail view
     currentResults = results;
 
+    // Extract final_semantic_ratio from response
+    const finalSemanticRatio = data.final_semantic_ratio !== undefined ? data.final_semantic_ratio : searchConfig.semanticRatio;
+
     // Render result cards
     DOM.resultsContainer.classList.remove('hidden');
     DOM.resultsContainer.innerHTML = results.map((result, index) => {
-        return renderResultCard(result, index + 1, searchConfig);
+        return renderResultCard(result, index + 1, searchConfig, finalSemanticRatio);
     }).join('');
 
     // Show summary container with mock data
@@ -154,9 +174,10 @@ function updateIntentDisplay(intent) {
  * @param {Object} result - Result object
  * @param {number} rank - Result rank (1-based)
  * @param {Object} searchConfig - Search configuration object
+ * @param {number} finalSemanticRatio - Final semantic ratio used in search
  * @returns {string} HTML string
  */
-function renderResultCard(result, rank, searchConfig) {
+function renderResultCard(result, rank, searchConfig, finalSemanticRatio) {
     const score = result._rankingScore || 0;
     const scorePercent = Math.round(score * 100);
     const id = rank - 1; // 0-based index for IDs
@@ -168,6 +189,23 @@ function renderResultCard(result, rank, searchConfig) {
     const date = result.year_month || 'N/A';
     const link = result.link || '#';
     const content = result.content ? marked.parse(result.content) : '';
+
+    // Truncate title for card header (h4) to 15 characters
+    const truncatedTitle = title.length > 15 ? title.substring(0, 15) + '...' : title;
+
+    // Determine search type based on finalSemanticRatio
+    let searchTypeLabel = '';
+    let searchTypeClass = '';
+    if (finalSemanticRatio <= 0.01) {
+        searchTypeLabel = 'Keyword';
+        searchTypeClass = 'bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-300 border-blue-200 dark:border-blue-700';
+    } else if (finalSemanticRatio >= 0.99) {
+        searchTypeLabel = 'Semantic';
+        searchTypeClass = 'bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-300 border-green-200 dark:border-green-700';
+    } else {
+        searchTypeLabel = 'Hybrid';
+        searchTypeClass = 'bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-300 border-purple-200 dark:border-purple-700';
+    }
 
     // Colors based on score
     let badgeClass = "px-2 py-1 bg-primary/20 dark:bg-primary/30 text-primary dark:text-primary-light text-xs font-bold rounded";
@@ -198,9 +236,12 @@ function renderResultCard(result, rank, searchConfig) {
                 <span id="result-arrow-${id}" class="${arrowClass}">${arrowText}</span>
                 <span id="result-number-${id}" class="${numberTextClass}">No.${rank}</span>
                 <div class="h-4 w-[1px] bg-slate-300 dark:bg-slate-600"></div>
-                <h4 class="font-bold text-lg text-slate-800 dark:text-white">${title}</h4>
+                <h4 class="font-bold text-lg text-slate-800 dark:text-white">${truncatedTitle}</h4>
             </div>
-            <span id="result-badge-${id}" class="${badgeClass}">${scorePercent}% Match</span>
+            <div class="flex items-center gap-2">
+                <span class="px-2 py-1 rounded border text-xs font-medium ${searchTypeClass}">${searchTypeLabel}</span>
+                <span id="result-badge-${id}" class="${badgeClass}">${scorePercent}% Match</span>
+            </div>
         </div>
 
         <div id="result-body-${id}" class="${bodyClass}">

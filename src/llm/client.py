@@ -10,10 +10,10 @@ load_dotenv()
 
 # Import model list from config
 import sys
+
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 if project_root not in sys.path:
     sys.path.insert(0, project_root)
-from config import GEMINI_MODELS
 
 T = TypeVar("T", bound=BaseModel)
 
@@ -81,7 +81,7 @@ class LLMClient:
         response_model: Type[T],
         temperature: float = 0.0,
         model: str = None,
-        max_retries: int = 2,
+        max_retries: int = 0,
     ) -> T | None:
         """
         呼叫 LLM 並使用 Pydantic Schema 驗證輸出。
@@ -106,7 +106,7 @@ class LLMClient:
             "json_schema": {"name": schema_name, "strict": True, "schema": schema},
         }
 
-        for attempt in range(max_retries + 1):
+        for attempt in range(max_retries):
             try:
                 # 呼叫 LLM
                 response_text = self.call_gemini(

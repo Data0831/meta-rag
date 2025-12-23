@@ -173,7 +173,7 @@ async function generateSearchSummary(query, results) {
 
         const data = await response.json();
 
-        if (data.summary) {
+        if (data.summary && data.summary.trim()) {
             // 更新標題
             summaryTitle.innerHTML = `以下為「<span class="text-primary">${query}</span>」的相關公告總結：`;
 
@@ -187,15 +187,36 @@ async function generateSearchSummary(query, results) {
             if (ul) {
                 ul.classList.add('list-disc', 'pl-5', 'space-y-1');
             }
+        } else if (data.error) {
+            // 後端返回錯誤
+            summaryTitle.innerHTML = `摘要生成失敗`;
+            summaryContent.innerHTML = `
+                <div class="flex items-center gap-2 text-amber-600 dark:text-amber-400">
+                    <span class="material-icons-round text-lg">warning</span>
+                    <p class="text-sm">AI 服務暫時無法使用，請稍後再試。</p>
+                </div>
+            `;
         } else {
-            // 如果後端沒吐出摘要，就隱藏區塊
-            hideSummary();
+            // 後端沒返回摘要也沒返回錯誤
+            summaryTitle.innerHTML = `摘要生成失敗`;
+            summaryContent.innerHTML = `
+                <div class="flex items-center gap-2 text-slate-500 dark:text-slate-400">
+                    <span class="material-icons-round text-lg">info</span>
+                    <p class="text-sm">無法生成摘要，請稍後再試。</p>
+                </div>
+            `;
         }
 
     } catch (error) {
         console.error("摘要生成失敗:", error);
-        // 失敗時隱藏區塊，不要顯示錯誤訊息給使用者看，以免干擾體驗
-        hideSummary();
+        // 顯示錯誤訊息而不是隱藏區塊
+        summaryTitle.innerHTML = `摘要生成失敗`;
+        summaryContent.innerHTML = `
+            <div class="flex items-center gap-2 text-red-600 dark:text-red-400">
+                <span class="material-icons-round text-lg">error</span>
+                <p class="text-sm">網路連線錯誤，請檢查後端服務是否正常運行。</p>
+            </div>
+        `;
     }
 }
 

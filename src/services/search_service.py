@@ -147,17 +147,21 @@ class SearchService:
             Dictionary with:
             - intent: Parsed search intent (includes recommended_semantic_ratio)
             - results: List of ranked documents from Meilisearch
+            - llm_error: (optional) Error message if LLM failed
         """
         # 1. Parse Intent
         intent = None
+        llm_error = None
+
         if enable_llm:
             intent = self.parse_intent(user_query)
 
-        if not intent:
-            if enable_llm:
-                # Fallback if intent parsing fails
-                print("Intent parsing failed. Using fallback basic search.")
+            if not intent:
+                # LLM failed to return valid intent
+                print("LLM Intent parsing failed. Using fallback basic search.")
+                llm_error = "LLM service temporarily unavailable"
 
+        if not intent:
             # Basic intent (no filters, raw query)
             intent = SearchIntent(
                 filters=SearchFilters(),  # Empty filters
@@ -169,10 +173,17 @@ class SearchService:
         if intent.limit is not None:
             limit = intent.limit
 
-        # Use LLM-recommended semantic_ratio (unless user explicitly overrides)
+        # Use LLM-recommended semantic_ratio (unless user explicitly overrides with extreme values)
+        # 1. If user explicitly chose 0.0 (Pure Keyword) or 1.0 (Pure Semantic), we respect it.
+        # 2. Otherwise, if LLM provides a recommendation, we use the LLM's recommendation to be "Smart".
         if intent.recommended_semantic_ratio is not None:
-            semantic_ratio = intent.recommended_semantic_ratio
-            print(f"Using LLM-recommended semantic_ratio: {semantic_ratio:.2f}")
+            if semantic_ratio in [0.0, 1.0]:
+                print(f"User explicitly chose {semantic_ratio}, ignoring LLM recommendation ({intent.recommended_semantic_ratio:.2f})")
+            else:
+                semantic_ratio = intent.recommended_semantic_ratio
+                print(f"Using LLM-recommended semantic_ratio: {semantic_ratio:.2f}")
+        else:
+            print(f"No LLM recommendation. Using semantic_ratio: {semantic_ratio:.2f}")
 
         # 2. Build Meilisearch filter expression
         meili_filter = build_meili_filter(intent.filters)
@@ -263,8 +274,14 @@ class SearchService:
         print(f"DEBUG - After serialization:")
         print(f"  serialized_intent['filters']: {serialized_intent.get('filters')}")
 
-        return {
+        response = {
             "intent": serialized_intent,
             "meili_filter": meili_filter,
             "results": final_results,
+            "final_semantic_ratio": semantic_ratio,
         }
+
+        if llm_error:
+            response["llm_error"] = llm_error
+
+        return response

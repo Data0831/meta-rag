@@ -26,4 +26,16 @@
 - **系統優化**：修正 `/collection_search` 路由重定向問題，並修復 LLM 過濾條件 (Year/Workspace/Links) 在前端的視覺化標籤顯示。
 
 ## 2025-12-23 11:14:13
-- **Link 去重合併功能**：在 `config.py` 新增 `PRE_SEARCH_LIMIT=24` 配置（附 TODO 建議未來可改為動態倍數）。修改 `search_service.py` 實作 `_merge_duplicate_links()` 方法，先向 Meilisearch 請求 24 筆結果，按 `_rankingScore` 排序後合併相同 link 的文檔（content 用 `\n---\n` 拼接，保留最高 score 的 metadata），最後取前 `limit` 筆返回。更新 `docs/archtect/search-flow.md` 流程圖與文字說明，記錄去重邏輯以避免切塊後同一網頁重複出現。
+- **Link 去重合併功能**：在 `config.py` 新增 `PRE_SEARCH_LIMIT=24` 配置（附 TODO 建議未來可改為動態倍數）。修改 `search_service.py` 實作 `_merge_duplicate_links()` 方法，先向 Meilisearch 請求 24 筆結果，按 `_rankingScore` 排序後合併相同 link 的文檔（content 用 `
+---
+` 拼接，保留最高 score 的 metadata），最後取前 `limit` 筆返回。更新 `docs/archtect/search-flow.md` 流程圖與文字說明，記錄去重邏輯以避免切塊後同一網頁重複出現。
+
+## 2025-12-23 13:50:37
+- **搜尋結果 UI 優化**：修改 `render.js` 與 `search_service.py`，在後端返回 `final_semantic_ratio` 欄位，前端根據此值在搜尋結果卡片的 match score 旁顯示搜尋類型標籤（Keyword/Semantic/Hybrid，分別使用藍/綠/紫配色）。卡片標題限制為 15 字，超過加上 "..."，展開後顯示完整標題。
+- **LLM 錯誤處理**：在 `search_service.py` 中檢測 LLM 調用失敗（`parse_intent` 返回 `None`），設置 `llm_error` 欄位並使用 fallback 基本搜尋。前端在 `intentContainer` 頂部（查詢資訊後）顯示琥珀色警告橫幅「LLM 服務暫時無法使用，使用基本搜尋模式」。同步修復摘要生成失敗時的錯誤顯示，改為友好提示而非隱藏區塊。
+
+## 2025-12-23 15:00:00
+- **搜尋模式邏輯修復**：修正 `SearchService` 與 UI 在切換純關鍵字/語意模式時的不一致問題。
+  - 將 Schema 中 `recommended_semantic_ratio` 預設值改為 `None` 以區分 LLM 建議。
+  - 更新後端邏輯：當用戶手動設定極端值 (0.0 或 1.0) 時優先採納，忽略 LLM 建議。
+  - 優化前端標籤：將 `render.js` 中的標籤判定改為容許浮點數誤差範圍 (<=0.01, >=0.99)，解決切換 Hybrid 顯示錯誤。

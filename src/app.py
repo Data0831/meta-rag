@@ -176,7 +176,7 @@ def chat_endpoint():
     """
     try:
         print("\n" + "=" * 60)
-        print("🤖 /api/chat called")
+        print("/api/chat called")
 
         data = request.get_json()
         if not data:
@@ -215,6 +215,7 @@ def chat_endpoint():
         traceback.print_exc()
         return jsonify({"error": str(e)}), 500
 
+
 @app.route("/api/summary", methods=["POST"])
 def generate_summary():
     """
@@ -245,20 +246,22 @@ def generate_summary():
 
         # 初始化 RAG Service
         rag_service = RAGService()
-        
+
         # 呼叫摘要方法
         summary_text = rag_service.summarize(user_query, search_results)
 
         print("✅ Summary generated")
         print("=" * 60 + "\n")
-        
+
         return jsonify({"summary": summary_text})
 
     except Exception as e:
         print(f"❌ Summary Endpoint Error: {e}")
         import traceback
+
         traceback.print_exc()
         return jsonify({"error": str(e)}), 500
+
 
 @app.route("/api/stats")
 def get_stats():
