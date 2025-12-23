@@ -1,14 +1,6 @@
 .env
 *.pyc
-data/split/*
-data/processed/*
-data/process_log/*
-data/backup/*
-code/*
 *.bak
 *.tmp
-data.json
-data/data.json
-data/test/*
-
+data/backup/*
 data/*.json
