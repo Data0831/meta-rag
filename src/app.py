@@ -215,6 +215,50 @@ def chat_endpoint():
         traceback.print_exc()
         return jsonify({"error": str(e)}), 500
 
+@app.route("/api/summary", methods=["POST"])
+def generate_summary():
+    """
+    API Route: Generate summary for search results
+    處理前端傳來的摘要請求
+    Request JSON: {
+        "query": "user query string",
+        "results": [ ... top 5 search results ... ]
+    }
+    """
+    try:
+        print("\n" + "=" * 60)
+        print("📝 /api/summary called")
+
+        data = request.get_json()
+        if not data:
+            return jsonify({"error": "Invalid JSON"}), 400
+
+        user_query = data.get("query", "")
+        search_results = data.get("results", [])
+
+        if not user_query:
+            print("Missing 'query' field")
+            return jsonify({"error": "Query is required"}), 400
+
+        print(f"  Query: {user_query}")
+        print(f"  Results to summarize: {len(search_results)}")
+
+        # 初始化 RAG Service
+        rag_service = RAGService()
+        
+        # 呼叫摘要方法
+        summary_text = rag_service.summarize(user_query, search_results)
+
+        print("✅ Summary generated")
+        print("=" * 60 + "\n")
+        
+        return jsonify({"summary": summary_text})
+
+    except Exception as e:
+        print(f"❌ Summary Endpoint Error: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({"error": str(e)}), 500
 
 @app.route("/api/stats")
 def get_stats():

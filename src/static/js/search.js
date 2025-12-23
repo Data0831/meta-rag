@@ -98,7 +98,11 @@ async function performSearch() {
 
     showLoading();
 
+    // 每次新搜尋前，先隱藏摘要區塊 (避免看到上次的殘留)
+    hideSummary();
+
     try {
+        // 發送搜尋請求
         const { data, duration } = await performCollectionSearch(query);
 
         // Log filters if LLM rewrite is enabled
@@ -111,13 +115,93 @@ async function performSearch() {
             console.groupEnd();
         }
 
+        // 1. 渲染搜尋列表 (只要成功拿到資料就渲染)
         renderResults(data, duration, query, searchConfig);
+
+        // 2. ★★★ 觸發摘要生成 (移到這裡，確保 data 讀取得到) ★★★
+        if (data.results && data.results.length > 0) {
+            // 有搜尋結果才做摘要
+            generateSearchSummary(query, data.results);
+        } else {
+            // 沒結果就隱藏摘要區塊
+            hideSummary();
+        }
+
     } catch (error) {
         console.error('Search failed:', error);
         console.error('  Error message:', error.message);
-        console.error('  Error stack:', error.stack);
         showError(error.message);
+        // 發生錯誤時也要隱藏摘要
+        hideSummary();
     }
+}
+
+async function generateSearchSummary(query, results) {
+    const summaryContainer = document.getElementById('summaryContainer');
+    const summaryContent = document.getElementById('summaryContent');
+    const summaryTitle = document.getElementById('summaryTitle');
+
+    // 初始化 UI：顯示容器，並顯示 Loading 狀態
+    summaryContainer.classList.remove('hidden');
+    summaryTitle.innerHTML = `正在為您總結「<span class="text-primary">${query}</span>」的相關公告...`;
+
+    // 顯示 Loading 動畫 (Skeleton)
+    summaryContent.innerHTML = `
+        <div class="animate-pulse space-y-3">
+            <div class="h-2 bg-slate-200 dark:bg-slate-700 rounded w-3/4"></div>
+            <div class="h-2 bg-slate-200 dark:bg-slate-700 rounded w-full"></div>
+            <div class="h-2 bg-slate-200 dark:bg-slate-700 rounded w-5/6"></div>
+        </div>
+    `;
+
+    try {
+        // 準備要傳給後端的資料 (只傳前 5 筆 ID 或內容，減少傳輸量)
+        const topResults = results.slice(0, 5).map(item => ({
+            title: item.title,
+            content: item.content || item.cleaned_content
+        }));
+
+        // 呼叫後端 API
+        const response = await fetch('/api/summary', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                query: query,
+                results: topResults
+            })
+        });
+
+        const data = await response.json();
+
+        if (data.summary) {
+            // 更新標題
+            summaryTitle.innerHTML = `以下為「<span class="text-primary">${query}</span>」的相關公告總結：`;
+
+            // 渲染 Markdown 內容
+            // 使用 marked.parse 來解析後端回傳的 Markdown 列表
+            summaryContent.innerHTML = marked.parse(data.summary);
+
+            // 讓列表樣式更好看 (Tailwind Typography)
+            // 確保 summaryContent 外層或本身有 prose class，或手動調整 CSS
+            const ul = summaryContent.querySelector('ul');
+            if (ul) {
+                ul.classList.add('list-disc', 'pl-5', 'space-y-1');
+            }
+        } else {
+            // 如果後端沒吐出摘要，就隱藏區塊
+            hideSummary();
+        }
+
+    } catch (error) {
+        console.error("摘要生成失敗:", error);
+        // 失敗時隱藏區塊，不要顯示錯誤訊息給使用者看，以免干擾體驗
+        hideSummary();
+    }
+}
+
+function hideSummary() {
+    const summaryContainer = document.getElementById('summaryContainer');
+    if (summaryContainer) summaryContainer.classList.add('hidden');
 }
 
 /**
