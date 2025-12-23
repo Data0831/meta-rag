@@ -10,3 +10,5 @@ code/*
 data.json
 data/data.json
 data/test/*
+
+data/*.json
