@@ -47,7 +47,7 @@ function setupSearchConfig() {
         // Init state
         semanticRatioSlider.disabled = !manualRatioCheckbox.checked;
         if (!manualRatioCheckbox.checked) {
-             if (semanticRatioValue) semanticRatioValue.textContent = "Auto";
+            if (semanticRatioValue) semanticRatioValue.textContent = "Auto";
         }
 
         // Checkbox listener
@@ -55,7 +55,7 @@ function setupSearchConfig() {
             const isManual = e.target.checked;
             searchConfig.manualSemanticRatio = isManual;
             semanticRatioSlider.disabled = !isManual;
-            
+
             if (isManual) {
                 // Restore value from slider
                 const val = parseInt(semanticRatioSlider.value);
@@ -266,7 +266,6 @@ document.addEventListener('DOMContentLoaded', () => {
 function setupChatbot() {
     const container = document.getElementById('chatbotContainer');
     const triggerBtn = document.getElementById('chatTriggerBtn');
-    const closeBtn = document.getElementById('closeChatBtn');
     const clearBtn = document.getElementById('clearChatBtn'); // ★ 新增
     const iconArrow = document.getElementById('chatIconArrow');
     const chatInput = document.getElementById('chatInput');
@@ -281,12 +280,12 @@ function setupChatbot() {
     if (!suggestionsContainer) {
         suggestionsContainer = document.createElement('div');
         suggestionsContainer.id = 'chatSuggestions';
-        suggestionsContainer.className = 'px-4 pb-2 flex flex-wrap gap-2 justify-end'; 
-        inputArea.insertBefore(suggestionsContainer, inputArea.firstChild); 
+        suggestionsContainer.className = 'px-4 pb-2 flex flex-wrap gap-2 justify-end';
+        inputArea.insertBefore(suggestionsContainer, inputArea.firstChild);
     }
 
     let isOpen = false;
-    let chatHistory = []; 
+    let chatHistory = [];
 
     // 初始化
     fetchInitialSuggestions();
@@ -296,7 +295,7 @@ function setupChatbot() {
             const response = await fetch('/api/chat', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ message: "", context: [], history: [] }) 
+                body: JSON.stringify({ message: "", context: [], history: [] })
             });
             const data = await response.json();
             if (data.suggestions && data.suggestions.length > 0) {
@@ -323,7 +322,7 @@ function setupChatbot() {
             `;
             btn.addEventListener('click', () => {
                 chatInput.value = text;
-                sendMessage(); 
+                sendMessage();
             });
             suggestionsContainer.appendChild(btn);
         });
@@ -334,7 +333,7 @@ function setupChatbot() {
         clearBtn.addEventListener('click', () => {
             chatHistory = []; // 清空記憶
             messagesDiv.innerHTML = ''; // 清空畫面
-            
+
             // 補回歡迎詞
             const welcomeDiv = document.createElement('div');
             welcomeDiv.className = 'flex items-start gap-2 animate-fade-in-up';
@@ -347,7 +346,7 @@ function setupChatbot() {
                 </div>
             `;
             messagesDiv.appendChild(welcomeDiv);
-            
+
             // 重置建議
             fetchInitialSuggestions();
         });
@@ -367,21 +366,18 @@ function setupChatbot() {
     }
 
     triggerBtn.addEventListener('click', toggleChat);
-    closeBtn.addEventListener('click', () => {
-        if (isOpen) toggleChat();
-    });
 
     async function sendMessage() {
         const text = chatInput.value.trim();
         if (!text) return;
 
-        suggestionsContainer.innerHTML = ''; 
+        suggestionsContainer.innerHTML = '';
 
         if (!currentResults || currentResults.length === 0) {
             appendMessage('user', text);
             setTimeout(() => {
                 appendMessage('bot', '請先在左側搜尋欄輸入關鍵字查詢公告，我才能根據搜尋結果回答您的問題喔！');
-                renderSuggestions(["如何搜尋公告？", "Copilot 是什麼？", "搜尋最新價格"]); 
+                renderSuggestions(["如何搜尋公告？", "Copilot 是什麼？", "搜尋最新價格"]);
             }, 500);
             chatInput.value = '';
             return;
@@ -406,7 +402,7 @@ function setupChatbot() {
                 body: JSON.stringify({
                     message: text,
                     context: currentContext,
-                    history: chatHistory 
+                    history: chatHistory
                 })
             });
 
