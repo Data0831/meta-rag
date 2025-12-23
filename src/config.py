@@ -27,6 +27,8 @@ MEILISEARCH_INDEX = "announcements_v2"
 DEFAULT_SEARCH_LIMIT = 5
 DEFAULT_SIMILARITY_THRESHOLD = 0.81
 DEFAULT_SEMANTIC_RATIO = 0.5
+# TODO: Consider making this dynamic (e.g., limit * 1.2) in the future
+PRE_SEARCH_LIMIT = 24
 
 # ETL Settings
 DEFAULT_BATCH_SIZE = 10  # Number of documents to process per batch

@@ -1,97 +1,127 @@
-# 技術規格書：Microsoft RAG 智慧檢索系統 (Meilisearch 版)
+# 專案規格書：Microsoft RAG 智慧檢索系統 (Meilisearch 版)
 
-## 1. 專案目標 (Objectives)
+## 1. 專案概述
 本專案旨在建構一套高效能的 Microsoft 公告智慧檢索系統，並為未來擴充為對話機器人 (Chatbot) 奠定基礎。
-*   **統一檢索 (Unified Search)**：採用 **Meilisearch** 作為單一核心引擎，同時處理「關鍵字精準匹配」、「中文分詞」、「屬性過濾」與「語意向量檢索 (Hybrid Search)」。
-*   **簡化 ETL**：直接使用清洗後的內容生成向量，無需複雜的 Metadata 提取，適配搜尋引擎索引結構。
-*   **輕量化架構**：移除複雜的資料庫同步邏輯與 Metadata 合成 (No SQL, No Fusion Code, No Enriched Text)，大幅降低維護成本與系統延遲。
+*   **核心目標**：打造統一且高效的檢索體驗，整合「關鍵字精準匹配」、「中文分詞」、「屬性過濾」與「語意向量檢索 (Hybrid Search)」。
+*   **架構特色**：採用輕量化設計，移除複雜的資料庫同步邏輯 (No SQL, No Fusion Code)，直接使用清洗後的內容生成向量並索引至 Meilisearch。
+*   **目標用戶**：需要快速查找 Microsoft 產品公告與技術文件的使用者。
 
-## 2. 系統核心架構 (Core Architecture)
+## 2. 技術棧
+*   **語言與環境**: Python 3.10+ (Anaconda), Windows/Linux
+*   **核心引擎**: Meilisearch (Docker 部署) - 負責全文檢索、向量檢索與過濾。
+*   **Web 框架**: Flask (規劃中/初步實作)
+*   **LLM 模型**: Google Gemini 2.5 Flash (用於意圖識別與 RAG 生成)
+*   **Embedding 模型**: bge-m3 (用於向量生成)
+*   **資料驗證**: Pydantic (嚴格定義 Schema)
+*   **主要依賴**: `meilisearch`, `google-generativeai`, `flask`, `pydantic`
 
-系統採用 **三層式架構 (3-Tier Architecture)** 以確保輕量與高效。
-
-### 2.1 架構分層
-1.  **應用層 (Application Layer)**
-    *   負責與使用者互動 (CLI / Future Flask Web App)。
-    *   *職責*：接收使用者自然語言查詢，轉發至 Service 層，並展示排序後的結果。
-2.  **服務層 (Service Layer)**
-    *   核心業務邏輯所在。
-    *   **SearchService**: 負責「意圖識別」(Intent Parsing) 與「單一檢索呼叫」(One-Shot Search)。它將使用者的自然語言轉換為 Meilisearch 的 `filter` 表達式與 Hybrid Search 參數。
-    *   **RAGService**: 負責 Prompt 組裝與 LLM 對話生成 (Answer Generation)。
-    *   **ETLPipeline**: 負責資料清洗、向量計算 (Embedding)，並轉換為 Meilisearch Document 格式。
-3.  **資料存取層 (Data Access Layer / DAL)**
-    *   **`db_adapter_meili.py`**: 系統唯一的資料庫轉接器。封裝 Meilisearch SDK，處理 Index 設定、Documents Upsert 與 Hybrid Search 查詢。
-    *   **Infrastructure**: 
-        *   LLM Client (Gemini 2.5 Flash)。
-        *   Embedding Model (bge-m3) - *由 ETL 端計算後傳入 Meilisearch*。
-        *   **Meilisearch Engine**: 運行於 Docker，負責儲存與計算。
-
-### 2.2 關鍵資料流 (Data Flow)
-*   **寫入 (ETL)**: Raw Data (parse.json) -> Embedding Calculation (cleaned_content) -> **Meilisearch Indexing** (JSON Documents with `_vectors`)。
-*   **讀取 (Search)**: User Query -> LLM Intent Parser (Filters) -> **Meilisearch (Hybrid Search)** -> Result。
-
-## 3. 專案檔案結構 (Project Structure)
+## 3. 檔案結構
+僅列出核心目錄與重點檔案：
 
 ```text
 project_root/
 ├── data/
-│   ├── data.json              # 來源資料 (簡化格式)
-│   ├── parser.py               # 資料解析工具
-│   └── vectorPreprocessing.py  # 向量計算與 Index Reset 工具
+│   ├── data.json               # 原始資料來源
+│   ├── parser.py               # 資料解析 ETL 工具
+│   ├── vectorPreprocessing.py  # 向量計算與 Index Reset 工具
+│   └── fetch_result/           # 爬蟲抓取的原始資料
 ├── src/
-│   ├── config.py               # 全域設定 (Meilisearch Host, Key 等)
-│   ├── meilisearch_config.py   # Meilisearch 索引配置
-│   ├── app.py                  # Flask 入口點
-│   ├── services/               # [核心] 業務邏輯服務層
-│   │   ├── search_service.py   # 處理 Intent Parsing 與 Meili Search 呼叫
-│   ├── database/               # 資料庫轉接器 (DAL)
-│   │   ├── db_adapter_meili.py # [唯一] Meilisearch Adapter
-│   │   └── vector_utils.py     # 向量生成工具
-│   ├── llm/                    # LLM 客戶端封裝
-│   └── schema/                 # Pydantic 資料模型
-│       └── schemas.py          # 定義 AnnouncementDoc 與 SearchIntent
-└── requirements.txt            # meilisearch, google-generativeai 等
+│   ├── app.py                  # Flask 應用程式入口
+│   ├── config.py               # 全域環境設定
+│   ├── meilisearch_config.py   # Meilisearch 索引與過濾欄位設定
+│   ├── database/
+│   │   ├── db_adapter_meili.py # [核心] Meilisearch 資料庫轉接器
+│   │   └── vector_utils.py     # 向量處理工具
+│   ├── llm/
+│   │   ├── client.py           # LLM 客戶端
+│   │   ├── search_prompts.py   # 搜尋意圖識別 Prompt
+│   │   └── rag_prompts.py      # RAG 回答生成 Prompt
+│   ├── schema/
+│   │   └── schemas.py          # Pydantic 資料模型 (AnnouncementDoc, SearchIntent)
+│   ├── services/
+│   │   ├── search_service.py   # 搜尋業務邏輯 (Intent Parsing -> Search)
+│   │   └── rag_service.py      # RAG 業務邏輯
+│   ├── static/                 # 前端靜態資源 (CSS, JS)
+│   └── templates/              # 前端 HTML 模板
+├── task/
+│   └── task.md                 # 任務進度追蹤
+├── history.md                  # 專案變更歷史記錄
+├── GEMINI.md                   # 本專案規格書
+└── requirements.txt
 ```
 
-## 4. 程式開發規範 (Engineering Conventions)
+## 4. 開發與修改原則
 
-### 4.1 風格與格式
-*   **Python 版本**: Anaconda (Python 3.10+)
-*   **Imports**: 絕對路徑導入 (e.g., `from src.database import ...`)。
+### 4.1 架構原則 (三層式架構)
+1.  **應用層 (App)**: 僅負責路由與參數接收，不做業務邏輯。
+2.  **服務層 (Service)**: 核心邏輯所在。`SearchService` 處理意圖與檢索，`RAGService` 處理生成。
+3.  **資料層 (DAL)**: `db_adapter_meili.py` 是唯一與 Meilisearch 溝通的窗口。
 
-### 4.2 類型系統 (Typing)
-*   全面使用 Python **Type Hints**。
-*   資料交換使用 **Pydantic Models**，特別是 `MeiliDocument` Schema 須嚴格對應 Index 結構。
+### 4.2 編碼規範
+*   **Type Hints**: 全面使用 Python 類型註釋。
+*   **Pydantic**: 資料交換與寫入 DB 前必須通過 Pydantic Model 驗證。
+*   **Imports**: 使用絕對路徑 (e.g., `from src.database import ...`)。
+*   **Imports**: 不要使用任何註解，包括 docstring。
 
-### 4.3 資料庫與索引設計原則 (Meilisearch Specific)
-*   **Document Structure** (簡化版):
-    *   `id`: 唯一識別碼 (由 link 的 MD5 hash 生成)。
-    *   `link`: 來源 URL。
-    *   `year_month`: 年月 (YYYY-MM 格式，如 2025-12)。
-    *   `workspace`: 工作區分類 (如 General, Security)。
-    *   `title`: 標題 (全文檢索欄位)。
-    *   `content`: 原始內容 (用於顯示)。
-    *   `cleaned_content`: 清洗後內容 (全文檢索與向量生成)。
-    *   `_vectors`: 儲存 Embedding 向量，啟用 Hybrid Search。
-*   **Filterable Attributes**: 必須在 `meilisearch_config.py` 中明確設定 (如 `year_month`, `workspace`, `link`)，否則無法過濾。
-*   **Idempotency**: 使用 `id` 作為 Primary Key，重複 `add_documents` 會自動執行 Upsert (覆蓋舊資料)，確保資料一致性。
+### 4.3 資料庫設計 (Meilisearch)
+*   **ID 生成**: 使用 link+title 的 MD5 hash 作為唯一 ID。
+*   **欄位限制**: 必須在 `meilisearch_config.py` 明確定義 `FILTERABLE_ATTRIBUTES` (如 `year_month`, `workspace`) 才能進行過濾。
+*   **冪等性**: `add_documents` 操作視為 Upsert (若 ID 存在則覆蓋)。
 
-### 4.4 擴充指南
-*   未來新增過濾欄位時，僅需更新 `schemas.py` 並在 `meilisearch_config.py` 的 `FILTERABLE_ATTRIBUTES` 列表中加入新欄位名稱即可，無需重寫搜尋邏輯。
+## 5. 任務執行流程 (強制三階段)
 
-## 5. 禁止事項
+當收到任務時，流程如下：
+
+### 階段 1: 理解與提問 (必須完成)
+1. **任務重述**: 用 2-3 句話重述你理解的需求,列出會動到的檔案。
+2. **主動提問**: 任何不明確的地方(欄位命名、錯誤處理方式、UI 行為、是否需要額外功能等),整理成問題清單。
+3. **停止並等待**: 在問題列表最後明確寫:「**在你回答之前,我不會開始修改程式碼**。」
+
+### 階段 2: 執行 (獲得確認後)
+1. 嚴格按照確認的需求執行,不做額外優化。
+2. 若執行中產生新疑問,再次停下來提問。
+3. 僅使用專案已定義的函式與架構。
+
+### 階段 3: 交付
+1. 回報實際修改的檔案與變更內容。
+2. 若有未實作的「潛在改進」,以建議列表方式呈現,標註「尚未執行,僅供參考」。
+3. 必要時更新 `history.md` (不超過 500 字)。
+
+### 禁止事項
 - **禁止臆測**:
     - **數據**: 未經指示，禁用假資料。
     - **檔案**: 操作前，必須檢查檔案是否存在。
     - **函式**: 僅可使用專案已定義函式，不確定時先提問。
 - **禁止擅自重構**: 未經要求，禁止重構或優化程式碼。
-- **禁止使用 emoji**: 未經要求，禁止使用 emoji。
+- **禁止自作主張添加**:
+    - 即使你認為「為了程式完整性/穩定性」,也不可擅自添加 `try...catch`、驗證邏輯、防禦性程式碼。
+    - 若你認為需要,必須**先以問題形式詢問使用者**,獲得明確同意後才執行。
 
-## 6. 任務執行流程
+### 行為範例
 
-當收到任務時，流程如下：
+#### ❌ 錯誤示例
+**用戶要求**: 「在登入頁面添加一個按鈕」  
+**AI 錯誤回應**: 「我已添加按鈕,並且為了確保程式穩定性添加了 try...catch 和防抖函數」  
+**問題**: 添加了未要求的功能
 
-1.  **專注任務**: 忽略先前任務，專注當前內容。
-2.  **分析**: 掃描相關檔案，理解專案慣例、架構與風格。
-3.  **規劃**: 制定詳細執行計畫，若有不明確處則主動提問。
-4.  **執行**: 獲取明確指令後，嚴格按計畫執行並回報。
+#### ✅ 正確示例
+**用戶要求**: 「在登入頁面添加一個按鈕」  
+**AI 正確回應**: 
+```
+我將在登入頁面添加按鈕。請確認:
+1. 按鈕文字是什麼?
+2. 點擊後的行為是?
+3. 需要特定樣式嗎?
+4. 是否需要防抖或錯誤處理?
+
+在你回答之前,我不會開始修改程式碼。
+```
+
+## 6. 常見錯誤與注意事項
+*   **Meilisearch Filter**: 若過濾無效，請優先檢查 `meilisearch_config.py` 中的 `FILTERABLE_ATTRIBUTES` 是否已包含該欄位，並確認是否已執行 `reset_index` 更新設定。
+*   **Schema 同步**: 修改 `schemas.py` 後，需評估是否影響 `vectorPreprocessing.py` (ETL) 與 `meilisearch_config.py`。
+*   **No SQL**: 本專案不使用傳統關聯式資料庫，所有資料持久化皆在 Meilisearch，請勿引入 SQLite 或 PostgreSQL。
+
+## 7. 目前任務進度、歷史記憶參考
+*   **任務進度**: 請參閱 `task/task.md` 以獲取當前開發階段與待辦事項。
+*   **變更歷史**: 請參閱 `history.md` 以了解最近的程式碼變更與決策記錄。

@@ -8,13 +8,13 @@ This service uses Meilisearch for unified hybrid search that combines:
 No more RRF fusion needed - Meilisearch handles it internally!
 """
 
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 from src.llm.client import LLMClient
 from src.llm.search_prompts import SEARCH_INTENT_PROMPT
 from src.schema.schemas import SearchIntent, SearchFilters
 from src.database.db_adapter_meili import MeiliAdapter, build_meili_filter
 from src.database import vector_utils
-from src.config import MEILISEARCH_HOST, MEILISEARCH_API_KEY, MEILISEARCH_INDEX
+from src.config import MEILISEARCH_HOST, MEILISEARCH_API_KEY, MEILISEARCH_INDEX, PRE_SEARCH_LIMIT
 from meilisearch_config import DEFAULT_SEMANTIC_RATIO
 from datetime import datetime
 
@@ -83,6 +83,40 @@ class SearchService:
             messages=messages, response_model=SearchIntent, temperature=0.0
         )
         return intent
+
+    def _merge_duplicate_links(self, results: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """
+        Merge documents with the same link by concatenating their content.
+        Results should already be sorted by _rankingScore (highest first).
+
+        Args:
+            results: List of search results sorted by score
+
+        Returns:
+            List of deduplicated results with merged content
+        """
+        if not results:
+            return []
+
+        link_to_doc = {}
+        merged_results = []
+
+        for doc in results:
+            link = doc.get("link")
+            if not link:
+                merged_results.append(doc)
+                continue
+
+            if link not in link_to_doc:
+                link_to_doc[link] = doc
+                merged_results.append(doc)
+            else:
+                existing_doc = link_to_doc[link]
+                existing_content = existing_doc.get("content", "")
+                new_content = doc.get("content", "")
+                existing_doc["content"] = f"{existing_content}\n---\n{new_content}"
+
+        return merged_results
 
     def search(
         self,
@@ -190,7 +224,7 @@ class SearchService:
         print(f"  Keyword query: '{intent.keyword_query}'")
         print(f"  Has vector: {query_vector is not None}")
         print(f"  Filter: {meili_filter}")
-        print(f"  Limit: {limit}")
+        print(f"  Pre-search limit: {PRE_SEARCH_LIMIT}")
         print(f"  Semantic ratio: {semantic_ratio}")
 
         try:
@@ -198,7 +232,7 @@ class SearchService:
                 query=intent.keyword_query,
                 vector=query_vector,
                 filters=meili_filter,
-                limit=limit,
+                limit=PRE_SEARCH_LIMIT,
                 semantic_ratio=semantic_ratio,
             )
             print(f"  Meilisearch returned {len(results)} results")
@@ -208,6 +242,14 @@ class SearchService:
 
             traceback.print_exc()
             raise
+
+        # 4.1 Merge documents with same link
+        merged_results = self._merge_duplicate_links(results)
+        print(f"  After merging duplicates: {len(merged_results)} results")
+
+        # 4.2 Take top limit results
+        final_results = merged_results[:limit]
+        print(f"  Final results (top {limit}): {len(final_results)} results")
 
         # 5. Return results with intent
         # Debug: Check if filters are present before serialization
@@ -224,5 +266,5 @@ class SearchService:
         return {
             "intent": serialized_intent,
             "meili_filter": meili_filter,
-            "results": results,
+            "results": final_results,
         }
