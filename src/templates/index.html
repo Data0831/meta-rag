@@ -2,354 +2,393 @@
 <html lang="zh-Hant">
 
 <head>
-    <meta charset="utf-8" />
-    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
-    <title>Microsoft 搜尋型問答資料庫</title>
-    <script src="https://cdn.tailwindcss.com?plugins=forms,typography"></script>
-    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&amp;display=swap"
-        rel="stylesheet" />
-    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet" />
-    <link
-        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200"
-        rel="stylesheet" />
-    <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet" />
-    <script>
-        tailwind.config = {
-            darkMode: "class",
-            theme: {
-                extend: {
-                    colors: {
-                        primary: "#7da3b1", // Muted teal from screenshot
-                        secondary: "#5f8595", // Darker teal
-                        "background-light": "#f8fafd",
-                        "background-dark": "#1a202c",
-                        "surface-light": "#ffffff",
-                        "surface-dark": "#2d3748",
-                        "card-light": "#e4eff3", // Light blueish gray from sidebar
-                        "card-dark": "#3c4a5c", // Dark version
-                        "accent": "#7da3b1",
-                    },
-                    fontFamily: {
-                        display: ["Noto Sans TC", "sans-serif"],
-                        body: ["Noto Sans TC", "sans-serif"],
-                    },
-                    borderRadius: {
-                        DEFAULT: "0.5rem",
-                        'xl': '1rem',
-                        '2xl': '1.5rem',
-                    },
-                    boxShadow: {
-                        'soft': '0 4px 20px -2px rgba(0, 0, 0, 0.05)',
-                        'glow': '0 0 15px rgba(125, 163, 177, 0.3)',
-                    }
-                },
-            },
-        };
-    </script>
-    <style>
-        body {
-            font-family: 'Noto Sans TC', sans-serif;
-        }
+  <meta charset="utf-8" />
+  <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+  <title>Microsoft 搜尋型問答資料庫</title>
+  <script src="https://cdn.tailwindcss.com?plugins=forms,typography"></script>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&amp;display=swap"
+    rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet" />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200"
+    rel="stylesheet" />
+  <link href="{{ url_for('static', filename='css/style.css') }}" rel="stylesheet" />
+  <script>
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            primary: "#7facb6",
+            secondary: "#5f8595",
+            "background-light": "#f8fafd",
+            "background-dark": "#1a202c",
+            "surface-light": "#ffffff",
+            "surface-dark": "#2d3748",
+            "card-light": "#e4eff3",
+            "card-dark": "#3c4a5c",
+            "accent": "#7da3b1",
+          },
+          fontFamily: {
+            display: ["Noto Sans TC", "sans-serif"],
+            body: ["Noto Sans TC", "sans-serif"],
+          },
+          borderRadius: {
+            DEFAULT: "0.5rem",
+            'xl': '1rem',
+            '2xl': '1.5rem',
+          },
+          boxShadow: {
+            'soft': '0 4px 20px -2px rgba(0, 0, 0, 0.05)',
+            'glow': '0 0 15px rgba(125, 163, 177, 0.3)',
+          }
+        },
+      },
+    };
+  </script>
+  <style>
+    body {
+      font-family: 'Noto Sans TC', sans-serif;
+    }
 
-        ::-webkit-scrollbar {
-            width: 8px;
-        }
+    ::-webkit-scrollbar {
+      width: 8px;
+    }
 
-        ::-webkit-scrollbar-track {
-            background: transparent;
-        }
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
 
-        ::-webkit-scrollbar-thumb {
-            background: #cbd5e0;
-            border-radius: 4px;
-        }
+    ::-webkit-scrollbar-thumb {
+      background: #cbd5e0;
+      border-radius: 4px;
+    }
 
-        ::-webkit-scrollbar-thumb:hover {
-            background: #a0aec0;
-        }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #a0aec0;
+    }
 
-        .range-slider::-webkit-slider-thumb {
-            -webkit-appearance: none;
-            appearance: none;
-            width: 20px;
-            height: 20px;
-            border-radius: 50%;
-            background: #7da3b1;
-            cursor: pointer;
-            border: 2px solid white;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        }
+    .range-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: #7facb6;
+      cursor: pointer;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
 
-        .dark .range-slider::-webkit-slider-thumb {
-            border-color: #2d3748;
-        }
+    .dark .range-slider::-webkit-slider-thumb {
+      border-color: #2d3748;
+    }
 
-        /* Added for JS functionality */
-        .dimmed-result {
-            opacity: 0.4;
-            filter: grayscale(100%);
-            transition: all 0.3s ease;
-        }
-    </style>
+    .dimmed-result {
+      opacity: 0.4;
+      filter: grayscale(100%);
+      transition: all 0.3s ease;
+    }
+  </style>
 </head>
 
 <body
-    class="bg-background-light dark:bg-background-dark text-slate-700 dark:text-slate-200 min-h-screen flex overflow-hidden">
-    <aside
-        class="w-80 flex-shrink-0 bg-primary h-screen overflow-y-auto flex flex-col shadow-xl z-20 transition-colors duration-300">
-        <div class="p-8 pb-4">
-            <h1 class="text-3xl font-bold text-white mb-1 tracking-wide">Microsoft</h1>
-            <h2 class="text-2xl font-bold text-white mb-6 tracking-wider">搜尋型問答資料庫</h2>
-            <p class="text-white/80 text-sm leading-relaxed mb-6 font-light">
-                此處為模型技術使用說明<br />
-                此處為模型技術使用說明<br />
-                此處為模型技術使用說明
-            </p>
+  class="bg-background-light dark:bg-background-dark text-slate-700 dark:text-slate-200 min-h-screen flex overflow-hidden">
+
+  <!-- 已移除：原本 fixed 在左上角的 sidebarToggle 按鈕 -->
+
+  <!-- Drawer 背景遮罩 -->
+  <div id="sidebarBackdrop"
+    class="fixed inset-0 bg-black/40 z-30 opacity-0 pointer-events-none transition-opacity duration-300"></div>
+
+  <!-- 左側設定區作為 Drawer -->
+  <aside id="sidebar"
+    class="fixed top-0 left-0 z-40 w-80 h-full bg-primary overflow-y-auto flex flex-col shadow-xl transform -translate-x-full transition-transform duration-300">
+    <div class="p-6 pb-4 pl-7 pt-10">
+      <h2 class="text-3xl font-bold text-white mb-3 tracking-wider">搜尋型問答資料庫</h2>
+      <p class="text-white/80 text-sm leading-relaxed mb-6 font-regular">
+        版本 v0.0.1
+      </p>
+    </div>
+    <div class="flex-1 bg-white dark:bg-slate-800 rounded-tr-3xl p-6 space-y-6">
+      <div class="bg-card-light dark:bg-card-dark rounded-xl p-5 shadow-sm transition-colors duration-300">
+        <div class="flex items-center justify-between mb-2">
+          <div class="flex items-center space-x-2 text-slate-700 dark:text-slate-200">
+            <span class="material-icons-round text-xl">tune</span>
+            <h3 class="font-bold">相似度閾值</h3>
+          </div>
+          <span id="thresholdValue" class="text-primary font-bold text-lg">0%</span>
         </div>
-        <div class="flex-1 bg-white dark:bg-slate-800 rounded-tr-3xl p-6 space-y-6">
-            <div class="bg-card-light dark:bg-card-dark rounded-xl p-5 shadow-sm transition-colors duration-300">
-                <div class="flex items-center justify-between mb-2">
-                    <div class="flex items-center space-x-2 text-slate-700 dark:text-slate-200">
-                        <span class="material-icons-round text-xl">tune</span>
-                        <h3 class="font-bold">相似度閾值</h3>
-                    </div>
-                    <span id="thresholdValue" class="text-primary font-bold text-lg">0%</span>
-                </div>
-                <input id="similarityThreshold"
-                    class="range-slider w-full h-2 bg-slate-300 dark:bg-slate-600 rounded-lg appearance-none cursor-pointer mb-3"
-                    max="100" min="0" type="range" value="0" />
-                <p class="text-xs text-slate-500 dark:text-slate-400">相似度低於此值結果將以暗淡效果顯示</p>
-            </div>
-            <div
-                class="bg-card-light dark:bg-card-dark rounded-xl p-5 shadow-sm transition-colors duration-300 space-y-4">
-                <div class="flex items-center space-x-2 text-slate-700 dark:text-slate-200 mb-2">
-                    <span class="material-icons-round text-xl">settings</span>
-                    <h3 class="font-bold">搜尋設定</h3>
-                </div>
-                <div>
-                    <div class="flex justify-between mb-1">
-                        <label class="text-xs font-medium text-slate-600 dark:text-slate-300">語意搜尋權重</label>
-                        <span id="semanticRatioValue" class="text-primary font-bold text-sm">50%</span>
-                    </div>
-                    <input id="semanticRatioSlider"
-                        class="range-slider w-full h-2 bg-slate-300 dark:bg-slate-600 rounded-lg appearance-none cursor-pointer"
-                        max="100" min="0" step="1" type="range" value="50" />
-                </div>
-                <div>
-                    <label class="block text-xs font-medium text-slate-600 dark:text-slate-300 mb-2">搜尋結果數量</label>
-                    <div class="relative">
-                        <input id="limitInput"
-                            class="w-full bg-white dark:bg-slate-700 border-none rounded-lg py-2 px-3 text-sm focus:ring-2 focus:ring-primary shadow-sm dark:text-white"
-                            type="number" value="5" min="1" max="50" />
-                    </div>
-                </div>
-                <div class="flex items-center space-x-2 pt-1">
-                    <input
-                        class="w-4 h-4 text-primary bg-white dark:bg-slate-700 border-slate-300 dark:border-slate-500 rounded focus:ring-primary"
-                        id="llmRewriteCheckbox" type="checkbox" />
-                    <label class="text-sm text-slate-700 dark:text-slate-300 cursor-pointer" for="llmRewriteCheckbox">啟用
-                        LLM 查詢重寫</label>
-                </div>
-            </div>
-            <div
-                class="bg-card-light dark:bg-card-dark rounded-xl p-5 shadow-sm transition-colors duration-300 space-y-4">
-                <div class="flex items-center space-x-2 text-slate-700 dark:text-slate-200 mb-2">
-                    <span class="material-icons-round text-xl">schedule</span>
-                    <h3 class="font-bold">時間範圍</h3>
-                </div>
-                <input
-                    class="w-full bg-white dark:bg-slate-700 border-none rounded-lg py-2 px-3 text-sm text-slate-600 dark:text-slate-200 focus:ring-2 focus:ring-primary shadow-sm"
-                    type="date" value="2025-06-18" />
-                <input
-                    class="w-full bg-white dark:bg-slate-700 border-none rounded-lg py-2 px-3 text-sm text-slate-600 dark:text-slate-200 focus:ring-2 focus:ring-primary shadow-sm"
-                    placeholder="結束時間" type="text" />
-            </div>
+        <input id="similarityThreshold"
+          class="range-slider w-full h-2 bg-white dark:bg-slate-600 rounded-lg appearance-none cursor-pointer mb-3"
+          max="100" min="0" type="range" value="0" />
+        <p class="text-xs text-slate-500 dark:text-slate-400">相似度低於此值結果將以暗淡效果顯示</p>
+      </div>
+      <div class="bg-card-light dark:bg-card-dark rounded-xl p-5 shadow-sm transition-colors duration-300 space-y-4">
+        <div class="flex items-center space-x-2 text-slate-700 dark:text-slate-200 mb-2">
+          <span class="material-icons-round text-xl">settings</span>
+          <h3 class="font-bold">搜尋設定</h3>
         </div>
-    </aside>
-    <main class="flex-1 h-screen overflow-y-auto relative">
-        <div class="max-w-5xl mx-auto px-8 py-10 pb-24">
-            <div class="mb-8">
-                <div class="relative group">
-                    <div id="searchIconBtn"
-                        class="absolute inset-y-0 left-0 pl-4 flex items-center cursor-pointer hover:text-primary transition-colors">
-                        <span
-                            class="material-icons-round text-3xl text-slate-400 group-focus-within:text-primary transition-colors">search</span>
-                    </div>
-                    <input id="searchInput"
-                        class="w-full pl-14 pr-6 py-4 rounded-full border-2 border-primary/30 dark:border-primary/50 bg-white dark:bg-slate-800 text-lg shadow-soft focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all dark:text-white dark:placeholder-slate-400"
-                        placeholder="例如：2025 年 4 月份價格相關公告" type="text" />
-                </div>
+        <div>
+          <div class="flex justify-between mb-1">
+            <label class="text-xs font-medium text-slate-600 dark:text-slate-300">語意搜尋權重</label>
+            <span id="semanticRatioValue" class="text-primary font-bold text-sm">50%</span>
+          </div>
+          <input id="semanticRatioSlider"
+            class="range-slider w-full h-2 bg-white dark:bg-slate-600 rounded-lg appearance-none cursor-pointer"
+            max="100" min="0" step="1" type="range" value="50" />
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-slate-600 dark:text-slate-300 mb-2">搜尋結果數量</label>
+          <div class="relative">
+            <input id="limitInput"
+              class="w-full bg-white dark:bg-slate-700 border-none rounded-lg py-2 px-3 text-sm focus:ring-2 focus:ring-primary shadow-sm dark:text-white"
+              type="number" value="5" min="1" max="50" />
+          </div>
+        </div>
+        <div class="flex items-center space-x-2 pt-1">
+          <input
+            class="w-4 h-4 text-primary bg-white dark:bg-slate-700 border-slate-300 dark:border-slate-500 rounded focus:ring-primary"
+            id="llmRewriteCheckbox" type="checkbox" />
+          <label class="text-sm text-slate-700 dark:text-slate-300 cursor-pointer" for="llmRewriteCheckbox">啟用
+            LLM 查詢重寫</label>
+        </div>
+      </div>
+      <div class="bg-card-light dark:bg-card-dark rounded-xl p-5 shadow-sm transition-colors duration-300 space-y-4">
+        <div class="flex items-center space-x-2 text-slate-700 dark:text-slate-200 mb-2">
+          <span class="material-icons-round text-xl">schedule</span>
+          <h3 class="font-bold">時間範圍</h3>
+        </div>
+        <div>
+          <p class="text-xs font-medium text-slate-600 dark:text-slate-300 mb-2">開始時間</p>
+          <input
+            class="w-full bg-white dark:bg-slate-700 border-none rounded-lg py-2 px-3 text-sm text-slate-600 dark:text-slate-200 focus:ring-2 focus:ring-primary shadow-sm"
+            type="date" />
+        </div>
+        <div>
+          <p class="text-xs font-medium text-slate-600 dark:text-slate-300 mb-2">結束時間</p>
+          <input
+            class="w-full bg-white dark:bg-slate-700 border-none rounded-lg py-2 px-3 text-sm text-slate-600 dark:text-slate-200 focus:ring-2 focus:ring-primary shadow-sm"
+            type="date" />
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- 主內容 -->
+  <main class="flex-1 h-screen overflow-y-auto relative">
+    <div class="max-w-5xl mx-auto px-8 py-10 pb-24">
+
+      <!-- 搜尋列 + 漢堡按鈕（這一小段是新排版） -->
+      <div class="mb-8">
+        <div class="flex items-center gap-3">
+          <!-- 漢堡按鈕：不再 fixed，而是跟搜尋欄排在同一列 -->
+          <button id="sidebarToggle"
+            class="flex items-center justify-center w-10 h-10 rounded-full bg-primary text-white shadow-lg flex-shrink-0">
+            <span class="material-icons-round">menu</span>
+          </button>
+
+          <!-- 搜尋欄本體 -->
+          <div class="relative group flex-1">
+            <div id="searchIconBtn"
+              class="absolute inset-y-0 left-0 pl-4 flex items-center cursor-pointer hover:text-primary transition-colors">
+              <span
+                class="material-icons-round text-3xl text-slate-400 group-focus-within:text-primary transition-colors">search</span>
             </div>
+            <input id="searchInput" class="w-full pl-14 pr-6 py-4 rounded-full border-2 border-primary/30 dark:border-primary/50 bg-white dark:bg-slate-800 text-lg shadow-soft focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all dark:text-white 
+                   placeholder-slate-400 dark:placeholder-slate-800" placeholder="例如：2025 年 4 月份價格相關公告" type="text" />
+          </div>
+        </div>
+      </div>
 
-            <!-- Loading State -->
-            <div id="loadingState" class="hidden flex-col items-center justify-center py-20 space-y-4">
-                <div class="flex space-x-2">
-                    <div class="w-3 h-3 bg-primary rounded-full typing-dot"></div>
-                    <div class="w-3 h-3 bg-primary rounded-full typing-dot"></div>
-                    <div class="w-3 h-3 bg-primary rounded-full typing-dot"></div>
+      <!-- 以下與你原本可搜尋版本相同 -->
+
+      <!-- Loading State -->
+      <div id="loadingState" class="hidden flex-col items-center justify-center py-20 space-y-4">
+        <div class="flex space-x-2">
+          <div class="w-3 h-3 bg-primary rounded-full typing-dot"></div>
+          <div class="w-3 h-3 bg-primary rounded-full typing-dot"></div>
+          <div class="w-3 h-3 bg-primary rounded-full typing-dot"></div>
+        </div>
+        <p class="text-slate-500">正在搜尋中...</p>
+      </div>
+
+      <!-- Error State -->
+      <div id="errorState"
+        class="hidden bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-6 mb-10 text-center">
+        <p id="errorMessage" class="text-red-600 dark:text-red-400 font-medium"></p>
+      </div>
+
+      <!-- Empty State -->
+      <div id="emptyState" class="hidden flex flex-col items-center justify-center py-20 text-center">
+        <span class="material-icons-round text-slate-300 dark:text-slate-600 text-6xl mb-4">search_off</span>
+        <h3 class="text-lg font-medium text-slate-700 dark:text-slate-300">沒有找到相關結果</h3>
+        <p class="text-sm text-slate-500 dark:text-slate-400 mt-2">請嘗試不同的關鍵字或調整篩選條件</p>
+      </div>
+
+      <!-- Intent & Stats Container -->
+      <div id="intentContainer"
+        class="hidden bg-card-light dark:bg-slate-800 rounded-xl p-6 mb-10 shadow-sm border border-slate-100 dark:border-slate-700">
+        <div
+          class="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 border-b border-slate-200 dark:border-slate-700 pb-4 gap-2">
+          <div class="flex items-center gap-2">
+            <span class="material-icons-round text-primary">search</span>
+            <span class="text-sm font-bold text-slate-500 dark:text-slate-400">查詢：</span>
+            <span id="displayQuery" class="font-bold text-slate-800 dark:text-slate-200 text-lg"></span>
+          </div>
+          <div class="flex items-center gap-4 text-xs text-slate-500 dark:text-slate-400">
+            <span id="searchTime">檢索耗時：<span id="searchTimeValue">0</span>ms</span>
+            <span class="h-3 w-[1px] bg-slate-300 dark:bg-slate-600"></span>
+            <span>找到 <span id="resultsCount">0</span> 筆結果</span>
+          </div>
+        </div>
+
+        <div id="llmDetails" class="hidden">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-2 pt-2">
+            <div class="space-y-3">
+              <div class="flex items-start gap-3">
+                <span class="text-sm font-bold text-slate-700 dark:text-slate-300 min-w-[80px]">關鍵字查詢 :</span>
+                <div class="flex flex-wrap gap-2">
+                  <span id="intentKeywordQuery"
+                    class="px-2 py-1 bg-white dark:bg-slate-700 rounded text-xs text-slate-600 dark:text-slate-200 border border-slate-200 dark:border-slate-600"></span>
                 </div>
-                <p class="text-slate-500">正在搜尋中...</p>
-            </div>
-
-            <!-- Error State -->
-            <div id="errorState"
-                class="hidden bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-6 mb-10 text-center">
-                <p id="errorMessage" class="text-red-600 dark:text-red-400 font-medium"></p>
-            </div>
-
-            <!-- Empty State -->
-            <div id="emptyState" class="hidden flex flex-col items-center justify-center py-20 text-center">
-                <span class="material-icons-round text-slate-300 dark:text-slate-600 text-6xl mb-4">search_off</span>
-                <h3 class="text-lg font-medium text-slate-700 dark:text-slate-300">沒有找到相關結果</h3>
-                <p class="text-sm text-slate-500 dark:text-slate-400 mt-2">請嘗試不同的關鍵字或調整篩選條件</p>
-            </div>
-
-            <!-- Intent & Stats Container -->
-            <div id="intentContainer"
-                class="hidden bg-card-light dark:bg-slate-800 rounded-xl p-6 mb-10 shadow-sm border border-slate-100 dark:border-slate-700">
-                <!-- Basic Info Header -->
-                <div
-                    class="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 border-b border-slate-200 dark:border-slate-700 pb-4 gap-2">
-                    <div class="flex items-center gap-2">
-                        <span class="material-icons-round text-primary">search</span>
-                        <span class="text-sm font-bold text-slate-500 dark:text-slate-400">查詢:</span>
-                        <span id="displayQuery" class="font-bold text-slate-800 dark:text-slate-200 text-lg"></span>
-                    </div>
-                    <div class="flex items-center gap-4 text-xs text-slate-500 dark:text-slate-400">
-                        <span id="searchTime">檢索耗時：<span id="searchTimeValue">0</span>ms</span>
-                        <span class="h-3 w-[1px] bg-slate-300 dark:bg-slate-600"></span>
-                        <span>找到 <span id="resultsCount">0</span> 筆結果</span>
-                    </div>
+              </div>
+              <div class="flex items-start gap-3">
+                <span class="text-sm font-bold text-slate-700 dark:text-slate-300 min-w-[80px]">語意查詢 :</span>
+                <div class="flex flex-wrap gap-2">
+                  <span id="intentSemanticQuery"
+                    class="px-2 py-1 bg-white dark:bg-slate-700 rounded text-xs text-slate-600 dark:text-slate-200 border border-slate-200 dark:border-slate-600"></span>
                 </div>
-
-                <!-- LLM Details (Collapsible/Conditional) -->
-                <div id="llmDetails" class="hidden">
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-2 pt-2">
-                        <div class="space-y-3">
-                            <div class="flex items-start gap-3">
-                                <span class="text-sm font-bold text-slate-700 dark:text-slate-300 min-w-[80px]">關鍵字查詢
-                                    :</span>
-                                <div class="flex flex-wrap gap-2">
-                                    <span id="intentKeywordQuery"
-                                        class="px-2 py-1 bg-white dark:bg-slate-700 rounded text-xs text-slate-600 dark:text-slate-200 border border-slate-200 dark:border-slate-600"></span>
-                                </div>
-                            </div>
-                            <div class="flex items-start gap-3">
-                                <span class="text-sm font-bold text-slate-700 dark:text-slate-300 min-w-[80px]">語意查詢
-                                    :</span>
-                                <div class="flex flex-wrap gap-2">
-                                    <span id="intentSemanticQuery"
-                                        class="px-2 py-1 bg-white dark:bg-slate-700 rounded text-xs text-slate-600 dark:text-slate-200 border border-slate-200 dark:border-slate-600"></span>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="space-y-3 md:mt-10">
-                            <div class="flex items-start gap-3">
-                                <span class="text-sm font-bold text-slate-700 dark:text-slate-300 min-w-[90px]">篩選條件
-                                    (Filter) :</span>
-                                <div id="intentFilters" class="flex flex-wrap gap-2">
-                                    <!-- Filters will be injected here -->
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+              </div>
             </div>
-
-            <!-- Summary Section -->
-            <div id="summaryContainer" class="hidden mb-10 animate-fade-in-up">
-                <div class="flex items-center gap-3 mb-4">
-                    <div
-                        class="w-8 h-8 rounded-full border border-primary flex items-center justify-center text-primary bg-white dark:bg-slate-800">
-                        <span class="material-icons-round text-lg">lightbulb</span>
-                    </div>
-                    <h3 id="summaryTitle" class="text-xl font-medium text-slate-800 dark:text-white">以下為相關公告總結：</h3>
+            <div class="space-y-3 md:mt-10">
+              <div class="flex items-start gap-3">
+                <span class="text-sm font-bold text-slate-700 dark:text-slate-300 min-w-[90px]">篩選條件 (Filter) :</span>
+                <div id="intentFilters" class="flex flex-wrap gap-2">
+                  <!-- Filters will be injected here -->
                 </div>
-                <div class="pl-11 space-y-2 text-slate-600 dark:text-slate-300 leading-relaxed">
-                    <div id="summaryContent">
-                        <!-- Summary content will be injected here -->
-                    </div>
-                    <div class="flex items-center gap-4 mt-4">
-                        <div
-                            class="inline-flex items-center bg-card-light dark:bg-slate-700 px-3 py-1 rounded text-xs text-primary font-medium cursor-pointer hover:bg-primary/20 transition-colors">
-                            對您是否有幫助？
-                            <span class="material-icons-round text-sm ml-1 hover:text-green-600">thumb_up</span>
-                            <span class="material-icons-round text-sm ml-1 hover:text-red-500">thumb_down</span>
-                        </div>
-                    </div>
-                </div>
+              </div>
             </div>
+          </div>
+        </div>
+      </div>
 
-            <!-- Results Container -->
-            <div id="resultsContainer" class="hidden">
-                <!-- Results will be injected here -->
+      <!-- Summary Section -->
+      <div id="summaryContainer" class="hidden mb-10 animate-fade-in-up">
+        <div class="flex items-center gap-3 mb-4">
+          <div
+            class="w-8 h-8 rounded-full border border-primary flex items-center justify-center text-primary bg-white dark:bg-slate-800">
+            <span class="material-icons-round text-lg">lightbulb</span>
+          </div>
+          <h3 id="summaryTitle" class="text-xl font-medium text-slate-800 dark:text-white">以下為相關公告總結：</h3>
+        </div>
+        <div class="pl-11 space-y-2 text-slate-600 dark:text-slate-300 leading-relaxed">
+          <div id="summaryContent"></div>
+          <div class="flex items-center gap-4 mt-4">
+            <div
+              class="inline-flex items-center bg-card-light dark:bg-slate-700 px-3 py-1 rounded text-xs text-primary font-medium cursor-pointer hover:bg-primary/20 transition-colors">
+              對您是否有幫助？
+              <span class="material-icons-round text-sm ml-1 hover:text-green-600">thumb_up</span>
+              <span class="material-icons-round text-sm ml-1 hover:text-red-500">thumb_down</span>
             </div>
+          </div>
+        </div>
+      </div>
 
+      <!-- Results Container -->
+      <div id="resultsContainer" class="hidden"></div>
 
+      <!-- Chatbot Container -->
+      <div id="chatbotContainer"
+        class="fixed right-0 top-0 h-full z-50 flex transition-transform duration-300 translate-x-[calc(100%-4rem)]">
+        <div id="chatTriggerBtn"
+          class="self-center -ml-4 bg-primary/90 backdrop-blur-sm text-white rounded-l-2xl py-6 px-3 shadow-lg flex flex-col items-center gap-6 cursor-pointer hover:bg-primary transition-colors duration-300 w-16">
+          <span id="chatIconArrow"
+            class="material-icons-round text-2xl transition-transform duration-300">chevron_left</span>
+          <span class="material-icons-round text-3xl">chat_bubble_outline</span>
+          <div class="writing-mode-vertical text-lg font-bold tracking-widest"
+            style="writing-mode: vertical-rl; text-orientation: upright;">
+            問答機器人
+          </div>
+        </div>
 
-            <!-- Chatbot Container (包含按鈕與側邊欄) -->
-            <div id="chatbotContainer"
-                class="fixed right-0 top-0 h-full z-50 flex transition-transform duration-300 translate-x-[calc(100%-4rem)]">
-
-                <!-- 1. 觸發按鈕 (Trigger Button) -->
-                <div id="chatTriggerBtn"
-                    class="self-center -ml-4 bg-primary/90 backdrop-blur-sm text-white rounded-l-2xl py-6 px-3 shadow-lg flex flex-col items-center gap-6 cursor-pointer hover:bg-primary transition-colors duration-300 w-16">
-                    <span id="chatIconArrow"
-                        class="material-icons-round text-2xl transition-transform duration-300">chevron_left</span>
-                    <span class="material-icons-round text-3xl">chat_bubble_outline</span>
-                    <div class="writing-mode-vertical text-lg font-bold tracking-widest"
-                        style="writing-mode: vertical-rl; text-orientation: upright;">
-                        問答機器人
-                    </div>
-                </div>
-
-                <!-- 2. 聊天面板 (Chat Panel) -->
-                <div
-                    class="w-96 h-full bg-white dark:bg-slate-800 shadow-2xl flex flex-col border-l border-slate-200 dark:border-slate-700">
-                    <!-- Header -->
-                    <div class="p-4 bg-primary text-white flex justify-between items-center shadow-md">
-                        <div class="flex items-center gap-2">
-                            <span class="material-icons-round">smart_toy</span>
-                            <h3 class="font-bold text-lg">AI 知識助手</h3>
-                        </div>
-                        <button id="closeChatBtn" class="hover:bg-white/20 rounded-full p-1 transition-colors">
-                            <span class="material-icons-round text-sm">close</span>
-                        </button>
-                    </div>
-
-                    <!-- Messages Area -->
-                    <div id="chatMessages"
-                        class="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-50 dark:bg-slate-900/50">
-                        <!-- 歡迎訊息 -->
-                        <div class="flex items-start gap-2">
-                            <div
-                                class="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-white flex-shrink-0">
-                                <span class="material-icons-round text-sm">smart_toy</span>
-                            </div>
-                            <div
-                                class="bg-white dark:bg-slate-700 p-3 rounded-2xl rounded-tl-none shadow-sm text-sm text-slate-700 dark:text-slate-200 border border-slate-100 dark:border-slate-600">
-                                您好！我是您的搜尋助手。關於目前的搜尋結果或 Microsoft 合作夥伴計畫，有什麼想問的嗎？
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Input Area -->
-                    <div class="p-4 bg-white dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700">
-                        <div class="flex gap-2">
-                            <input id="chatInput" type="text"
-                                class="flex-1 bg-slate-100 dark:bg-slate-700 border-none rounded-lg py-2 px-3 text-sm focus:ring-2 focus:ring-primary shadow-inner dark:text-white"
-                                placeholder="輸入您的問題..." />
-                            <button id="sendChatBtn"
-                                class="bg-primary hover:bg-secondary text-white rounded-lg p-2 transition-colors shadow-sm">
-                                <span class="material-icons-round">send</span>
-                            </button>
-                        </div>
-                    </div>
-                </div>
+        <div
+          class="w-96 h-full bg-white dark:bg-slate-800 shadow-2xl flex flex-col border-l border-slate-200 dark:border-slate-700">
+          <div class="p-4 bg-primary text-white flex justify-between items-center shadow-md">
+            <div class="flex items-center gap-2">
+              <span class="material-icons-round">smart_toy</span>
+              <h3 class="font-bold text-lg">AI 知識助手</h3>
             </div>
+            <button id="closeChatBtn" class="hover:bg-white/20 rounded-full p-1 transition-colors">
+              <span class="material-icons-round text-sm">close</span>
+            </button>
+          </div>
 
-            <script type="module" src="{{ url_for('static', filename='js/search.js') }}"></script>
+          <div id="chatMessages" class="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-50 dark:bg-slate-900/50">
+            <div class="flex items-start gap-2">
+              <div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-white flex-shrink-0">
+                <span class="material-icons-round text-sm">smart_toy</span>
+              </div>
+              <div
+                class="bg-white dark:bg-slate-700 p-3 rounded-2xl rounded-tl-none shadow-sm text-sm text-slate-700 dark:text-slate-200 border border-slate-100 dark:border-slate-600">
+                您好！我是您的搜尋助手。關於目前的搜尋結果或 Microsoft 合作夥伴計畫，有什麼想問的嗎？
+              </div>
+            </div>
+          </div>
+
+          <div class="p-4 bg-white dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700">
+            <div class="flex gap-2">
+              <input id="chatInput" type="text"
+                class="flex-1 bg-slate-100 dark:bg-slate-700 border-none rounded-lg py-2 px-3 text-sm focus:ring-2 focus:ring-primary shadow-inner dark:text-white"
+                placeholder="輸入您的問題..." />
+              <button id="sendChatBtn"
+                class="bg-primary hover:bg-secondary text-white rounded-lg p-2 transition-colors shadow-sm">
+                <span class="material-icons-round">send</span>
+              </button>
+            </div>
+            <div class="mt-2 flex items-center gap-2">
+              <input type="checkbox" id="chatContextCheck"
+                class="rounded text-primary focus:ring-primary border-gray-300" checked>
+              <label for="chatContextCheck" class="text-xs text-slate-500 dark:text-slate-400">參考當前搜尋結果</label>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- Drawer 開關腳本 -->
+  <script>
+    const sidebar = document.getElementById('sidebar');
+    const sidebarToggle = document.getElementById('sidebarToggle');
+    const sidebarBackdrop = document.getElementById('sidebarBackdrop');
+
+    function openSidebar() {
+      sidebar.classList.remove('-translate-x-full');
+      sidebarBackdrop.classList.remove('pointer-events-none');
+      sidebarBackdrop.classList.add('opacity-100');
+    }
+
+    function closeSidebar() {
+      sidebar.classList.add('-translate-x-full');
+      sidebarBackdrop.classList.add('pointer-events-none');
+      sidebarBackdrop.classList.remove('opacity-100');
+    }
+
+    sidebarToggle.addEventListener('click', () => {
+      if (sidebar.classList.contains('-translate-x-full')) {
+        openSidebar();
+      } else {
+        closeSidebar();
+      }
+    });
+
+    sidebarBackdrop.addEventListener('click', closeSidebar);
+  </script>
+
+  <!-- 搜尋邏輯 -->
+  <script type="module" src="{{ url_for('static', filename='js/search.js') }}"></script>
 </body>
 
 </html>
