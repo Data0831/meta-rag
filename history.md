@@ -19,21 +19,11 @@
 - **架構輕量化 (Phase 6)**：徹底移除 Metadata 與 Enriched Text 複雜結構，改採 parse.json 扁平化格式，大幅簡化 ETL 流程與 Schema。
 - **代碼清理**：修復 Meilisearch 過濾器語法 (`IN` operator)，並刪除約 165 行廢棄代碼 (Legacy Code Removal)，系統進入穩定期。
 
-## 2025-12-19 14:00
-- **UI/UX 更新**：將 `index.html` 更新為新版 Tailwind CSS 設計，並整合 `collection_search.js` 功能與樣式。
-- **路由調整**：修改 `src/app.py`，將 `/collection_search` 重定向至預設集合 `/collection/announcements` 以解決訪問問題。
-- **操作規範**：使用者強調應嚴格遵守修改範圍，避免非預期的代碼更動。
+## 2025-12-19
+- **前端重構 (Modularization)**：將龐大的 `search.js` 拆分為 6 個 ES6 模組 (Config/DOM/API/UI/Render/Main)，大幅提升代碼可維護性。
+- **UI/UX 全面更新**：將介面升級為 Tailwind CSS 設計，引入 `marked.js` 支援 Markdown 渲染，並優化搜尋結果展示 (預設展開第一筆、改進卡片佈局)。
+- **配置整合**：建立後端配置 API (`/api/config`) 與前端動態同步機制，統一管理相似度閾值與語意權重 (Slider 調整為 0-100 整數範圍)。
+- **系統優化**：修正 `/collection_search` 路由重定向問題，並修復 LLM 過濾條件 (Year/Workspace/Links) 在前端的視覺化標籤顯示。
 
-## 2025年12月19日 星期五 16:00
-- **介面與功能優化**：優化 UI 佈局，移除容器間距並交由卡片控制，引入 `marked.js` 實現 Markdown 渲染，並設定第一筆結果預設展開。
-- **配置管理整合**：建立後端配置介面 (`/api/config`) 與前端動態載入機制，將預設搜尋數量調整為 5，提升系統靈活性與一致性。
-
-## 2025年12月19日 星期五 16:15
-- **配置參數擴充**：於 config.py 新增 `DEFAULT_SIMILARITY_THRESHOLD` 與 `DEFAULT_SEMANTIC_RATIO`，並透過 API 暴露給前端。
-- **前端控制項優化**：更新 `index.html` 將語義權重滑桿範圍調整為 0-100 (整數)，並在 `search.js` 中實作數值轉換與初始化邏輯，確保與後端設定同步。
-
-## 2025年12月19日 星期五 17:00
-- **前端模組化重構**：將 `search.js` (458 行) 拆分為 6 個 ES6 模組：`config.js` (配置管理)、`dom.js` (DOM 引用)、`api.js` (API 請求)、`ui.js` (狀態管理)、`render.js` (結果渲染) 與 `search.js` (主入口 114 行)，大幅提升代碼可維護性與模組化程度。
-
-## 2025年12月19日 星期五 18:00
-- **過濾條件顯示修復**：診斷並修復前端顯示 LLM 解析的過濾條件問題。在 `search_service.py` 加入序列化前後的 debug 輸出，確認 `intent.filters` 數據正確傳遞。更新 `render.js` 的 `updateIntentDisplay` 函數，實作 `year_month`（藍色）、`workspaces`（綠色）、`links`（紫色）過濾標籤的視覺化顯示，完善搜尋意圖的前端呈現。
+## 2025-12-23 11:14:13
+- **Link 去重合併功能**：在 `config.py` 新增 `PRE_SEARCH_LIMIT=24` 配置（附 TODO 建議未來可改為動態倍數）。修改 `search_service.py` 實作 `_merge_duplicate_links()` 方法，先向 Meilisearch 請求 24 筆結果，按 `_rankingScore` 排序後合併相同 link 的文檔（content 用 `\n---\n` 拼接，保留最高 score 的 metadata），最後取前 `limit` 筆返回。更新 `docs/archtect/search-flow.md` 流程圖與文字說明，記錄去重邏輯以避免切塊後同一網頁重複出現。

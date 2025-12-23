@@ -7,7 +7,7 @@ import { searchConfig, loadBackendConfig } from './config.js';
 import * as DOM from './dom.js';
 import { performCollectionSearch } from './api.js';
 import { showLoading, showError } from './ui.js';
-import { renderResults, applyThresholdToResults, toggleResult, currentResults } from './render.js';
+import { renderResults, applyThresholdToResults, toggleResult, toggleIntentDetails, currentResults } from './render.js';
 
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
@@ -205,9 +205,10 @@ function hideSummary() {
 }
 
 /**
- * Expose toggleResult to global scope for onclick handlers in HTML
+ * Expose toggleResult and toggleIntentDetails to global scope for onclick handlers in HTML
  */
 window.toggleResult = toggleResult;
+window.toggleIntentDetails = toggleIntentDetails;
 
 // --- Chatbot Logic (Add to end of search.js) ---
 

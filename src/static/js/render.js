@@ -34,12 +34,20 @@ export function renderResults(data, duration, query) {
     DOM.displayQuery.textContent = query;
 
     // Show/Hide LLM Details
+    const toggleBtn = document.getElementById('toggleIntentBtn');
+    const toggleIcon = document.getElementById('toggleIntentIcon');
+
     if (intent && searchConfig.enableLlm) {
         console.log('Updating intent display');
-        DOM.llmDetails.classList.remove('hidden');
         updateIntentDisplay(intent);
+
+        // Default: Collapse details
+        DOM.llmDetails.classList.add('hidden');
+        if (toggleIcon) toggleIcon.classList.add('-rotate-90');
+        if (toggleBtn) toggleBtn.classList.remove('hidden');
     } else {
         DOM.llmDetails.classList.add('hidden');
+        if (toggleBtn) toggleBtn.classList.add('hidden');
     }
 
     // Update results count and search time (now part of intentContainer)
@@ -299,4 +307,24 @@ export function applyThresholdToResults() {
     });
 
     console.log(`[Threshold] ${dimmedCount}/${resultCards.length} cards dimmed (threshold: ${searchConfig.similarityThreshold}%)`);
+}
+
+/**
+ * Toggle intent details expansion
+ */
+export function toggleIntentDetails() {
+    const details = DOM.llmDetails;
+    const icon = document.getElementById('toggleIntentIcon');
+    
+    if (!details || !icon) return;
+
+    const isHidden = details.classList.contains('hidden');
+
+    if (isHidden) {
+        details.classList.remove('hidden');
+        icon.classList.remove('-rotate-90');
+    } else {
+        details.classList.add('hidden');
+        icon.classList.add('-rotate-90');
+    }
 }

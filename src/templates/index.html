@@ -180,7 +180,7 @@
     <div class="max-w-5xl mx-auto px-8 py-10 pb-24">
 
       <!-- 搜尋列 + 漢堡按鈕（這一小段是新排版） -->
-      <div class="mb-8">
+      <div class="mb-4">
         <div class="flex items-center gap-3">
           <!-- 漢堡按鈕：不再 fixed，而是跟搜尋欄排在同一列 -->
           <button id="sidebarToggle"
@@ -228,10 +228,15 @@
 
       <!-- Intent & Stats Container -->
       <div id="intentContainer"
-        class="hidden bg-card-light dark:bg-slate-800 rounded-xl p-6 mb-10 shadow-sm border border-slate-100 dark:border-slate-700">
+        class="hidden bg-card-light dark:bg-slate-800 rounded-xl p-4 mb-5 shadow-sm border border-slate-100 dark:border-slate-700">
         <div
-          class="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 border-b border-slate-200 dark:border-slate-700 pb-4 gap-2">
+          class="flex flex-col md:flex-row justify-between items-start md:items-center border-b border-slate-200 dark:border-slate-700 pb-4 gap-2">
           <div class="flex items-center gap-2">
+            <button id="toggleIntentBtn" onclick="toggleIntentDetails()"
+              class="hidden p-1 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-full transition-all duration-200 mr-1 flex items-center justify-center">
+              <span id="toggleIntentIcon"
+                class="material-icons-round text-slate-500 dark:text-slate-400 transform -rotate-90 transition-transform duration-200">expand_more</span>
+            </button>
             <span class="material-icons-round text-primary">search</span>
             <span class="text-sm font-bold text-slate-500 dark:text-slate-400">查詢：</span>
             <span id="displayQuery" class="font-bold text-slate-800 dark:text-slate-200 text-lg"></span>
