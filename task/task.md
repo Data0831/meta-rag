@@ -1,5 +1,3 @@
-分數變暗
+overflow bar
 
-機器人展開
-
-假摘要嵌入
+bug 沒有根據 similar 去 filter 掉，所以 ai 回應默認讀取全部
