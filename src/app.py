@@ -106,11 +106,13 @@ def search():
         limit = data.get("limit", 20)
         semantic_ratio = data.get("semantic_ratio", 0.5)
         enable_llm = data.get("enable_llm", True)
+        manual_semantic_ratio = data.get("manual_semantic_ratio", False)
 
         print(f"  Query: {query}")
         print(f"  Limit: {limit}")
         print(f"  Semantic Ratio: {semantic_ratio}")
         print(f"  Enable LLM: {enable_llm}")
+        print(f"  Manual Semantic Ratio: {manual_semantic_ratio}")
 
         # Validate parameters
         if not isinstance(limit, int) or limit < 1 or limit > 100:
@@ -147,6 +149,7 @@ def search():
             limit=limit,
             semantic_ratio=semantic_ratio,
             enable_llm=enable_llm,
+            manual_semantic_ratio=manual_semantic_ratio,
         )
 
         print(f"Search completed. Results count: {len(results.get('results', []))}")

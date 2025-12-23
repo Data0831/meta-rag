@@ -40,14 +40,40 @@ function setupSearchConfig() {
 
     // Semantic ratio slider
     const semanticRatioSlider = document.getElementById('semanticRatioSlider');
-    if (semanticRatioSlider) {
+    const manualRatioCheckbox = document.getElementById('manualRatioCheckbox');
+    const semanticRatioValue = document.getElementById('semanticRatioValue');
+
+    if (semanticRatioSlider && manualRatioCheckbox) {
+        // Init state
+        semanticRatioSlider.disabled = !manualRatioCheckbox.checked;
+        if (!manualRatioCheckbox.checked) {
+             if (semanticRatioValue) semanticRatioValue.textContent = "Auto";
+        }
+
+        // Checkbox listener
+        manualRatioCheckbox.addEventListener('change', (e) => {
+            const isManual = e.target.checked;
+            searchConfig.manualSemanticRatio = isManual;
+            semanticRatioSlider.disabled = !isManual;
+            
+            if (isManual) {
+                // Restore value from slider
+                const val = parseInt(semanticRatioSlider.value);
+                searchConfig.semanticRatio = val / 100;
+                if (semanticRatioValue) semanticRatioValue.textContent = val + '%';
+            } else {
+                // Set to Auto display
+                if (semanticRatioValue) semanticRatioValue.textContent = "Auto";
+            }
+        });
+
+        // Slider listener
         semanticRatioSlider.addEventListener('input', (e) => {
             const val = parseInt(e.target.value);
             searchConfig.semanticRatio = val / 100;
             // Update label if it exists
-            const label = document.getElementById('semanticRatioValue');
-            if (label) {
-                label.textContent = val + '%';
+            if (semanticRatioValue) {
+                semanticRatioValue.textContent = val + '%';
             }
         });
     }

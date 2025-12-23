@@ -1,15 +1,13 @@
 import os
 import json
+import sys
 from typing import Type, TypeVar, List
-from openai import OpenAI, APIError, APIStatusError
+from openai import AzureOpenAI, APIError, APIStatusError
 from dotenv import load_dotenv
 from pydantic import BaseModel, ValidationError
 
 # Load environment variables
 load_dotenv()
-
-# Import model list from config
-import sys
 
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 if project_root not in sys.path:
@@ -19,29 +17,34 @@ T = TypeVar("T", bound=BaseModel)
 
 
 class LLMClient:
-    def __init__(self, base_url: str = None, api_key: str = None, model: str = None):
+    def __init__(self, endpoint: str = None, api_key: str = None, model: str = None, api_version: str = None):
         """
-        Initialize the LLM Client.
+        Initialize the LLM Client using Azure OpenAI.
 
         Args:
-            base_url: The URL of the local Gemini-to-OpenAI proxy.
-                      Defaults to "http://localhost:8000/openai/v1".
-            api_key: The access token for the proxy (defined in .env ALLOWED_TOKENS).
-            model: The Gemini model name to use (e.g., "gemini-1.5-flash").
+            endpoint: The Azure Endpoint URL.
+            api_key: The Azure API Key.
+            model: The deployment name (e.g., "gpt-4o-mini").
+            api_version: The API version to use.
         """
-        self.base_url = base_url or os.getenv(
-            "PROXY_BASE_URL", "http://localhost:8000/openai/v1"
-        )
-        # Using PROXY_API_KEY to distinguish from actual OpenAI key if needed, or stick to a convention
-        # The user request implies reading from env.
-        self.api_key = api_key or os.getenv("PROXY_API_KEY", "sk-mysecrettoken123")
-        self.model = model or os.getenv("PROXY_MODEL_NAME", "gemini-2.5-flash")
+        # Defaults based on test2.py and user request
+        self.endpoint = endpoint or os.getenv("AZURE_ENDPOINT", "https://royaoaieus.openai.azure.com/")
+        self.api_key = api_key or os.getenv("PROXY_API_KEY")
+        self.model = model or os.getenv("AZURE_DEPLOYMENT", "gpt-4o-mini")
+        self.api_version = api_version or os.getenv("AZURE_API_VERSION", "2024-12-01-preview")
 
         print(
-            f"Initializing LLMClient with base_url={self.base_url}, model={self.model}"
+            f"Initializing LLMClient (Azure) with endpoint={self.endpoint}, model={self.model}"
         )
+        
+        if not self.api_key:
+             print("Warning: PROXY_API_KEY not found in environment variables.")
 
-        self.client = OpenAI(base_url=self.base_url, api_key=self.api_key)
+        self.client = AzureOpenAI(
+            azure_endpoint=self.endpoint,
+            api_key=self.api_key,
+            api_version=self.api_version
+        )
 
     def call_gemini(
         self,
@@ -51,7 +54,8 @@ class LLMClient:
         model: str = None,
     ) -> str:
         """
-        Send a request to the Gemini model via the local proxy.
+        Send a request to the Azure OpenAI model.
+        (Method name kept as call_gemini for backward compatibility)
 
         Args:
             messages: A list of message dictionaries (role, content).

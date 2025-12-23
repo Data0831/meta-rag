@@ -124,6 +124,7 @@ class SearchService:
         limit: int = 20,
         semantic_ratio: float = DEFAULT_SEMANTIC_RATIO,
         enable_llm: bool = True,
+        manual_semantic_ratio: bool = False,
     ) -> Dict[str, Any]:
         """
         Perform unified hybrid search using Meilisearch.
@@ -142,6 +143,7 @@ class SearchService:
             semantic_ratio: Initial weight for semantic search (0.0 = pure keyword, 1.0 = pure semantic)
                             Default 0.5 - Will be overridden by LLM's recommended_semantic_ratio if available
             enable_llm: Whether to use LLM for intent parsing (default: True)
+            manual_semantic_ratio: If True, strictly use provided semantic_ratio. If False, use LLM recommendation if available.
 
         Returns:
             Dictionary with:
@@ -154,14 +156,17 @@ class SearchService:
         llm_error = None
 
         if enable_llm:
-            intent = self.parse_intent(user_query)
-
-            if not intent:
-                # LLM failed to return valid intent
-                print("LLM Intent parsing failed. Using fallback basic search.")
-                llm_error = "LLM service temporarily unavailable"
+            try:
+                intent = self.parse_intent(user_query)
+            except Exception as e:
+                print(f"LLM Intent parsing failed: {e}")
+                llm_error = str(e)
 
         if not intent:
+            if enable_llm:
+                # Fallback if intent parsing fails
+                print("Intent parsing failed. Using fallback basic search.")
+
             # Basic intent (no filters, raw query)
             intent = SearchIntent(
                 filters=SearchFilters(),  # Empty filters
@@ -173,17 +178,14 @@ class SearchService:
         if intent.limit is not None:
             limit = intent.limit
 
-        # Use LLM-recommended semantic_ratio (unless user explicitly overrides with extreme values)
-        # 1. If user explicitly chose 0.0 (Pure Keyword) or 1.0 (Pure Semantic), we respect it.
-        # 2. Otherwise, if LLM provides a recommendation, we use the LLM's recommendation to be "Smart".
-        if intent.recommended_semantic_ratio is not None:
-            if semantic_ratio in [0.0, 1.0]:
-                print(f"User explicitly chose {semantic_ratio}, ignoring LLM recommendation ({intent.recommended_semantic_ratio:.2f})")
-            else:
-                semantic_ratio = intent.recommended_semantic_ratio
-                print(f"Using LLM-recommended semantic_ratio: {semantic_ratio:.2f}")
+        # Use LLM-recommended semantic_ratio logic:
+        # If manual_semantic_ratio is True, we respect the user's provided ratio.
+        # If manual_semantic_ratio is False (Auto Mode), we use LLM's recommendation if available.
+        if not manual_semantic_ratio and intent.recommended_semantic_ratio is not None:
+            semantic_ratio = intent.recommended_semantic_ratio
+            print(f"Auto Mode: Using LLM-recommended semantic_ratio: {semantic_ratio:.2f}")
         else:
-            print(f"No LLM recommendation. Using semantic_ratio: {semantic_ratio:.2f}")
+            print(f"Manual Mode (or no LLM rec): Using provided semantic_ratio: {semantic_ratio:.2f}")
 
         # 2. Build Meilisearch filter expression
         meili_filter = build_meili_filter(intent.filters)

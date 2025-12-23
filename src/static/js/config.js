@@ -6,7 +6,8 @@ export const searchConfig = {
     limit: 5,  // Number of results to return
     semanticRatio: 0.5,  // Weight for semantic search (0.0 = pure keyword, 1.0 = pure semantic)
     similarityThreshold: 0,  // Similarity threshold (0-100), results below this will be dimmed
-    enableLlm: false
+    enableLlm: false,
+    manualSemanticRatio: false // Checkbox state: true = use manual ratio, false = auto (LLM)
 };
 
 /**
