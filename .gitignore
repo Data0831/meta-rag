@@ -4,4 +4,6 @@
 *.tmp
 data/backup/*
 data/*.json
-logs/*.*
+src/logs/*
+.deployment
+*.json

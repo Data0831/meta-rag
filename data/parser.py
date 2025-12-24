@@ -5,9 +5,9 @@ import re
 
 FILES_NEED_TO_BE_PROCESSED = [
     "fetch_result/partner_center.json",
-    # "windows-message.json",
-    # "m365_roadmap_flat.json",
-    # "fetch_result/PowerBI_dataset.json"
+    "fetch_result/windows-message.json",
+    "fetch_result/m365_roadmap_flat.json",
+    "fetch_result/PowerBI_dataset.json",
 ]
 
 OUTPUT_FILE = "data.json"
