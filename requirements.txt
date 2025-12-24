@@ -8,3 +8,4 @@ ollama
 meilisearch
 jieba
 flask
+gunicorn
