@@ -132,35 +132,54 @@ function updateIntentDisplay(intent) {
     DOM.intentKeywordQuery.textContent = intent.keyword_query || 'N/A';
     DOM.intentSemanticQuery.textContent = intent.semantic_query || 'N/A';
 
+    // Update Recommended Semantic Ratio
+    const recommendedRatioEl = document.getElementById('intentRecommendedRatio');
+    if (recommendedRatioEl) {
+        if (intent.recommended_semantic_ratio !== null && intent.recommended_semantic_ratio !== undefined) {
+            const ratioPercent = Math.round(intent.recommended_semantic_ratio * 100);
+            recommendedRatioEl.textContent = `${ratioPercent}%`;
+            recommendedRatioEl.parentElement.classList.remove('hidden');
+        } else {
+            recommendedRatioEl.parentElement.classList.add('hidden');
+        }
+    }
+
     // Update Filters
     DOM.intentFilters.innerHTML = '';
-    const filters = intent.filters || {};
 
     // 1. Year Month
-    if (filters.year_month && filters.year_month.length > 0) {
-        const yearMonthItems = filters.year_month.map(ym =>
+    if (intent.year_month && intent.year_month.length > 0) {
+        const yearMonthItems = intent.year_month.map(ym =>
             `<span class="px-2 py-0.5 rounded border text-xs bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-300 border-blue-200 dark:border-blue-700">${ym}</span>`
         ).join('');
         DOM.intentFilters.innerHTML += yearMonthItems;
     }
 
-    // 2. Workspaces
-    if (filters.workspaces && filters.workspaces.length > 0) {
-        const workspaceItems = filters.workspaces.map(ws =>
+    // 2. Must Have Keywords
+    if (intent.must_have_keywords && intent.must_have_keywords.length > 0) {
+        const mustHaveItems = intent.must_have_keywords.map(kw =>
+            `<span class="px-2 py-0.5 rounded border text-xs bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-300 border-red-200 dark:border-red-700">必含: ${kw}</span>`
+        ).join('');
+        DOM.intentFilters.innerHTML += mustHaveItems;
+    }
+
+    // 3. Workspaces
+    if (intent.workspaces && intent.workspaces.length > 0) {
+        const workspaceItems = intent.workspaces.map(ws =>
             `<span class="px-2 py-0.5 rounded border text-xs bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-300 border-green-200 dark:border-green-700">${ws}</span>`
         ).join('');
         DOM.intentFilters.innerHTML += workspaceItems;
     }
 
-    // 3. Links
-    if (filters.links && filters.links.length > 0) {
-        const linkItems = filters.links.map(link =>
+    // 4. Links
+    if (intent.links && intent.links.length > 0) {
+        const linkItems = intent.links.map(link =>
             `<span class="px-2 py-0.5 rounded border text-xs bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-300 border-purple-200 dark:border-purple-700">${link}</span>`
         ).join('');
         DOM.intentFilters.innerHTML += linkItems;
     }
 
-    // 4. Limit (Always show)
+    // 5. Limit (Always show)
     const limitVal = intent.limit !== null && intent.limit !== undefined ? intent.limit : 'Null';
     const limitClass = (intent.limit !== null && intent.limit !== undefined) ?
         "bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-300 border-gray-200 dark:border-gray-600" :

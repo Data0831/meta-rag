@@ -45,3 +45,6 @@
   - 展平 Schema 結構：刪除 `SearchFilters` 類別，將 `year_month/links/workspaces` 直接整合至 `SearchIntent`，消除 `$ref` 引用。
   - 嚴格模式處理：在 `client.py` 新增 `_add_additional_properties()` 方法，遞迴為所有 object 添加 `"additionalProperties": false` 並強制所有 properties 加入 `required` 數組。
   - 級聯更新：修改 `db_adapter_meili.py` 的 `build_meili_filter()` 與 `search_service.py` 的調用邏輯，適配新的扁平化 Schema 結構。
+
+## 2025-12-24 15:30:00
+- **前端 LLM 意圖顯示修復**：修正 `render.js` 中 `updateIntentDisplay()` 函數的數據讀取邏輯，從錯誤的 `intent.filters.year_month` 改為直接讀取 `intent.year_month` 等頂層欄位。新增 `must_have_keywords` 紅色標籤渲染（格式：`[必含: xxx]`）。在 `index.html` 的 `llmDetails` 區塊新增「LLM 建議權重」顯示元素（`intentRecommendedRatio`），動態顯示 `recommended_semantic_ratio` 百分比值（例如：40%）。修復後前端可正確顯示所有 LLM 解析的篩選條件（year_month 藍色標籤、must_have_keywords 紅色標籤、workspaces 綠色標籤、links 紫色標籤、limit 灰色標籤）。

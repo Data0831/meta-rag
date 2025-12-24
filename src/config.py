@@ -30,9 +30,6 @@ DEFAULT_SEMANTIC_RATIO = 0.5
 # TODO: Consider making this dynamic (e.g., limit * 1.2) in the future
 PRE_SEARCH_LIMIT = 24
 
-# ETL Settings
-DEFAULT_BATCH_SIZE = 10  # Number of documents to process per batch
-
 # Legacy FilePath dict for backward compatibility
 FilePath = {
     "page": PAGE_JSON,

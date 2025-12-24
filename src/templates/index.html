@@ -154,7 +154,7 @@
         <div class="flex items-center space-x-2 pt-1">
           <input
             class="w-4 h-4 text-primary bg-white dark:bg-slate-700 border-slate-300 dark:border-slate-500 rounded focus:ring-primary"
-            id="llmRewriteCheckbox" type="checkbox" />
+            id="llmRewriteCheckbox" type="checkbox" checked />
           <label class="text-sm text-slate-700 dark:text-slate-300 cursor-pointer" for="llmRewriteCheckbox">啟用
             LLM 查詢重寫</label>
         </div>
@@ -274,6 +274,13 @@
                 <div class="flex flex-wrap gap-2">
                   <span id="intentSemanticQuery"
                     class="px-2 py-1 bg-white dark:bg-slate-700 rounded text-xs text-slate-600 dark:text-slate-200 border border-slate-200 dark:border-slate-600"></span>
+                </div>
+              </div>
+              <div class="flex items-start gap-3 hidden">
+                <span class="text-sm font-bold text-slate-700 dark:text-slate-300 min-w-[80px]">LLM 建議權重 :</span>
+                <div class="flex flex-wrap gap-2">
+                  <span id="intentRecommendedRatio"
+                    class="px-2 py-1 bg-primary/20 dark:bg-primary/30 text-primary dark:text-primary-light rounded text-xs font-bold border border-primary/30 dark:border-primary/40"></span>
                 </div>
               </div>
             </div>

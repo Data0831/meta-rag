@@ -568,5 +568,271 @@
       }
     },
     "response": "{\n    \"year_month\": [\"2025-04\"],\n    \"links\": [],\n    \"workspaces\": [],\n    \"keyword_query\": \"價格 Pricing\",\n    \"semantic_query\": \"2025年4月份的價格相關公告\",\n    \"must_have_keywords\": [],\n    \"boost_keywords\": [],\n    \"limit\": null,\n    \"recommended_semantic_ratio\": 0.5\n}"
+  },
+  {
+    "timestamp": "2025-12-24T09:10:53.340342",
+    "model": "gpt-4o-mini",
+    "temperature": 0.0,
+    "messages": [
+      {
+        "role": "system",
+        "content": "# Role\nYou are the **Search Intent Parsing Agent** for the Microsoft Partner Center announcement system.\nYour core function is to bridge natural language user queries with a hybrid search engine (supporting both Full-Text and Vector Search).\n\n# Task\nAnalyze the user's input (comprising a `Current Date` and a `User Query`) and map it into a strict JSON search object. You must handle date resolution, entity extraction, URL extraction, bi-lingual keyword expansion, and search strategy optimization.\n\n# Data\n- **current date:** 2025-12-24\n\n# Input Format\nYou will receive input in the following format:\n- **user query:** \"question description or url\"\n\n# Processing Rules\n\n## 1. Date Resolution (CRITICAL)\nYou must calculate the `filters.year_month` list based on the provided **Current Date**.\n- **Format:** Output months strictly as `\"YYYY-MM\"`.\n- **Logic:**\n  - **\"Last month\"**: The month immediately preceding the current month.\n  - **\"Past N months\"**: The current month plus the N-1 preceding months.\n  - **Specific Month (e.g., \"April 2025\")**: [\"2025-04\"].\n  - **No time constraint**: Return an empty list `[]`.\n\n## 2. Filter Extraction\n- **year_month**: The list of target months resolved above.\n- **link**:\n  - Extract any URL or hyperlinks present in the user query.\n  - Format: A list of strings (e.g., `[\"https://example.com/article\"]`).\n  - If no link is provided, return an empty list `[]`.\n\n## 3. Keyword Query Strategy (Full-Text Search)\nConstruct a concise string of key terms suitable for BM25/keyword matching (`keyword_query`).\n- **Entity Expansion (Bi-lingual)**:\n  - Identify core entities: Product names, Program names, Technical terms (e.g., \"雲合作夥伴計劃\", \"Azure\", \"Copilot\").\n  - **Requirement**: Output BOTH the English and Traditional Chinese versions of the entity to maximize recall. (e.g., \"雲合作夥伴計劃 Cloud Partner Program\").\n  - Do NOT duplicate words if they are identical in both languages.\n- **Critical Keywords (Must Have)**:\n  - Identify proper nouns or technical terms that are **absolutely essential** for the query relevance (e.g., \"GEMINI\", \"GPT-4\").\n  - **Requirement**: Output BOTH the English and Traditional Chinese versions of the critical term to ensure matching in localized documents (e.g., [\"Copilot\", \"Copilot 助手\"]).\n  - Add these to the `must_have_keywords` list.\n  - These will be enforced as exact matches (via boosting).\n- **Noise Reduction**:\n  - **REMOVE** generic stop words that dilute search precision on the Microsoft site: \"Microsoft\", \"Announcement\" (公告), \"Article\" (文章), \"Data\" (資料), \"Details\" (細節), \"Query\" (查詢).\n  - **KEEP** high-discrimination intent words if they modify the entity: \"Pricing\" (價格), \"Security\" (安全性/資安), \"Compliance\" (合規), \"Error\" (錯誤).\n- **Format**: Space-separated string for `keyword_query`. List of strings for `must_have_keywords`.\n\n## 4. Semantic Query Strategy (Vector Search)\nConstruct a natural language sentence for vector embedding (`semantic_query`).\n- **Language**: Traditional Chinese.\n- **Entities**: Keep Proper Nouns/Entities in their original form (usually English, e.g., \"Azure\", \"Windows\", \"Copilot\") or common localized form.\n- **Structure**: A grammatically correct sentence describing the search intent.\n\n## 5. Limit Extraction\n- Parse explicit numerical requests (e.g., \"top 5\", \"3 articles\", \"請給我一篇\", \"給我三篇\").\n- Output as an `integer`. If unspecified, use `null`.\n\n## 6. Semantic Ratio Strategy (Dynamic Weight Adjustment)\nDetermine the optimal balance between keyword and semantic search based on query characteristics.\n- **0.2-0.3 (Keyword-Heavy)**: Exact error codes, SKUs, or specific IDs.\n- **0.3-0.5 (Balanced with Keyword Preference)**: Specific products/features + descriptive intent (e.g., \"Azure pricing\").\n- **0.5 (Balanced Hybrid)**: General topic exploration.\n- **0.6-0.8 (Semantic-Heavy)**: Conceptual questions (e.g., \"How to improve security\").\n- **0.8-0.9 (Pure Semantic)**: Abstract/Broad questions.\n\n**Output**: Provide a float value (0.0-1.0) in the `recommended_semantic_ratio` field.\n\n# Output Format (STRICT)\n- **Content**: Output ONLY valid JSON.\n- **Forbidden**: Do NOT use Markdown code blocks. Do NOT add conversational text.\n- **Schema**:\n{\n    \"filters\": {\n        \"year_month\": [\"YYYY-MM\", ...],\n        \"link\": [\"String (URL)\", ...]\n    },\n    \"keyword_query\": \"String (Bi-lingual entities + Specific intents, No generic stops)\",\n    \"must_have_keywords\": [\"String (Critical Entity)\", ...],\n    \"semantic_query\": \"String (Natural sentence)\",\n    \"limit\": Integer or null,\n    \"recommended_semantic_ratio\": Float (0.0-1.0)\n}\n\n# Few-Shot Examples\n\n**Input:**\nContext: 2025-12-16\nQuery: \"Show me security announcements from last month\"\n\n**Output:**\n{\n    \"filters\": {\n        \"year_month\": [\"2025-11\"],\n        \"link\": []\n    },\n    \"keyword_query\": \"Security 安全性\",\n    \"must_have_keywords\": [\"Security\"],\n    \"semantic_query\": \"2025年11月的安全性公告\",\n    \"limit\": null,\n    \"recommended_semantic_ratio\": 0.5\n}\n\n**Input:**\nContext: 2025-12-16\nQuery: \"三個月內「AI 雲合作夥伴計劃」相關公告\"\n\n**Output:**\n{\n    \"filters\": {\n        \"year_month\": [\"2025-10\", \"2025-11\", \"2025-12\"],\n        \"link\": []\n    },\n    \"keyword_query\": \"AI 雲合作夥伴計劃 AI Cloud Partner Program\",\n    \"must_have_keywords\": [\"AI Cloud Partner Program\"],\n    \"semantic_query\": \"過去三個月 AI 雲合作夥伴計劃的相關公告\",\n    \"limit\": null,\n    \"recommended_semantic_ratio\": 0.4\n}\n\n**Input:**\nContext: 2025-12-16\nQuery: \"類似這篇文章的 Azure OpenAI 價格資訊 https://learn.microsoft.com/en-us/partner-center/announcements/2025/december/12\"\n\n**Output:**\n{\n    \"filters\": {\n        \"year_month\": [],\n        \"link\": [\"https://learn.microsoft.com/en-us/partner-center/announcements/2025/december/12\"]\n    },\n    \"keyword_query\": \"Azure OpenAI Pricing 價格\",\n    \"must_have_keywords\": [\"Azure OpenAI\"],\n    \"semantic_query\": \"類似指定連結的 Azure OpenAI 價格資訊\",\n    \"limit\": null,\n    \"recommended_semantic_ratio\": 0.3\n}\n\n**Input:**\nContext: 2025-12-16\nQuery: \"請給我一篇三個月內「copilot 價格」相關公告\"\n\n**Output:**\n{\n    \"filters\": {\n        \"year_month\": [\"2025-10\", \"2025-11\", \"2025-12\"],\n        \"link\": []\n    },\n    \"keyword_query\": \"Copilot Pricing 價格\",\n    \"must_have_keywords\": [\"Copilot\"],\n    \"semantic_query\": \"「copilot 價格」相關公告\",\n    \"limit\": 1,\n    \"recommended_semantic_ratio\": 0.3\n}\n"
+      },
+      {
+        "role": "user",
+        "content": "三個月內「AI 雲合作夥伴計劃」相關公告"
+      }
+    ],
+    "response_format": {
+      "type": "json_schema",
+      "json_schema": {
+        "name": "SearchIntent",
+        "strict": true,
+        "schema": {
+          "description": "Structured search intent parsed from user query",
+          "properties": {
+            "year_month": {
+              "description": "List of year-months (YYYY-MM format). For ranges like 'past 3 months', include all months.",
+              "items": {
+                "type": "string"
+              },
+              "title": "Year Month",
+              "type": "array"
+            },
+            "links": {
+              "description": "List of source URLs to filter by.",
+              "items": {
+                "type": "string"
+              },
+              "title": "Links",
+              "type": "array"
+            },
+            "workspaces": {
+              "description": "List of workspaces to filter by e.g. General, Security",
+              "items": {
+                "type": "string"
+              },
+              "title": "Workspaces",
+              "type": "array"
+            },
+            "keyword_query": {
+              "description": "Optimized keyword query for FTS",
+              "title": "Keyword Query",
+              "type": "string"
+            },
+            "semantic_query": {
+              "description": "Optimized semantic query for Vector DB",
+              "title": "Semantic Query",
+              "type": "string"
+            },
+            "must_have_keywords": {
+              "description": "Critical keywords that MUST be present in the document (enforces exact match/presence)",
+              "items": {
+                "type": "string"
+              },
+              "title": "Must Have Keywords",
+              "type": "array"
+            },
+            "boost_keywords": {
+              "description": "Soft-match keywords (e.g., product names) to boost relevance, not filter",
+              "items": {
+                "type": "string"
+              },
+              "title": "Boost Keywords",
+              "type": "array"
+            },
+            "limit": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "description": "Max results to return",
+              "title": "Limit"
+            },
+            "recommended_semantic_ratio": {
+              "anyOf": [
+                {
+                  "maximum": 1.0,
+                  "minimum": 0.0,
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "description": "Recommended weight for semantic search (0.0=pure keyword, 1.0=pure semantic, 0.5=balanced)",
+              "title": "Recommended Semantic Ratio"
+            }
+          },
+          "required": [
+            "year_month",
+            "links",
+            "workspaces",
+            "keyword_query",
+            "semantic_query",
+            "must_have_keywords",
+            "boost_keywords",
+            "limit",
+            "recommended_semantic_ratio"
+          ],
+          "title": "SearchIntent",
+          "type": "object",
+          "additionalProperties": false
+        }
+      }
+    },
+    "response": "{\n    \"year_month\": [\"2025-10\", \"2025-11\", \"2025-12\"],\n    \"links\": [],\n    \"workspaces\": [],\n    \"keyword_query\": \"AI 雲合作夥伴計劃 AI Cloud Partner Program\",\n    \"semantic_query\": \"過去三個月 AI 雲合作夥伴計劃的相關公告\",\n    \"must_have_keywords\": [\"AI Cloud Partner Program\"],\n    \"boost_keywords\": [],\n    \"limit\": null,\n    \"recommended_semantic_ratio\": 0.4\n}"
+  },
+  {
+    "timestamp": "2025-12-24T09:11:01.744306",
+    "model": "gpt-4o-mini",
+    "temperature": 0.3,
+    "messages": [
+      {
+        "role": "user",
+        "content": "\nRole: Microsoft 合作夥伴中心公告摘要專家\nTask: 請根據提供的 [搜尋結果列表]，針對使用者的搜尋關鍵字進行重點摘要。\n\nContext Info (搜尋結果列表):\n[第 1 篇] 標題: 11 月每月 Microsoft AI Cloud Partner Program 更新\n內容: ## 11 月 Microsoft AI 雲合作夥伴計劃的每月更新\n\n*Solutions Partner 資格、專業化選項以及其他 Microsoft AI Cloud Partner 計劃的提供和權益的新功能。*\n\n* **日期**：2025 年 11 月 5 日\n* **工作區**：成員資格\n* **受影響的對象**：註冊於 Microsoft AI 雲端合作夥伴計劃中的夥伴\n\n本月的更新繼續增強合作夥伴在高需求解決方案領域的差異化和準備程度。 主要變化包括整合人工智慧功能的專業化更新、修訂的技能和績效要求，以及簡化的資格框架，以支援合作夥伴的成長和敏捷性。\n\n#### 現已上市\n\n##### 增強學習檔案：多帳戶連結和統一憑證視圖\n\n我們很高興地宣佈合作夥伴中心中的學習檔案體驗獲得重大增強功能，旨在簡化憑證管理並改善所有使用者的技能獲取便利性。 從 11 月 18 日開始，這些更新將使個人能夠更有效地管理學習檔案，同時獲得更豐富的認證見解。\n\n更新的主要亮點：\n\n* 多個設定檔連結：使用者現在可以直接從 Learn 連結頁面連結多個 Microsoft Learn 設定檔 （M...\n\n[第 2 篇] 標題: 每月Microsoft AI Cloud Partner 計劃更新\n內容: ## 每月Microsoft AI Cloud Partner 計劃更新\n\n*Solutions Partner 資格、專業化選項以及其他 Microsoft AI Cloud Partner 計劃的提供和權益的新功能。*\n\n* **日期**：2025年12月5日\n* **工作區**：成員資格\n* **受影響的對象**：註冊於 Microsoft AI 雲端合作夥伴計劃中的夥伴\n\n#### 總結\n\n本月的更新繼續增強合作夥伴在高需求解決方案領域的差異化和準備程度。 主要變化包括整合人工智慧功能的專業化更新、修訂的技能和績效要求，以及簡化的資格框架，以支援合作夥伴的成長和敏捷性。\n\n#### 詳細資訊\n\n加速 **開發者生產力與 Microsoft Azure 專精** 已更名為 **代理型 DevOps with Microsoft Azure 與 GitHub 專精**。 此外，此專業的表現要求也有所調整。 這些變更是為了讓專業化更符合代理型 DevOps 業務。\n\n##### 金鑰變更\n\n* **效能**：現在必須從一組特定的子策略支柱中滿足 ACR 要求：Azure DevOps...\n\n[第 3 篇] 標題: 每月Microsoft AI Cloud Partner 計劃更新\n內容: ## 每月Microsoft AI Cloud Partner 計劃更新\n\n*Solutions Partner 資格、專業化選項以及其他 Microsoft AI Cloud Partner 計劃的提供和權益的新功能。*\n\n* **公告日期**：2025 年 10 月 8 日\n* **工作區**：成員資格\n* **受影響的對象**：註冊於 Microsoft AI 雲端合作夥伴計劃中的夥伴\n\n#### 總結\n\n本月的更新繼續增強合作夥伴在高需求解決方案領域的差異化和準備程度。 主要變化包括整合人工智慧功能的專業化更新、修訂的技能和績效要求，以及簡化的資格框架，以支援合作夥伴的成長和敏捷性。\n\n#### 現已上市\n\n* **申請 MAF 和標準合作夥伴認證信的流程的重要變更：**\n\n  從 2025 年 10 月 1 日開始，我們將更新發行製造商授權表單 （MAF） 信函和標準合作夥伴認證信函的程式，而且將不再僅根據 Microsoft AI 雲端合作夥伴計畫成員資格來發行這些信件，而該成員資格本身不會提供交易授權。\n\n  如果您是透過授權 Microsoft 散發者購買的 Micro...\n\n[第 4 篇] 標題: Copilot 中小企業合作夥伴中心公告\n內容: ## Microsoft 365 Copilot 商業版\n\n***Microsoft 365 Copilot Business：2025 年 12 月 1 日即將推出的新優惠與限時促銷***\n\n* **日期**：2025年11月18日\n* **工作區**：一般\n* **受影響受眾**：雲端解決方案供應商（CSP）夥伴\n\n隨著越來越多中小企業（SMB）尋求擴展其 AI 策略並成為前沿企業，雲端解決方案提供者（CSP）夥伴正處於提供實現 AI 轉型所需的解決方案與指引的有利位置。\n\n為了協助您把握此機會並完成及時續約與策略升級，我們將於 2025 年 12 月 1 日推出 Microsoft 365 Copilot Business，這是為用戶少於 300 人的中小企業客戶打造的新產品與促銷活動。\n\n#### 關於 Microsoft 365 Copilot 商務版\n\nMicrosoft 365 Copilot Business 提供與目前 Copilot SKU（售價 30 美元）相同的 AI 驅動生產力功能，但價格對中小企業來說更為親民。\n\n* 價格：每位用戶每月 21.00 美元\n*...\n\n[第 5 篇] 標題: 介紹啟動啟用指南\n內容: ## 介紹啟動啟用指南\n\n*在同一地點獲取雲端解決方案供應商（CSP）及批量授權（VL）的最新上線更新。*\n\n* **日期**：2025年11月18日\n* **工作區**：一般\n* **受影響的對象**：所有合作夥伴\n\n透過 AI 強化且持續更新的啟動指南，您可以輕鬆取得整合的發佈更新與官方 Microsoft Learn 內容，進行自助服務並保持最新資訊。\n\n啟動指南將幫助您準備：\n\n* 集中管理體驗：發布更新集中於一處，取代每月合作夥伴發佈行事曆，讓您能在單一地點找到正確資訊。\n* 利用 AI 輔助發現來尋找關鍵資訊：快速呈現新資訊、變化及受影響者。\n* 自信地規劃變更：將更新轉化為銷售、營運及客戶溝通的行動。\n\n#### 後續步驟\n\n請瀏覽啟動啟用指南以獲取最新更新：\n\n* [CSP 與合作夥伴中心](https://learn.microsoft.com/zh-tw/partner-center/announcements/launch-enablement-guide?wt.mc_id=rhordx5u22)\n* [企業台與VL Central台](https://learn...\n\n\n\nUser Query: 三個月內「AI 雲合作夥伴計劃」相關公告\n\n---\n\n### 摘要準則 (Strict Instructions):\n1.  **語言**: 請用**繁體中文**。\n2.  **格式**: 請使用 Markdown 的無序列表 (`-`) 呈現。\n3.  **內容**:\n    * 請歸納出 3-5 個與「三個月內「AI 雲合作夥伴計劃」相關公告」最相關的核心重點。\n    * 每個重點需簡潔明瞭，避免冗長。\n    * 如果搜尋結果與關鍵字關聯性不高，請總結搜尋結果的主要主題即可。\n4.  **風格**: 專業、客觀、資訊豐富。\n\n### 輸出範例:\n- **價格調整**: 2025 年 4 月份的雲端產品價格將微幅上調 5%。\n- **新功能發布**: Copilot for Sales 將於下個月新增自動會議摘要功能。\n- **政策更新**: CSP 合作夥伴需在 6 月前完成新的合規性簽署。\n"
+      }
+    ],
+    "response_format": null,
+    "response": "- **每月更新**: 2025 年 10 月、11 月及 12 月的 Microsoft AI 雲合作夥伴計劃均有更新，強調專業化選項及資格要求的調整。\n- **專業化更新**: 整合人工智慧功能的專業化選項已更新，並修訂了相關的技能和績效要求，以支持合作夥伴的成長。\n- **學習檔案增強**: 從 11 月 18 日起，合作夥伴中心的學習檔案體驗將增強，提供多帳戶連結及統一憑證視圖，提升憑證管理的便利性。\n- **新產品推出**: 2025 年 12 月 1 日將推出 Microsoft 365 Copilot Business，專為中小企業設計，價格更具競爭力。\n- **啟動指南更新**: 11 月 18 日起，將推出 AI 強化的啟動指南，集中管理最新的雲端解決方案更新，方便合作夥伴獲取資訊。"
+  },
+  {
+    "timestamp": "2025-12-24T09:22:12.910842",
+    "model": "gpt-4o-mini",
+    "temperature": 0.0,
+    "messages": [
+      {
+        "role": "system",
+        "content": "# Role\nYou are the **Search Intent Parsing Agent** for the Microsoft Partner Center announcement system.\nYour core function is to bridge natural language user queries with a hybrid search engine (supporting both Full-Text and Vector Search).\n\n# Task\nAnalyze the user's input (comprising a `Current Date` and a `User Query`) and map it into a strict JSON search object. You must handle date resolution, entity extraction, URL extraction, bi-lingual keyword expansion, and search strategy optimization.\n\n# Data\n- **current date:** 2025-12-24\n\n# Input Format\nYou will receive input in the following format:\n- **user query:** \"question description or url\"\n\n# Processing Rules\n\n## 1. Date Resolution (CRITICAL)\nYou must calculate the `filters.year_month` list based on the provided **Current Date**.\n- **Format:** Output months strictly as `\"YYYY-MM\"`.\n- **Logic:**\n  - **\"Last month\"**: The month immediately preceding the current month.\n  - **\"Past N months\"**: The current month plus the N-1 preceding months.\n  - **Specific Month (e.g., \"April 2025\")**: [\"2025-04\"].\n  - **No time constraint**: Return an empty list `[]`.\n\n## 2. Filter Extraction\n- **year_month**: The list of target months resolved above.\n- **link**:\n  - Extract any URL or hyperlinks present in the user query.\n  - Format: A list of strings (e.g., `[\"https://example.com/article\"]`).\n  - If no link is provided, return an empty list `[]`.\n\n## 3. Keyword Query Strategy (Full-Text Search)\nConstruct a concise string of key terms suitable for BM25/keyword matching (`keyword_query`).\n- **Entity Expansion (Bi-lingual)**:\n  - Identify core entities: Product names, Program names, Technical terms (e.g., \"雲合作夥伴計劃\", \"Azure\", \"Copilot\").\n  - **Requirement**: Output BOTH the English and Traditional Chinese versions of the entity to maximize recall. (e.g., \"雲合作夥伴計劃 Cloud Partner Program\").\n  - Do NOT duplicate words if they are identical in both languages.\n- **Critical Keywords (Must Have)**:\n  - Identify proper nouns or technical terms that are **absolutely essential** for the query relevance (e.g., \"GEMINI\", \"GPT-4\").\n  - **Requirement**: Output BOTH the English and Traditional Chinese versions of the critical term to ensure matching in localized documents (e.g., [\"Copilot\", \"Copilot 助手\"]).\n  - Add these to the `must_have_keywords` list.\n  - These will be enforced as exact matches (via boosting).\n- **Noise Reduction**:\n  - **REMOVE** generic stop words that dilute search precision on the Microsoft site: \"Microsoft\", \"Announcement\" (公告), \"Article\" (文章), \"Data\" (資料), \"Details\" (細節), \"Query\" (查詢).\n  - **KEEP** high-discrimination intent words if they modify the entity: \"Pricing\" (價格), \"Security\" (安全性/資安), \"Compliance\" (合規), \"Error\" (錯誤).\n- **Format**: Space-separated string for `keyword_query`. List of strings for `must_have_keywords`.\n\n## 4. Semantic Query Strategy (Vector Search)\nConstruct a natural language sentence for vector embedding (`semantic_query`).\n- **Language**: Traditional Chinese.\n- **Entities**: Keep Proper Nouns/Entities in their original form (usually English, e.g., \"Azure\", \"Windows\", \"Copilot\") or common localized form.\n- **Structure**: A grammatically correct sentence describing the search intent.\n\n## 5. Limit Extraction\n- Parse explicit numerical requests (e.g., \"top 5\", \"3 articles\", \"請給我一篇\", \"給我三篇\").\n- Output as an `integer`. If unspecified, use `null`.\n\n## 6. Semantic Ratio Strategy (Dynamic Weight Adjustment)\nDetermine the optimal balance between keyword and semantic search based on query characteristics.\n- **0.2-0.3 (Keyword-Heavy)**: Exact error codes, SKUs, or specific IDs.\n- **0.3-0.5 (Balanced with Keyword Preference)**: Specific products/features + descriptive intent (e.g., \"Azure pricing\").\n- **0.5 (Balanced Hybrid)**: General topic exploration.\n- **0.6-0.8 (Semantic-Heavy)**: Conceptual questions (e.g., \"How to improve security\").\n- **0.8-0.9 (Pure Semantic)**: Abstract/Broad questions.\n\n**Output**: Provide a float value (0.0-1.0) in the `recommended_semantic_ratio` field.\n\n# Output Format (STRICT)\n- **Content**: Output ONLY valid JSON.\n- **Forbidden**: Do NOT use Markdown code blocks. Do NOT add conversational text.\n- **Schema**:\n{\n    \"filters\": {\n        \"year_month\": [\"YYYY-MM\", ...],\n        \"link\": [\"String (URL)\", ...]\n    },\n    \"keyword_query\": \"String (Bi-lingual entities + Specific intents, No generic stops)\",\n    \"must_have_keywords\": [\"String (Critical Entity)\", ...],\n    \"semantic_query\": \"String (Natural sentence)\",\n    \"limit\": Integer or null,\n    \"recommended_semantic_ratio\": Float (0.0-1.0)\n}\n\n# Few-Shot Examples\n\n**Input:**\nContext: 2025-12-16\nQuery: \"Show me security announcements from last month\"\n\n**Output:**\n{\n    \"filters\": {\n        \"year_month\": [\"2025-11\"],\n        \"link\": []\n    },\n    \"keyword_query\": \"Security 安全性\",\n    \"must_have_keywords\": [\"Security\"],\n    \"semantic_query\": \"2025年11月的安全性公告\",\n    \"limit\": null,\n    \"recommended_semantic_ratio\": 0.5\n}\n\n**Input:**\nContext: 2025-12-16\nQuery: \"三個月內「AI 雲合作夥伴計劃」相關公告\"\n\n**Output:**\n{\n    \"filters\": {\n        \"year_month\": [\"2025-10\", \"2025-11\", \"2025-12\"],\n        \"link\": []\n    },\n    \"keyword_query\": \"AI 雲合作夥伴計劃 AI Cloud Partner Program\",\n    \"must_have_keywords\": [\"AI Cloud Partner Program\"],\n    \"semantic_query\": \"過去三個月 AI 雲合作夥伴計劃的相關公告\",\n    \"limit\": null,\n    \"recommended_semantic_ratio\": 0.4\n}\n\n**Input:**\nContext: 2025-12-16\nQuery: \"類似這篇文章的 Azure OpenAI 價格資訊 https://learn.microsoft.com/en-us/partner-center/announcements/2025/december/12\"\n\n**Output:**\n{\n    \"filters\": {\n        \"year_month\": [],\n        \"link\": [\"https://learn.microsoft.com/en-us/partner-center/announcements/2025/december/12\"]\n    },\n    \"keyword_query\": \"Azure OpenAI Pricing 價格\",\n    \"must_have_keywords\": [\"Azure OpenAI\"],\n    \"semantic_query\": \"類似指定連結的 Azure OpenAI 價格資訊\",\n    \"limit\": null,\n    \"recommended_semantic_ratio\": 0.3\n}\n\n**Input:**\nContext: 2025-12-16\nQuery: \"請給我一篇三個月內「copilot 價格」相關公告\"\n\n**Output:**\n{\n    \"filters\": {\n        \"year_month\": [\"2025-10\", \"2025-11\", \"2025-12\"],\n        \"link\": []\n    },\n    \"keyword_query\": \"Copilot Pricing 價格\",\n    \"must_have_keywords\": [\"Copilot\"],\n    \"semantic_query\": \"「copilot 價格」相關公告\",\n    \"limit\": 1,\n    \"recommended_semantic_ratio\": 0.3\n}\n"
+      },
+      {
+        "role": "user",
+        "content": "三個月內「AI 雲合作夥伴計劃」相關公告"
+      }
+    ],
+    "response_format": {
+      "type": "json_schema",
+      "json_schema": {
+        "name": "SearchIntent",
+        "strict": true,
+        "schema": {
+          "description": "Structured search intent parsed from user query",
+          "properties": {
+            "year_month": {
+              "description": "List of year-months (YYYY-MM format). For ranges like 'past 3 months', include all months.",
+              "items": {
+                "type": "string"
+              },
+              "title": "Year Month",
+              "type": "array"
+            },
+            "links": {
+              "description": "List of source URLs to filter by.",
+              "items": {
+                "type": "string"
+              },
+              "title": "Links",
+              "type": "array"
+            },
+            "workspaces": {
+              "description": "List of workspaces to filter by e.g. General, Security",
+              "items": {
+                "type": "string"
+              },
+              "title": "Workspaces",
+              "type": "array"
+            },
+            "keyword_query": {
+              "description": "Optimized keyword query for FTS",
+              "title": "Keyword Query",
+              "type": "string"
+            },
+            "semantic_query": {
+              "description": "Optimized semantic query for Vector DB",
+              "title": "Semantic Query",
+              "type": "string"
+            },
+            "must_have_keywords": {
+              "description": "Critical keywords that MUST be present in the document (enforces exact match/presence)",
+              "items": {
+                "type": "string"
+              },
+              "title": "Must Have Keywords",
+              "type": "array"
+            },
+            "boost_keywords": {
+              "description": "Soft-match keywords (e.g., product names) to boost relevance, not filter",
+              "items": {
+                "type": "string"
+              },
+              "title": "Boost Keywords",
+              "type": "array"
+            },
+            "limit": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "description": "Max results to return",
+              "title": "Limit"
+            },
+            "recommended_semantic_ratio": {
+              "anyOf": [
+                {
+                  "maximum": 1.0,
+                  "minimum": 0.0,
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "description": "Recommended weight for semantic search (0.0=pure keyword, 1.0=pure semantic, 0.5=balanced)",
+              "title": "Recommended Semantic Ratio"
+            }
+          },
+          "required": [
+            "year_month",
+            "links",
+            "workspaces",
+            "keyword_query",
+            "semantic_query",
+            "must_have_keywords",
+            "boost_keywords",
+            "limit",
+            "recommended_semantic_ratio"
+          ],
+          "title": "SearchIntent",
+          "type": "object",
+          "additionalProperties": false
+        }
+      }
+    },
+    "response": "{\n    \"year_month\": [\"2025-10\", \"2025-11\", \"2025-12\"],\n    \"links\": [],\n    \"workspaces\": [],\n    \"keyword_query\": \"AI 雲合作夥伴計劃 AI Cloud Partner Program\",\n    \"semantic_query\": \"過去三個月 AI 雲合作夥伴計劃的相關公告\",\n    \"must_have_keywords\": [\"AI Cloud Partner Program\"],\n    \"boost_keywords\": [],\n    \"limit\": null,\n    \"recommended_semantic_ratio\": 0.4\n}"
+  },
+  {
+    "timestamp": "2025-12-24T09:22:22.295919",
+    "model": "gpt-4o-mini",
+    "temperature": 0.3,
+    "messages": [
+      {
+        "role": "user",
+        "content": "\nRole: Microsoft 合作夥伴中心公告摘要專家\nTask: 請根據提供的 [搜尋結果列表]，針對使用者的搜尋關鍵字進行重點摘要。\n\nContext Info (搜尋結果列表):\n[第 1 篇] 標題: 11 月每月 Microsoft AI Cloud Partner Program 更新\n內容: ## 11 月 Microsoft AI 雲合作夥伴計劃的每月更新\n\n*Solutions Partner 資格、專業化選項以及其他 Microsoft AI Cloud Partner 計劃的提供和權益的新功能。*\n\n* **日期**：2025 年 11 月 5 日\n* **工作區**：成員資格\n* **受影響的對象**：註冊於 Microsoft AI 雲端合作夥伴計劃中的夥伴\n\n本月的更新繼續增強合作夥伴在高需求解決方案領域的差異化和準備程度。 主要變化包括整合人工智慧功能的專業化更新、修訂的技能和績效要求，以及簡化的資格框架，以支援合作夥伴的成長和敏捷性。\n\n#### 現已上市\n\n##### 增強學習檔案：多帳戶連結和統一憑證視圖\n\n我們很高興地宣佈合作夥伴中心中的學習檔案體驗獲得重大增強功能，旨在簡化憑證管理並改善所有使用者的技能獲取便利性。 從 11 月 18 日開始，這些更新將使個人能夠更有效地管理學習檔案，同時獲得更豐富的認證見解。\n\n更新的主要亮點：\n\n* 多個設定檔連結：使用者現在可以直接從 Learn 連結頁面連結多個 Microsoft Learn 設定檔 （M...\n\n[第 2 篇] 標題: 每月Microsoft AI Cloud Partner 計劃更新\n內容: ## 每月Microsoft AI Cloud Partner 計劃更新\n\n*Solutions Partner 資格、專業化選項以及其他 Microsoft AI Cloud Partner 計劃的提供和權益的新功能。*\n\n* **日期**：2025年12月5日\n* **工作區**：成員資格\n* **受影響的對象**：註冊於 Microsoft AI 雲端合作夥伴計劃中的夥伴\n\n#### 總結\n\n本月的更新繼續增強合作夥伴在高需求解決方案領域的差異化和準備程度。 主要變化包括整合人工智慧功能的專業化更新、修訂的技能和績效要求，以及簡化的資格框架，以支援合作夥伴的成長和敏捷性。\n\n#### 詳細資訊\n\n加速 **開發者生產力與 Microsoft Azure 專精** 已更名為 **代理型 DevOps with Microsoft Azure 與 GitHub 專精**。 此外，此專業的表現要求也有所調整。 這些變更是為了讓專業化更符合代理型 DevOps 業務。\n\n##### 金鑰變更\n\n* **效能**：現在必須從一組特定的子策略支柱中滿足 ACR 要求：Azure DevOps...\n\n[第 3 篇] 標題: 每月Microsoft AI Cloud Partner 計劃更新\n內容: ## 每月Microsoft AI Cloud Partner 計劃更新\n\n*Solutions Partner 資格、專業化選項以及其他 Microsoft AI Cloud Partner 計劃的提供和權益的新功能。*\n\n* **公告日期**：2025 年 10 月 8 日\n* **工作區**：成員資格\n* **受影響的對象**：註冊於 Microsoft AI 雲端合作夥伴計劃中的夥伴\n\n#### 總結\n\n本月的更新繼續增強合作夥伴在高需求解決方案領域的差異化和準備程度。 主要變化包括整合人工智慧功能的專業化更新、修訂的技能和績效要求，以及簡化的資格框架，以支援合作夥伴的成長和敏捷性。\n\n#### 現已上市\n\n* **申請 MAF 和標準合作夥伴認證信的流程的重要變更：**\n\n  從 2025 年 10 月 1 日開始，我們將更新發行製造商授權表單 （MAF） 信函和標準合作夥伴認證信函的程式，而且將不再僅根據 Microsoft AI 雲端合作夥伴計畫成員資格來發行這些信件，而該成員資格本身不會提供交易授權。\n\n  如果您是透過授權 Microsoft 散發者購買的 Micro...\n\n[第 4 篇] 標題: 立即上線！ 合作夥伴中心部落格系列：2025 年 10 月版\n內容: ## 立即上線！ 合作夥伴中心部落格系列：2025 年 10 月版\n\n*合作夥伴中心 10 月部落格： [透過技術和 API 變更來加強安全性和客戶信任現已](https://partner.microsoft.com/blog/article/strengthen-security-and-grow-trust-with-technical-and-api-changes) 上線。*\n\n* **日期**：2025 年 10 月 7 日\n* **工作區**：一般\n* **受影響的對象**：所有合作夥伴\n\n#### 本部落格涵蓋以下關鍵領域\n\n* 最近的改進可確保您的業務安全、合規和成長\n* 即將推出的 API 和技術變更\n* 保護您的業務連續性並增強客戶信任\n\n#### 先前的合作夥伴中心部落格版本\n\n* [九月版](https://partner.microsoft.com/blog/article/partner-center-technical-corner-september-2025-edition)\n* [2025年6月版](https://partner.microsof...\n\n[第 5 篇] 標題: Microsoft Copilot (Microsoft 365): Admins can now edit user mappings and query filters for connected tools like Jira, Confluence, and Salesforce\n內容: Support connection edit of user mapping, query filter for SNow, Confluence, Salesforce, Jira connectors.Status: In developmentRollout start: December CY2025Cloud instances(s): Worldwide (Standard Multi-Tenant)Release phases(s): General AvailabilityAdded to roadmap: 2025-10-31T22:00:11Last modified: 2025-10-31T22:00:11Products: Microsoft Copilot (Microsoft 365)Platform(s): Web\n\n\n\nUser Query: 三個月內「AI 雲合作夥伴計劃」相關公告\n\n---\n\n### 摘要準則 (Strict Instructions):\n1.  **語言**: 請用**繁體中文**。\n2.  **格式**: 請使用 Markdown 的無序列表 (`-`) 呈現。\n3.  **內容**:\n    * 請歸納出 3-5 個與「三個月內「AI 雲合作夥伴計劃」相關公告」最相關的核心重點。\n    * 每個重點需簡潔明瞭，避免冗長。\n    * 如果搜尋結果與關鍵字關聯性不高，請總結搜尋結果的主要主題即可。\n4.  **風格**: 專業、客觀、資訊豐富。\n\n### 輸出範例:\n- **價格調整**: 2025 年 4 月份的雲端產品價格將微幅上調 5%。\n- **新功能發布**: Copilot for Sales 將於下個月新增自動會議摘要功能。\n- **政策更新**: CSP 合作夥伴需在 6 月前完成新的合規性簽署。\n"
+      }
+    ],
+    "response_format": null,
+    "response": "- **每月更新**: 2025 年 11 月的 Microsoft AI 雲合作夥伴計劃更新強調了整合人工智慧功能的專業化更新及簡化的資格框架，以支援夥伴的成長和敏捷性。\n- **學習檔案增強**: 從 11 月 18 日起，合作夥伴中心的學習檔案體驗將增加多帳戶連結和統一憑證視圖，提升憑證管理的便利性。\n- **專業化調整**: 2025 年 12 月的更新中，開發者生產力與 Microsoft Azure 專精已更名為代理型 DevOps，並調整了其表現要求，以更符合業務需求。\n- **申請流程變更**: 自 2025 年 10 月 1 日起，發行製造商授權表單（MAF）及標準合作夥伴認證信的申請流程將進行重要變更，將不再僅依賴於 Microsoft AI 雲端合作夥伴計畫的成員資格。"
   }
 ]
