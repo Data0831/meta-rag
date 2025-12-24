@@ -5,7 +5,7 @@ Unified search engine for hybrid search (keyword + semantic + filters)
 
 import meilisearch
 from typing import List, Dict, Any, Optional
-from src.schema.schemas import AnnouncementDoc, SearchFilters
+from src.schema.schemas import AnnouncementDoc
 from src.meilisearch_config import (
     RANKING_RULES,
     FILTERABLE_ATTRIBUTES,
@@ -203,12 +203,12 @@ class MeiliAdapter:
             return {}
 
 
-def build_meili_filter(filters: SearchFilters) -> Optional[str]:
+def build_meili_filter(intent) -> Optional[str]:
     """
-    Convert SearchFilters to Meilisearch filter syntax.
+    Convert SearchIntent to Meilisearch filter syntax.
 
     Args:
-        filters: SearchFilters object
+        intent: SearchIntent object with filter fields
 
     Returns:
         Filter string in Meilisearch syntax, or None if no filters
@@ -220,19 +220,16 @@ def build_meili_filter(filters: SearchFilters) -> Optional[str]:
     """
     conditions = []
 
-    # year_month filters (OR condition for multiple months)
-    if filters.year_month:
-        months_str = ", ".join([f"'{m}'" for m in filters.year_month])
+    if intent.year_month:
+        months_str = ", ".join([f"'{m}'" for m in intent.year_month])
         conditions.append(f"year_month IN [{months_str}]")
 
-    # Link filters (OR condition for multiple links)
-    if filters.links:
-        links_str = ", ".join([f"'{l}'" for l in filters.links])
+    if intent.links:
+        links_str = ", ".join([f"'{l}'" for l in intent.links])
         conditions.append(f"link IN [{links_str}]")
 
-    # Workspace filters (OR condition for multiple workspaces)
-    if filters.workspaces:
-        workspace_str = ", ".join([f"'{w}'" for w in filters.workspaces])
+    if intent.workspaces:
+        workspace_str = ", ".join([f"'{w}'" for w in intent.workspaces])
         conditions.append(f"workspace IN [{workspace_str}]")
 
     return " AND ".join(conditions) if conditions else None

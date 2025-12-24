@@ -39,3 +39,9 @@
   - 將 Schema 中 `recommended_semantic_ratio` 預設值改為 `None` 以區分 LLM 建議。
   - 更新後端邏輯：當用戶手動設定極端值 (0.0 或 1.0) 時優先採納，忽略 LLM 建議。
   - 優化前端標籤：將 `render.js` 中的標籤判定改為容許浮點數誤差範圍 (<=0.01, >=0.99)，解決切換 Hybrid 顯示錯誤。
+
+## 2025-12-24 09:09:16
+- **Azure OpenAI Structured Outputs 兼容性修復**：解決 LLM Schema 驗證 400 錯誤。
+  - 展平 Schema 結構：刪除 `SearchFilters` 類別，將 `year_month/links/workspaces` 直接整合至 `SearchIntent`，消除 `$ref` 引用。
+  - 嚴格模式處理：在 `client.py` 新增 `_add_additional_properties()` 方法，遞迴為所有 object 添加 `"additionalProperties": false` 並強制所有 properties 加入 `required` 數組。
+  - 級聯更新：修改 `db_adapter_meili.py` 的 `build_meili_filter()` 與 `search_service.py` 的調用邏輯，適配新的扁平化 Schema 結構。

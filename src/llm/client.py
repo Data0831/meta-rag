@@ -1,12 +1,12 @@
 import os
 import json
 import sys
+import datetime
 from typing import Type, TypeVar, List
 from openai import AzureOpenAI, APIError, APIStatusError
 from dotenv import load_dotenv
 from pydantic import BaseModel, ValidationError
 
-# Load environment variables
 load_dotenv()
 
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
@@ -17,34 +17,90 @@ T = TypeVar("T", bound=BaseModel)
 
 
 class LLMClient:
-    def __init__(self, endpoint: str = None, api_key: str = None, model: str = None, api_version: str = None):
-        """
-        Initialize the LLM Client using Azure OpenAI.
-
-        Args:
-            endpoint: The Azure Endpoint URL.
-            api_key: The Azure API Key.
-            model: The deployment name (e.g., "gpt-4o-mini").
-            api_version: The API version to use.
-        """
-        # Defaults based on test2.py and user request
-        self.endpoint = endpoint or os.getenv("AZURE_ENDPOINT", "https://royaoaieus.openai.azure.com/")
+    def __init__(
+        self,
+        endpoint: str = None,
+        api_key: str = None,
+        model: str = None,
+        api_version: str = None,
+    ):
+        self.endpoint = endpoint or os.getenv(
+            "AZURE_ENDPOINT", "https://royaoaieus.openai.azure.com/"
+        )
         self.api_key = api_key or os.getenv("PROXY_API_KEY")
         self.model = model or os.getenv("AZURE_DEPLOYMENT", "gpt-4o-mini")
-        self.api_version = api_version or os.getenv("AZURE_API_VERSION", "2024-12-01-preview")
+        self.api_version = api_version or os.getenv(
+            "AZURE_API_VERSION", "2024-12-01-preview"
+        )
 
         print(
             f"Initializing LLMClient (Azure) with endpoint={self.endpoint}, model={self.model}"
         )
-        
+
         if not self.api_key:
-             print("Warning: PROXY_API_KEY not found in environment variables.")
+            print("Warning: PROXY_API_KEY not found in environment variables.")
 
         self.client = AzureOpenAI(
             azure_endpoint=self.endpoint,
             api_key=self.api_key,
-            api_version=self.api_version
+            api_version=self.api_version,
         )
+
+    def _add_additional_properties(self, schema: dict) -> dict:
+        if isinstance(schema, dict):
+            if schema.get("type") == "object":
+                schema["additionalProperties"] = False
+                if "properties" in schema:
+                    schema["required"] = list(schema["properties"].keys())
+            for key, value in schema.items():
+                schema[key] = self._add_additional_properties(value)
+        elif isinstance(schema, list):
+            return [self._add_additional_properties(item) for item in schema]
+        return schema
+
+    def _log_request(
+        self,
+        messages: list,
+        response_content: str,
+        temperature: float,
+        response_format: dict,
+        model: str,
+    ):
+        try:
+            log_dir = os.path.join(project_root, "logs")
+            if not os.path.exists(log_dir):
+                os.makedirs(log_dir)
+
+            log_entry = {
+                "timestamp": datetime.datetime.now().isoformat(),
+                "model": model or self.model,
+                "temperature": temperature,
+                "messages": messages,
+                "response_format": response_format,
+                "response": response_content,
+            }
+
+            log_file = os.path.join(
+                log_dir,
+                "log_{}.json".format(datetime.datetime.now().strftime("%Y%m%d_%H")),
+            )
+            logs = []
+            if os.path.exists(log_file):
+                try:
+                    with open(log_file, "r", encoding="utf-8") as f:
+                        logs = json.load(f)
+                        if not isinstance(logs, list):
+                            logs = []
+                except:
+                    logs = []
+
+            logs.append(log_entry)
+
+            with open(log_file, "w", encoding="utf-8") as f:
+                json.dump(logs, f, indent=2, ensure_ascii=False)
+
+        except Exception as log_error:
+            print(f"Warning: Failed to write LLM logs: {log_error}")
 
     def call_gemini(
         self,
@@ -53,19 +109,7 @@ class LLMClient:
         response_format: dict = None,
         model: str = None,
     ) -> str:
-        """
-        Send a request to the Azure OpenAI model.
-        (Method name kept as call_gemini for backward compatibility)
-
-        Args:
-            messages: A list of message dictionaries (role, content).
-            temperature: Sampling temperature.
-            response_format: Optional dict, e.g., {"type": "json_object"}
-            model: Optional model name override.
-
-        Returns:
-            The content of the response message.
-        """
+        response_content = None
         try:
             response = self.client.chat.completions.create(
                 model=model or self.model,
@@ -74,10 +118,16 @@ class LLMClient:
                 stream=False,
                 response_format=response_format,
             )
-            return response.choices[0].message.content
+            response_content = response.choices[0].message.content
         except Exception as e:
             print(f"Error calling LLM: {e}")
-            return None
+            response_content = None
+
+        self._log_request(
+            messages, response_content, temperature, response_format, model
+        )
+
+        return response_content
 
     def call_with_schema(
         self,
@@ -85,34 +135,20 @@ class LLMClient:
         response_model: Type[T],
         temperature: float = 0.0,
         model: str = None,
-        max_retries: int = 0,
+        max_retries: int = 1,
     ) -> T | None:
-        """
-        呼叫 LLM 並使用 Pydantic Schema 驗證輸出。
-
-        Args:
-            messages: 訊息列表 (role, content)。
-            response_model: Pydantic BaseModel 類別（例如 BatchMetaExtraction）。
-            temperature: 採樣溫度。
-            model: 可選的模型名稱覆寫。
-            max_retries: 驗證失敗時的最大重試次數。
-
-        Returns:
-            驗證後的 Pydantic 模型實例，或 None（如果失敗）。
-        """
-        # 生成 JSON Schema
         schema = response_model.model_json_schema()
         schema_name = response_model.__name__
 
-        # 構建 OpenAI 格式的 response_format
+        schema = self._add_additional_properties(schema)
+
         response_format = {
             "type": "json_schema",
             "json_schema": {"name": schema_name, "strict": True, "schema": schema},
         }
 
-        for attempt in range(max_retries):
+        for attempt in range(max_retries + 1):
             try:
-                # 呼叫 LLM
                 response_text = self.call_gemini(
                     messages=messages,
                     temperature=temperature,
@@ -124,7 +160,6 @@ class LLMClient:
                     print(f"Empty response from LLM (attempt {attempt + 1})")
                     continue
 
-                # 清理可能的 Markdown code blocks
                 clean_text = response_text.strip()
                 if clean_text.startswith("```json"):
                     clean_text = clean_text[7:]
@@ -134,7 +169,6 @@ class LLMClient:
                     clean_text = clean_text[:-3]
                 clean_text = clean_text.strip()
 
-                # 解析並驗證 JSON
                 data = json.loads(clean_text)
                 validated = response_model.model_validate(data)
 
@@ -157,7 +191,6 @@ class LLMClient:
 
 
 if __name__ == "__main__":
-    # Simple connection test
     client = LLMClient()
     response = client.call_gemini(
         [{"role": "user", "content": "Hello, are you working?"}]

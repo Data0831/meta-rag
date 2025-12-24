@@ -11,7 +11,7 @@ No more RRF fusion needed - Meilisearch handles it internally!
 from typing import Dict, Any, Optional, List
 from src.llm.client import LLMClient
 from src.llm.search_prompts import SEARCH_INTENT_PROMPT
-from src.schema.schemas import SearchIntent, SearchFilters
+from src.schema.schemas import SearchIntent
 from src.database.db_adapter_meili import MeiliAdapter, build_meili_filter
 from src.database import vector_utils
 from src.config import MEILISEARCH_HOST, MEILISEARCH_API_KEY, MEILISEARCH_INDEX, PRE_SEARCH_LIMIT
@@ -164,12 +164,9 @@ class SearchService:
 
         if not intent:
             if enable_llm:
-                # Fallback if intent parsing fails
                 print("Intent parsing failed. Using fallback basic search.")
 
-            # Basic intent (no filters, raw query)
             intent = SearchIntent(
-                filters=SearchFilters(),  # Empty filters
                 keyword_query=user_query,
                 semantic_query=user_query,
             )
@@ -188,7 +185,7 @@ class SearchService:
             print(f"Manual Mode (or no LLM rec): Using provided semantic_ratio: {semantic_ratio:.2f}")
 
         # 2. Build Meilisearch filter expression
-        meili_filter = build_meili_filter(intent.filters)
+        meili_filter = build_meili_filter(intent)
 
         # 2.1 Enforce "Must Have" keywords via Soft Boosting
         # We append critical keywords multiple times (e.g., 3x) to the query string.
@@ -265,16 +262,16 @@ class SearchService:
         print(f"  Final results (top {limit}): {len(final_results)} results")
 
         # 5. Return results with intent
-        # Debug: Check if filters are present before serialization
         print(f"DEBUG - Before serialization:")
-        print(f"  intent.filters.year_month: {intent.filters.year_month}")
-        print(f"  intent.filters.workspaces: {intent.filters.workspaces}")
+        print(f"  intent.year_month: {intent.year_month}")
+        print(f"  intent.workspaces: {intent.workspaces}")
 
         serialized_intent = (
             intent.model_dump() if hasattr(intent, "model_dump") else intent.dict()
         )
         print(f"DEBUG - After serialization:")
-        print(f"  serialized_intent['filters']: {serialized_intent.get('filters')}")
+        print(f"  serialized year_month: {serialized_intent.get('year_month')}")
+        print(f"  serialized workspaces: {serialized_intent.get('workspaces')}")
 
         response = {
             "intent": serialized_intent,

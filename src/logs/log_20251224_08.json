@@ -1,0 +1,254 @@
+[
+  {
+    "timestamp": "2025-12-24T08:54:10.392550",
+    "model": "gpt-4o-mini",
+    "temperature": 0.0,
+    "messages": [
+      {
+        "role": "system",
+        "content": "# Role\nYou are the **Search Intent Parsing Agent** for the Microsoft Partner Center announcement system.\nYour core function is to bridge natural language user queries with a hybrid search engine (supporting both Full-Text and Vector Search).\n\n# Task\nAnalyze the user's input (comprising a `Current Date` and a `User Query`) and map it into a strict JSON search object. You must handle date resolution, entity extraction, URL extraction, bi-lingual keyword expansion, and search strategy optimization.\n\n# Data\n- **current date:** 2025-12-24\n\n# Input Format\nYou will receive input in the following format:\n- **user query:** \"question description or url\"\n\n# Processing Rules\n\n## 1. Date Resolution (CRITICAL)\nYou must calculate the `filters.year_month` list based on the provided **Current Date**.\n- **Format:** Output months strictly as `\"YYYY-MM\"`.\n- **Logic:**\n  - **\"Last month\"**: The month immediately preceding the current month.\n  - **\"Past N months\"**: The current month plus the N-1 preceding months.\n  - **Specific Month (e.g., \"April 2025\")**: [\"2025-04\"].\n  - **No time constraint**: Return an empty list `[]`.\n\n## 2. Filter Extraction\n- **year_month**: The list of target months resolved above.\n- **link**:\n  - Extract any URL or hyperlinks present in the user query.\n  - Format: A list of strings (e.g., `[\"https://example.com/article\"]`).\n  - If no link is provided, return an empty list `[]`.\n\n## 3. Keyword Query Strategy (Full-Text Search)\nConstruct a concise string of key terms suitable for BM25/keyword matching (`keyword_query`).\n- **Entity Expansion (Bi-lingual)**:\n  - Identify core entities: Product names, Program names, Technical terms (e.g., \"雲合作夥伴計劃\", \"Azure\", \"Copilot\").\n  - **Requirement**: Output BOTH the English and Traditional Chinese versions of the entity to maximize recall. (e.g., \"雲合作夥伴計劃 Cloud Partner Program\").\n  - Do NOT duplicate words if they are identical in both languages.\n- **Critical Keywords (Must Have)**:\n  - Identify proper nouns or technical terms that are **absolutely essential** for the query relevance (e.g., \"GEMINI\", \"GPT-4\").\n  - **Requirement**: Output BOTH the English and Traditional Chinese versions of the critical term to ensure matching in localized documents (e.g., [\"Copilot\", \"Copilot 助手\"]).\n  - Add these to the `must_have_keywords` list.\n  - These will be enforced as exact matches (via boosting).\n- **Noise Reduction**:\n  - **REMOVE** generic stop words that dilute search precision on the Microsoft site: \"Microsoft\", \"Announcement\" (公告), \"Article\" (文章), \"Data\" (資料), \"Details\" (細節), \"Query\" (查詢).\n  - **KEEP** high-discrimination intent words if they modify the entity: \"Pricing\" (價格), \"Security\" (安全性/資安), \"Compliance\" (合規), \"Error\" (錯誤).\n- **Format**: Space-separated string for `keyword_query`. List of strings for `must_have_keywords`.\n\n## 4. Semantic Query Strategy (Vector Search)\nConstruct a natural language sentence for vector embedding (`semantic_query`).\n- **Language**: Traditional Chinese.\n- **Entities**: Keep Proper Nouns/Entities in their original form (usually English, e.g., \"Azure\", \"Windows\", \"Copilot\") or common localized form.\n- **Structure**: A grammatically correct sentence describing the search intent.\n\n## 5. Limit Extraction\n- Parse explicit numerical requests (e.g., \"top 5\", \"3 articles\", \"請給我一篇\", \"給我三篇\").\n- Output as an `integer`. If unspecified, use `null`.\n\n## 6. Semantic Ratio Strategy (Dynamic Weight Adjustment)\nDetermine the optimal balance between keyword and semantic search based on query characteristics.\n- **0.2-0.3 (Keyword-Heavy)**: Exact error codes, SKUs, or specific IDs.\n- **0.3-0.5 (Balanced with Keyword Preference)**: Specific products/features + descriptive intent (e.g., \"Azure pricing\").\n- **0.5 (Balanced Hybrid)**: General topic exploration.\n- **0.6-0.8 (Semantic-Heavy)**: Conceptual questions (e.g., \"How to improve security\").\n- **0.8-0.9 (Pure Semantic)**: Abstract/Broad questions.\n\n**Output**: Provide a float value (0.0-1.0) in the `recommended_semantic_ratio` field.\n\n# Output Format (STRICT)\n- **Content**: Output ONLY valid JSON.\n- **Forbidden**: Do NOT use Markdown code blocks. Do NOT add conversational text.\n- **Schema**:\n{\n    \"filters\": {\n        \"year_month\": [\"YYYY-MM\", ...],\n        \"link\": [\"String (URL)\", ...]\n    },\n    \"keyword_query\": \"String (Bi-lingual entities + Specific intents, No generic stops)\",\n    \"must_have_keywords\": [\"String (Critical Entity)\", ...],\n    \"semantic_query\": \"String (Natural sentence)\",\n    \"limit\": Integer or null,\n    \"recommended_semantic_ratio\": Float (0.0-1.0)\n}\n\n# Few-Shot Examples\n\n**Input:**\nContext: 2025-12-16\nQuery: \"Show me security announcements from last month\"\n\n**Output:**\n{\n    \"filters\": {\n        \"year_month\": [\"2025-11\"],\n        \"link\": []\n    },\n    \"keyword_query\": \"Security 安全性\",\n    \"must_have_keywords\": [\"Security\"],\n    \"semantic_query\": \"2025年11月的安全性公告\",\n    \"limit\": null,\n    \"recommended_semantic_ratio\": 0.5\n}\n\n**Input:**\nContext: 2025-12-16\nQuery: \"三個月內「AI 雲合作夥伴計劃」相關公告\"\n\n**Output:**\n{\n    \"filters\": {\n        \"year_month\": [\"2025-10\", \"2025-11\", \"2025-12\"],\n        \"link\": []\n    },\n    \"keyword_query\": \"AI 雲合作夥伴計劃 AI Cloud Partner Program\",\n    \"must_have_keywords\": [\"AI Cloud Partner Program\"],\n    \"semantic_query\": \"過去三個月 AI 雲合作夥伴計劃的相關公告\",\n    \"limit\": null,\n    \"recommended_semantic_ratio\": 0.4\n}\n\n**Input:**\nContext: 2025-12-16\nQuery: \"類似這篇文章的 Azure OpenAI 價格資訊 https://learn.microsoft.com/en-us/partner-center/announcements/2025/december/12\"\n\n**Output:**\n{\n    \"filters\": {\n        \"year_month\": [],\n        \"link\": [\"https://learn.microsoft.com/en-us/partner-center/announcements/2025/december/12\"]\n    },\n    \"keyword_query\": \"Azure OpenAI Pricing 價格\",\n    \"must_have_keywords\": [\"Azure OpenAI\"],\n    \"semantic_query\": \"類似指定連結的 Azure OpenAI 價格資訊\",\n    \"limit\": null,\n    \"recommended_semantic_ratio\": 0.3\n}\n\n**Input:**\nContext: 2025-12-16\nQuery: \"請給我一篇三個月內「copilot 價格」相關公告\"\n\n**Output:**\n{\n    \"filters\": {\n        \"year_month\": [\"2025-10\", \"2025-11\", \"2025-12\"],\n        \"link\": []\n    },\n    \"keyword_query\": \"Copilot Pricing 價格\",\n    \"must_have_keywords\": [\"Copilot\"],\n    \"semantic_query\": \"「copilot 價格」相關公告\",\n    \"limit\": 1,\n    \"recommended_semantic_ratio\": 0.3\n}\n"
+      },
+      {
+        "role": "user",
+        "content": "2025 年 4 月份價格相關公告"
+      }
+    ],
+    "response_format": {
+      "type": "json_schema",
+      "json_schema": {
+        "name": "SearchIntent",
+        "strict": true,
+        "schema": {
+          "$defs": {
+            "SearchFilters": {
+              "description": "Search filters extracted from user query (STRICT filters only)",
+              "properties": {
+                "year_month": {
+                  "description": "List of year-months (YYYY-MM format). For ranges like 'past 3 months', include all months.",
+                  "items": {
+                    "type": "string"
+                  },
+                  "title": "Year Month",
+                  "type": "array"
+                },
+                "links": {
+                  "description": "List of source URLs to filter by.",
+                  "items": {
+                    "type": "string"
+                  },
+                  "title": "Links",
+                  "type": "array"
+                },
+                "workspaces": {
+                  "description": "List of workspaces to filter by e.g. General, Security",
+                  "items": {
+                    "type": "string"
+                  },
+                  "title": "Workspaces",
+                  "type": "array"
+                }
+              },
+              "title": "SearchFilters",
+              "type": "object"
+            }
+          },
+          "description": "Structured search intent parsed from user query",
+          "properties": {
+            "filters": {
+              "$ref": "#/$defs/SearchFilters",
+              "description": "Strict filters to apply"
+            },
+            "keyword_query": {
+              "description": "Optimized keyword query for FTS",
+              "title": "Keyword Query",
+              "type": "string"
+            },
+            "semantic_query": {
+              "description": "Optimized semantic query for Vector DB",
+              "title": "Semantic Query",
+              "type": "string"
+            },
+            "must_have_keywords": {
+              "description": "Critical keywords that MUST be present in the document (enforces exact match/presence)",
+              "items": {
+                "type": "string"
+              },
+              "title": "Must Have Keywords",
+              "type": "array"
+            },
+            "boost_keywords": {
+              "description": "Soft-match keywords (e.g., product names) to boost relevance, not filter",
+              "items": {
+                "type": "string"
+              },
+              "title": "Boost Keywords",
+              "type": "array"
+            },
+            "limit": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "description": "Max results to return",
+              "title": "Limit"
+            },
+            "recommended_semantic_ratio": {
+              "anyOf": [
+                {
+                  "maximum": 1.0,
+                  "minimum": 0.0,
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "description": "Recommended weight for semantic search (0.0=pure keyword, 1.0=pure semantic, 0.5=balanced)",
+              "title": "Recommended Semantic Ratio"
+            }
+          },
+          "required": [
+            "filters",
+            "keyword_query",
+            "semantic_query"
+          ],
+          "title": "SearchIntent",
+          "type": "object"
+        }
+      }
+    },
+    "response": null
+  },
+  {
+    "timestamp": "2025-12-24T08:54:10.632856",
+    "model": "gpt-4o-mini",
+    "temperature": 0.0,
+    "messages": [
+      {
+        "role": "system",
+        "content": "# Role\nYou are the **Search Intent Parsing Agent** for the Microsoft Partner Center announcement system.\nYour core function is to bridge natural language user queries with a hybrid search engine (supporting both Full-Text and Vector Search).\n\n# Task\nAnalyze the user's input (comprising a `Current Date` and a `User Query`) and map it into a strict JSON search object. You must handle date resolution, entity extraction, URL extraction, bi-lingual keyword expansion, and search strategy optimization.\n\n# Data\n- **current date:** 2025-12-24\n\n# Input Format\nYou will receive input in the following format:\n- **user query:** \"question description or url\"\n\n# Processing Rules\n\n## 1. Date Resolution (CRITICAL)\nYou must calculate the `filters.year_month` list based on the provided **Current Date**.\n- **Format:** Output months strictly as `\"YYYY-MM\"`.\n- **Logic:**\n  - **\"Last month\"**: The month immediately preceding the current month.\n  - **\"Past N months\"**: The current month plus the N-1 preceding months.\n  - **Specific Month (e.g., \"April 2025\")**: [\"2025-04\"].\n  - **No time constraint**: Return an empty list `[]`.\n\n## 2. Filter Extraction\n- **year_month**: The list of target months resolved above.\n- **link**:\n  - Extract any URL or hyperlinks present in the user query.\n  - Format: A list of strings (e.g., `[\"https://example.com/article\"]`).\n  - If no link is provided, return an empty list `[]`.\n\n## 3. Keyword Query Strategy (Full-Text Search)\nConstruct a concise string of key terms suitable for BM25/keyword matching (`keyword_query`).\n- **Entity Expansion (Bi-lingual)**:\n  - Identify core entities: Product names, Program names, Technical terms (e.g., \"雲合作夥伴計劃\", \"Azure\", \"Copilot\").\n  - **Requirement**: Output BOTH the English and Traditional Chinese versions of the entity to maximize recall. (e.g., \"雲合作夥伴計劃 Cloud Partner Program\").\n  - Do NOT duplicate words if they are identical in both languages.\n- **Critical Keywords (Must Have)**:\n  - Identify proper nouns or technical terms that are **absolutely essential** for the query relevance (e.g., \"GEMINI\", \"GPT-4\").\n  - **Requirement**: Output BOTH the English and Traditional Chinese versions of the critical term to ensure matching in localized documents (e.g., [\"Copilot\", \"Copilot 助手\"]).\n  - Add these to the `must_have_keywords` list.\n  - These will be enforced as exact matches (via boosting).\n- **Noise Reduction**:\n  - **REMOVE** generic stop words that dilute search precision on the Microsoft site: \"Microsoft\", \"Announcement\" (公告), \"Article\" (文章), \"Data\" (資料), \"Details\" (細節), \"Query\" (查詢).\n  - **KEEP** high-discrimination intent words if they modify the entity: \"Pricing\" (價格), \"Security\" (安全性/資安), \"Compliance\" (合規), \"Error\" (錯誤).\n- **Format**: Space-separated string for `keyword_query`. List of strings for `must_have_keywords`.\n\n## 4. Semantic Query Strategy (Vector Search)\nConstruct a natural language sentence for vector embedding (`semantic_query`).\n- **Language**: Traditional Chinese.\n- **Entities**: Keep Proper Nouns/Entities in their original form (usually English, e.g., \"Azure\", \"Windows\", \"Copilot\") or common localized form.\n- **Structure**: A grammatically correct sentence describing the search intent.\n\n## 5. Limit Extraction\n- Parse explicit numerical requests (e.g., \"top 5\", \"3 articles\", \"請給我一篇\", \"給我三篇\").\n- Output as an `integer`. If unspecified, use `null`.\n\n## 6. Semantic Ratio Strategy (Dynamic Weight Adjustment)\nDetermine the optimal balance between keyword and semantic search based on query characteristics.\n- **0.2-0.3 (Keyword-Heavy)**: Exact error codes, SKUs, or specific IDs.\n- **0.3-0.5 (Balanced with Keyword Preference)**: Specific products/features + descriptive intent (e.g., \"Azure pricing\").\n- **0.5 (Balanced Hybrid)**: General topic exploration.\n- **0.6-0.8 (Semantic-Heavy)**: Conceptual questions (e.g., \"How to improve security\").\n- **0.8-0.9 (Pure Semantic)**: Abstract/Broad questions.\n\n**Output**: Provide a float value (0.0-1.0) in the `recommended_semantic_ratio` field.\n\n# Output Format (STRICT)\n- **Content**: Output ONLY valid JSON.\n- **Forbidden**: Do NOT use Markdown code blocks. Do NOT add conversational text.\n- **Schema**:\n{\n    \"filters\": {\n        \"year_month\": [\"YYYY-MM\", ...],\n        \"link\": [\"String (URL)\", ...]\n    },\n    \"keyword_query\": \"String (Bi-lingual entities + Specific intents, No generic stops)\",\n    \"must_have_keywords\": [\"String (Critical Entity)\", ...],\n    \"semantic_query\": \"String (Natural sentence)\",\n    \"limit\": Integer or null,\n    \"recommended_semantic_ratio\": Float (0.0-1.0)\n}\n\n# Few-Shot Examples\n\n**Input:**\nContext: 2025-12-16\nQuery: \"Show me security announcements from last month\"\n\n**Output:**\n{\n    \"filters\": {\n        \"year_month\": [\"2025-11\"],\n        \"link\": []\n    },\n    \"keyword_query\": \"Security 安全性\",\n    \"must_have_keywords\": [\"Security\"],\n    \"semantic_query\": \"2025年11月的安全性公告\",\n    \"limit\": null,\n    \"recommended_semantic_ratio\": 0.5\n}\n\n**Input:**\nContext: 2025-12-16\nQuery: \"三個月內「AI 雲合作夥伴計劃」相關公告\"\n\n**Output:**\n{\n    \"filters\": {\n        \"year_month\": [\"2025-10\", \"2025-11\", \"2025-12\"],\n        \"link\": []\n    },\n    \"keyword_query\": \"AI 雲合作夥伴計劃 AI Cloud Partner Program\",\n    \"must_have_keywords\": [\"AI Cloud Partner Program\"],\n    \"semantic_query\": \"過去三個月 AI 雲合作夥伴計劃的相關公告\",\n    \"limit\": null,\n    \"recommended_semantic_ratio\": 0.4\n}\n\n**Input:**\nContext: 2025-12-16\nQuery: \"類似這篇文章的 Azure OpenAI 價格資訊 https://learn.microsoft.com/en-us/partner-center/announcements/2025/december/12\"\n\n**Output:**\n{\n    \"filters\": {\n        \"year_month\": [],\n        \"link\": [\"https://learn.microsoft.com/en-us/partner-center/announcements/2025/december/12\"]\n    },\n    \"keyword_query\": \"Azure OpenAI Pricing 價格\",\n    \"must_have_keywords\": [\"Azure OpenAI\"],\n    \"semantic_query\": \"類似指定連結的 Azure OpenAI 價格資訊\",\n    \"limit\": null,\n    \"recommended_semantic_ratio\": 0.3\n}\n\n**Input:**\nContext: 2025-12-16\nQuery: \"請給我一篇三個月內「copilot 價格」相關公告\"\n\n**Output:**\n{\n    \"filters\": {\n        \"year_month\": [\"2025-10\", \"2025-11\", \"2025-12\"],\n        \"link\": []\n    },\n    \"keyword_query\": \"Copilot Pricing 價格\",\n    \"must_have_keywords\": [\"Copilot\"],\n    \"semantic_query\": \"「copilot 價格」相關公告\",\n    \"limit\": 1,\n    \"recommended_semantic_ratio\": 0.3\n}\n"
+      },
+      {
+        "role": "user",
+        "content": "2025 年 4 月份價格相關公告"
+      }
+    ],
+    "response_format": {
+      "type": "json_schema",
+      "json_schema": {
+        "name": "SearchIntent",
+        "strict": true,
+        "schema": {
+          "$defs": {
+            "SearchFilters": {
+              "description": "Search filters extracted from user query (STRICT filters only)",
+              "properties": {
+                "year_month": {
+                  "description": "List of year-months (YYYY-MM format). For ranges like 'past 3 months', include all months.",
+                  "items": {
+                    "type": "string"
+                  },
+                  "title": "Year Month",
+                  "type": "array"
+                },
+                "links": {
+                  "description": "List of source URLs to filter by.",
+                  "items": {
+                    "type": "string"
+                  },
+                  "title": "Links",
+                  "type": "array"
+                },
+                "workspaces": {
+                  "description": "List of workspaces to filter by e.g. General, Security",
+                  "items": {
+                    "type": "string"
+                  },
+                  "title": "Workspaces",
+                  "type": "array"
+                }
+              },
+              "title": "SearchFilters",
+              "type": "object"
+            }
+          },
+          "description": "Structured search intent parsed from user query",
+          "properties": {
+            "filters": {
+              "$ref": "#/$defs/SearchFilters",
+              "description": "Strict filters to apply"
+            },
+            "keyword_query": {
+              "description": "Optimized keyword query for FTS",
+              "title": "Keyword Query",
+              "type": "string"
+            },
+            "semantic_query": {
+              "description": "Optimized semantic query for Vector DB",
+              "title": "Semantic Query",
+              "type": "string"
+            },
+            "must_have_keywords": {
+              "description": "Critical keywords that MUST be present in the document (enforces exact match/presence)",
+              "items": {
+                "type": "string"
+              },
+              "title": "Must Have Keywords",
+              "type": "array"
+            },
+            "boost_keywords": {
+              "description": "Soft-match keywords (e.g., product names) to boost relevance, not filter",
+              "items": {
+                "type": "string"
+              },
+              "title": "Boost Keywords",
+              "type": "array"
+            },
+            "limit": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "description": "Max results to return",
+              "title": "Limit"
+            },
+            "recommended_semantic_ratio": {
+              "anyOf": [
+                {
+                  "maximum": 1.0,
+                  "minimum": 0.0,
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "description": "Recommended weight for semantic search (0.0=pure keyword, 1.0=pure semantic, 0.5=balanced)",
+              "title": "Recommended Semantic Ratio"
+            }
+          },
+          "required": [
+            "filters",
+            "keyword_query",
+            "semantic_query"
+          ],
+          "title": "SearchIntent",
+          "type": "object"
+        }
+      }
+    },
+    "response": null
+  }
+]

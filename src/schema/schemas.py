@@ -2,7 +2,6 @@ from typing import List, Optional
 from pydantic import BaseModel, Field
 
 
-# Simplified schema matching parse.example.json format
 class AnnouncementDoc(BaseModel):
     """
     Simplified announcement document schema.
@@ -22,11 +21,11 @@ class AnnouncementDoc(BaseModel):
     )
 
     class Config:
-        populate_by_name = True  # Allow field population by alias or name
+        populate_by_name = True
 
 
-class SearchFilters(BaseModel):
-    """Search filters extracted from user query (STRICT filters only)"""
+class SearchIntent(BaseModel):
+    """Structured search intent parsed from user query"""
 
     year_month: List[str] = Field(
         default_factory=list,
@@ -40,12 +39,6 @@ class SearchFilters(BaseModel):
         default_factory=list,
         description="List of workspaces to filter by e.g. General, Security",
     )
-
-
-class SearchIntent(BaseModel):
-    """Structured search intent parsed from user query"""
-
-    filters: SearchFilters = Field(..., description="Strict filters to apply")
     keyword_query: str = Field(..., description="Optimized keyword query for FTS")
     semantic_query: str = Field(
         ..., description="Optimized semantic query for Vector DB"
