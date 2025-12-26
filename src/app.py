@@ -26,6 +26,7 @@ from src.config import (
     DEFAULT_SIMILARITY_THRESHOLD,
     DEFAULT_SEMANTIC_RATIO,
 )
+from src.tool.ANSI import print_red
 
 # Load environment variables
 load_dotenv()
@@ -100,7 +101,7 @@ def search():
         print(f"Request data: {data}")
 
         if not data or "query" not in data:
-            print("Missing 'query' field")
+            print_red("Missing 'query' field")
             return jsonify({"error": "Missing 'query' field in request body"}), 400
 
         query = data["query"]
@@ -158,8 +159,8 @@ def search():
         return jsonify(results)
 
     except Exception as e:
-        print(f"ERROR in /api/collection_search: {e}")
-        print(f"   Error type: {type(e).__name__}")
+        print_red(f"ERROR in /api/collection_search: {e}")
+        print_red(f"   Error type: {type(e).__name__}")
         import traceback
 
         print(f"   Traceback:\n{traceback.format_exc()}")
@@ -213,7 +214,7 @@ def chat_endpoint():
         return jsonify(response)
 
     except Exception as e:
-        print(f"❌ RAG Endpoint Error: {e}")
+        print_red(f"❌ RAG Endpoint Error: {e}")
         import traceback
 
         traceback.print_exc()
@@ -260,7 +261,7 @@ def generate_summary():
         return jsonify({"summary": summary_text})
 
     except Exception as e:
-        print(f"❌ Summary Endpoint Error: {e}")
+        print_red(f"❌ Summary Endpoint Error: {e}")
         import traceback
 
         traceback.print_exc()
@@ -336,4 +337,4 @@ if __name__ == "__main__":
     print(f"Server will run on: http://0.0.0.0:{port}")
     print("=" * 60)
 
-    app.run(debug=True, host="0.0.0.0", port=port)
+    app.run(threaded=True, debug=True, host="0.0.0.0", port=port)

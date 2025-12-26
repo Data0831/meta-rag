@@ -9,6 +9,7 @@ from src.meilisearch_config import (
     DEFAULT_SEMANTIC_RATIO,
 )
 import json
+from src.tool.ANSI import print_red
 
 
 class MeiliAdapter:
@@ -53,8 +54,8 @@ class MeiliAdapter:
             )
 
         except Exception as e:
-            print(f"Warning: Error configuring Meilisearch index: {e}")
-            print("Index may need manual configuration via Meilisearch dashboard.")
+            print_red(f"Warning: Error configuring Meilisearch index: {e}")
+            print_red("Index may need manual configuration via Meilisearch dashboard.")
 
     def upsert_documents(self, documents: List[Dict[str, Any]]) -> None:
 
@@ -69,7 +70,7 @@ class MeiliAdapter:
             print(f"  Task UID: {task_info.task_uid}")
 
         except Exception as e:
-            print(f"Error upserting documents to Meilisearch: {e}")
+            print_red(f"Error upserting documents to Meilisearch: {e}")
             raise
 
     def search(
@@ -127,7 +128,7 @@ class MeiliAdapter:
             return hits
 
         except Exception as e:
-            print(f"Meilisearch search error: {e}")
+            print_red(f"Meilisearch search error: {e}")
             return []
 
     def reset_index(self) -> None:
@@ -141,7 +142,7 @@ class MeiliAdapter:
             print(f"  Task UID: {task_info.task_uid}")
 
         except Exception as e:
-            print(f"Error resetting Meilisearch index: {e}")
+            print_red(f"Error resetting Meilisearch index: {e}")
             raise
 
     def get_documents_by_ids(self, ids: List[str]) -> List[Dict[str, Any]]:
@@ -175,7 +176,7 @@ class MeiliAdapter:
             return results["hits"]
 
         except Exception as e:
-            print(f"Error fetching documents by IDs: {e}")
+            print_red(f"Error fetching documents by IDs: {e}")
             return []
 
     def get_stats(self) -> Dict[str, Any]:
@@ -195,7 +196,7 @@ class MeiliAdapter:
             return stats
 
         except Exception as e:
-            print(f"Error getting index stats: {e}")
+            print_red(f"Error getting index stats: {e}")
             return {}
 
 
@@ -211,8 +212,8 @@ def build_meili_filter(intent) -> Optional[str]:
 
     Examples:
         - year_month=['2025-12'] -> "year_month IN ['2025-12']"
-        - workspaces=['General'] -> "workspace IN ['General']"
-        - Combined -> "year_month IN ['2025-12'] AND workspace IN ['General']"
+        - year=['2024'] -> "year IN ['2024']"
+        - Combined -> "year_month IN ['2025-12'] AND year IN ['2024']"
     """
     conditions = []
 
@@ -220,13 +221,13 @@ def build_meili_filter(intent) -> Optional[str]:
         months_str = ", ".join([f"'{m}'" for m in intent.year_month])
         conditions.append(f"year_month IN [{months_str}]")
 
+    if intent.year:
+        years_str = ", ".join([f"'{y}'" for y in intent.year])
+        conditions.append(f"year IN [{years_str}]")
+
     if intent.links:
         links_str = ", ".join([f"'{l}'" for l in intent.links])
         conditions.append(f"link IN [{links_str}]")
-
-    # if intent.workspaces:
-    #     workspace_str = ", ".join([f"'{w}'" for w in intent.workspaces])
-    #     conditions.append(f"workspace IN [{workspace_str}]")
 
     return " AND ".join(conditions) if conditions else None
 

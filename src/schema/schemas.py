@@ -34,13 +34,13 @@ class SearchIntent(BaseModel):
         default_factory=list,
         description="List of year-months (YYYY-MM format). For ranges like 'past 3 months', include all months.",
     )
+    year: List[str] = Field(
+        default_factory=list,
+        description="List of years (YYYY format). Only use when user specifies a year without a specific month.",
+    )
     links: List[str] = Field(
         default_factory=list,
         description="List of source URLs to filter by.",
-    )
-    workspaces: List[str] = Field(
-        default_factory=list,
-        description="List of workspaces to filter by e.g. General, Security",
     )
     keyword_query: str = Field(..., description="Optimized keyword query for FTS")
     semantic_query: str = Field(
@@ -49,10 +49,6 @@ class SearchIntent(BaseModel):
     must_have_keywords: List[str] = Field(
         default_factory=list,
         description="Critical keywords that MUST be present in the document (enforces exact match/presence)",
-    )
-    boost_keywords: List[str] = Field(
-        default_factory=list,
-        description="Soft-match keywords (e.g., product names) to boost relevance, not filter",
     )
     limit: Optional[int] = Field(None, description="Max results to return")
     recommended_semantic_ratio: Optional[float] = Field(
