@@ -1,8 +1,3 @@
-"""
-Meilisearch Database Adapter
-Unified search engine for hybrid search (keyword + semantic + filters)
-"""
-
 import meilisearch
 from typing import List, Dict, Any, Optional
 from src.schema.schemas import AnnouncementDoc
@@ -20,13 +15,14 @@ class MeiliAdapter:
     """
     Meilisearch Adapter for unified hybrid search.
     Handles both keyword search (with fuzzy matching) and semantic vector search.
+    Unified search engine for hybrid search (keyword + semantic + filters)
     """
 
     def __init__(
         self,
-        host: str = "http://localhost:7700",
-        api_key: str = "masterKey",
-        collection_name: str = "announcements",
+        host,
+        api_key,
+        collection_name,
     ):
         self.client = meilisearch.Client(host, api_key)
         self.collection_name = collection_name
@@ -228,9 +224,9 @@ def build_meili_filter(intent) -> Optional[str]:
         links_str = ", ".join([f"'{l}'" for l in intent.links])
         conditions.append(f"link IN [{links_str}]")
 
-    if intent.workspaces:
-        workspace_str = ", ".join([f"'{w}'" for w in intent.workspaces])
-        conditions.append(f"workspace IN [{workspace_str}]")
+    # if intent.workspaces:
+    #     workspace_str = ", ".join([f"'{w}'" for w in intent.workspaces])
+    #     conditions.append(f"workspace IN [{workspace_str}]")
 
     return " AND ".join(conditions) if conditions else None
 
@@ -261,8 +257,11 @@ def transform_doc_for_meilisearch(
         "id": doc_id,  # Generated ID from link
         "link": doc.link,
         "year_month": doc.year_month,  # YYYY-MM format (note: hyphen to match DB)
-        "workspace": doc.workspace,  # e.g., General, Security
+        "year": doc.year,
+        "workspace": doc.workspace,  # e.g., General, Security (Optional)
         "title": doc.title,
+        "main_title": doc.main_title,
+        "heading_link": doc.heading_link,
         "content": doc.content,  # Original content for display
         "cleaned_content": doc.cleaned_content,  # Cleaned content for search
         "_vectors": {"default": embedding_vector},  # Vector for hybrid search

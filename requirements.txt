@@ -1,11 +1,10 @@
-# qdrant-client
-# sqlite-utils
-# jieba
+python-dotenv
 google-generativeai
 openai
 pydantic
-python-dotenv
 ollama
 meilisearch
 flask
-dotenv
+# qdrant-client
+# sqlite-utils
+# jieba

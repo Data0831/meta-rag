@@ -8,13 +8,16 @@ class AnnouncementDoc(BaseModel):
     """
 
     link: str = Field(..., description="Source URL")
+    year: str = Field(..., description="Year e.g. 2025")
     year_month: str = Field(
         ..., alias="year_month", description="Year and month e.g. 2025-12"
     )
-    workspace: str = Field(
-        ..., alias="Workspace", description="Workspace category e.g. General"
+    workspace: Optional[str] = Field(
+        None, alias="Workspace", description="Workspace category e.g. General"
     )
     title: str = Field(..., description="Announcement title")
+    main_title: str = Field(..., description="Main title of the page")
+    heading_link: str = Field(..., description="Link with hash fragment")
     content: str = Field(..., description="Original content")
     cleaned_content: str = Field(
         ..., description="Cleaned content for search and embedding"

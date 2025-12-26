@@ -53,3 +53,9 @@
 
 ## 2025-12-24 15:30:00
 - **前端 LLM 意圖顯示修復**：修正 `render.js` 中 `updateIntentDisplay()` 函數的數據讀取邏輯，從錯誤的 `intent.filters.year_month` 改為直接讀取 `intent.year_month` 等頂層欄位。新增 `must_have_keywords` 紅色標籤渲染（格式：`[必含: xxx]`）。在 `index.html` 的 `llmDetails` 區塊新增「LLM 建議權重」顯示元素（`intentRecommendedRatio`），動態顯示 `recommended_semantic_ratio` 百分比值（例如：40%）。修復後前端可正確顯示所有 LLM 解析的篩選條件（year_month 藍色標籤、must_have_keywords 紅色標籤、workspaces 綠色標籤、links 紫色標籤、limit 灰色標籤）。
+
+## 2025-12-26
+- **資料格式與搜尋升級**：因應新版資料來源格式，更新全線架構。
+  - **Schema 擴充**：`AnnouncementDoc` 新增 `year` (年份)、`main_title` (主標題) 與 `heading_link` (錨點連結)，並將 `workspace` 改為可選欄位 (Optional) 以保持彈性。
+  - **Meilisearch 配置**：更新 `meilisearch_config.py`，將 `year` 加入過濾條件 (`FILTERABLE_ATTRIBUTES`)，並新增 `main_title` 至搜尋欄位 (`SEARCHABLE_ATTRIBUTES`)，但設定為最低權重 (Lowest Priority) 以避免干擾核心關鍵字排序。
+  - **轉接器適配**：修改 `db_adapter_meili.py` 資料轉換邏輯，確保新欄位正確映射至 Meilisearch 索引。

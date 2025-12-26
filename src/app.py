@@ -51,6 +51,7 @@ def get_meili_adapter() -> MeiliAdapter:
 @app.route("/")
 def index():
     """Main page"""
+    print("Rendering index page")
     return render_template("index.html")
 
 
