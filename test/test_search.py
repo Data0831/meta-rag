@@ -8,11 +8,11 @@ from src.tool.ANSI import print_red
 import json
 
 DEFAULT_LIMIT = 5
-SEMANTIC_RATIO = 0.5
+SEMANTIC_RATIO = 1.0
 ENABLE_LLM_SEARCH = True
-FORCE_MANUAL_RATIO = False
+FORCE_MANUAL_RATIO = True
 # SIMILAR_THRESHOLD is a mock threshold for UI display, not for actual filtering.
-SIMILAR_THRESHOLD = 0.5
+SIMILAR_THRESHOLD = 0.81
 
 
 def test_search(query: str):
@@ -31,11 +31,18 @@ def test_search(query: str):
         print("\n[Intent Parsed]")
         intent = results["intent"]
         print(json.dumps(intent, indent=2, ensure_ascii=False))
-        print("\n" + "-" * 80)
 
         final_ratio = results.get("final_semantic_ratio", SEMANTIC_RATIO)
         keyword_weight = 1 - final_ratio
-        print(f"\n  Final Semantic Ratio: {final_ratio:.2f}")
+
+        mode = "Hybrid Search"
+        if final_ratio <= 0.01:
+            mode = "Keyword Search"
+        elif final_ratio >= 0.99:
+            mode = "Semantic Search"
+
+        print(f"\n  Search Mode:          {mode}")
+        print(f"  Final Semantic Ratio: {final_ratio:.2f}")
         print(f"    ├─ Keyword Weight:  {keyword_weight:.2f}")
         print(f"    └─ Semantic Weight: {final_ratio:.2f}")
         filters = intent.get("filters", {})
@@ -49,7 +56,6 @@ def test_search(query: str):
             print(f"{'─' * 80}")
             print(f"  contain:      {str(contain).lower()}")
             print(f"  year_month:   {doc.get('year_month', 'N/A')}")
-            print(f"  Workspace:    {doc.get('workspace', 'N/A')}")
             print(f"  Ranking Score: {score:.4f}")
             print(f"  Link: {doc.get('link', 'N/A')}")
         return results

@@ -16,8 +16,9 @@ from src.tool.ANSI import print_red
 
 
 class SearchService:
-    def __init__(self, debug_message: bool = False):
-        if debug_message:
+    def __init__(self, enable_debug: bool = False):
+        self.enable_debug = enable_debug
+        if self.enable_debug:
             print(" SearchService.__init__() called")
             print(f"  MEILISEARCH_HOST: {MEILISEARCH_HOST}")
             print(f"  MEILISEARCH_INDEX: {MEILISEARCH_INDEX}")
@@ -122,9 +123,10 @@ class SearchService:
             try:
                 query_vector = vector_utils.get_embedding(intent.semantic_query)
                 if query_vector:
-                    print(
-                        f"Generating embedding for: '{intent.semantic_query}' Embedding (dim: {len(query_vector)})"
-                    )
+                    if self.enable_debug:
+                        print(
+                            f"Generating embedding for: '{intent.semantic_query}' Embedding (dim: {len(query_vector)})"
+                        )
             except Exception as e:
                 print_red(f"  Embedding generation failed: {e}")
                 import traceback
@@ -138,10 +140,11 @@ class SearchService:
                 semantic_ratio = 0
 
         # 4. Single Meilisearch API call (Hybrid Search)
-        print(f"\nKeyword query: '{intent.keyword_query}'")
-        print(f"Has vector: {query_vector is not None}")
-        print(f"Filter: {meili_filter}")
-        print(f"Semantic ratio: {semantic_ratio}")
+        if self.enable_debug:
+            print(f"\nKeyword query: '{intent.keyword_query}'")
+            print(f"Has vector: {query_vector is not None}")
+            print(f"Filter: {meili_filter}")
+            print(f"Semantic ratio: {semantic_ratio}")
 
         try:
             results = self.meili_adapter.search(
@@ -151,7 +154,10 @@ class SearchService:
                 limit=PRE_SEARCH_LIMIT,
                 semantic_ratio=semantic_ratio,
             )
-            print(f"  Meilisearch {len(results)} / {PRE_SEARCH_LIMIT} Pre-search limit")
+            if self.enable_debug:
+                print(
+                    f"  Meilisearch {len(results)} / {PRE_SEARCH_LIMIT} Pre-search limit"
+                )
         except Exception as e:
             print_red(f"  Meilisearch search failed: {e}")
             import traceback
@@ -161,7 +167,8 @@ class SearchService:
 
         # 4.1 Merge documents with same link
         merged_results = self._merge_duplicate_links(results)
-        print(f"  After merging duplicates: {len(merged_results)} results")
+        if self.enable_debug:
+            print(f"  After merging duplicates: {len(merged_results)} results")
         # 4.2 Take top limit results
         final_results = merged_results[:limit]
         print(f"  Final results (top {limit}): {len(final_results)} results")
