@@ -92,6 +92,25 @@ class MeiliAdapter:
             print_red(f"Error resetting Meilisearch index: {e}")
             raise
 
+    def delete_documents_by_ids(self, ids: List[str]) -> Dict[str, Any]:
+        if not ids:
+            return {"deleted": [], "not_found": []}
+        try:
+            existing_docs = self.get_documents_by_ids(ids)
+            existing_ids = {doc["id"] for doc in existing_docs}
+            not_found_ids = [doc_id for doc_id in ids if doc_id not in existing_ids]
+            if existing_ids:
+                task_info = self.index.delete_documents(list(existing_ids))
+                print(f"✓ Deleted {len(existing_ids)} documents from Meilisearch.")
+                print(f"  Task UID: {task_info.task_uid}")
+            return {
+                "deleted": existing_docs,
+                "not_found": not_found_ids
+            }
+        except Exception as e:
+            print_red(f"Error deleting documents by IDs: {e}")
+            return {"deleted": [], "not_found": ids}
+
     def get_documents_by_ids(self, ids: List[str]) -> List[Dict[str, Any]]:
         if not ids:
             return []
