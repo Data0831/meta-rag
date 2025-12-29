@@ -25,6 +25,9 @@ from src.config import (
     DEFAULT_SEARCH_LIMIT,
     DEFAULT_SIMILARITY_THRESHOLD,
     DEFAULT_SEMANTIC_RATIO,
+    ENABLE_LLM,
+    MANUAL_SEMANTIC_RATIO,
+    ENABLE_KEYWORD_WEIGHT_RERANK,
 )
 from src.tool.ANSI import print_red
 
@@ -74,6 +77,9 @@ def get_config():
             "default_limit": DEFAULT_SEARCH_LIMIT,
             "default_similarity_threshold": DEFAULT_SIMILARITY_THRESHOLD,
             "default_semantic_ratio": DEFAULT_SEMANTIC_RATIO,
+            "enable_llm": ENABLE_LLM,
+            "manual_semantic_ratio": MANUAL_SEMANTIC_RATIO,
+            "enable_rerank": ENABLE_KEYWORD_WEIGHT_RERANK,
         }
     )
 

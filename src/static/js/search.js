@@ -95,6 +95,14 @@ function setupSearchConfig() {
             searchConfig.enableLlm = e.target.checked;
         });
     }
+
+    // Enable Rerank Checkbox
+    const enableKeywordWeightRerankCheckbox = document.getElementById('enableKeywordWeightRerankCheckbox');
+    if (enableKeywordWeightRerankCheckbox) {
+        enableKeywordWeightRerankCheckbox.addEventListener('change', (e) => {
+            searchConfig.enableKeywordWeightRerank = e.target.checked;
+        });
+    }
 }
 
 /**

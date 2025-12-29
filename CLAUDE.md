@@ -21,10 +21,14 @@
 ```text
 project_root/
 ├── data/
+│   ├── backup/                 # 備份資料與舊版工具
+│   ├── fetch_result/           # 爬蟲抓取的原始資料
+│   ├── test/                   # 資料處理測試
 │   ├── data.json               # 原始資料來源
 │   ├── parser.py               # 資料解析 ETL 工具
-│   ├── vectorPreprocessing.py  # 向量計算與 Index Reset 工具
-│   └── fetch_result/           # 爬蟲抓取的原始資料
+│   ├── remove.json             # 待移除資料清單
+│   └── vectorPreprocessing.py  # 向量計算與 Index Reset 工具
+├── docs/                       # 專案架構與操作文件
 ├── src/
 │   ├── app.py                  # Flask 應用程式入口
 │   ├── config.py               # 全域環境設定
@@ -37,16 +41,23 @@ project_root/
 │   │   ├── search_prompts.py   # 搜尋意圖識別 Prompt
 │   │   └── rag_prompts.py      # RAG 回答生成 Prompt
 │   ├── schema/
-│   │   └── schemas.py          # Pydantic 資料模型 (AnnouncementDoc, SearchIntent)
+│   │   └── schemas.py          # Pydantic 資料模型
 │   ├── services/
+│   │   ├── keyword_alg.py      # 關鍵字權重演算法
 │   │   ├── search_service.py   # 搜尋業務邏輯 (Intent Parsing -> Search)
 │   │   └── rag_service.py      # RAG 業務邏輯
 │   ├── static/                 # 前端靜態資源 (CSS, JS)
-│   └── templates/              # 前端 HTML 模板
+│   ├── templates/              # 前端 HTML 模板
+│   ├── tool/                   # 通用工具 (如 ANSI 輸出)
+│   └── logs/                   # 系統日誌檔
 ├── task/
-│   └── task.md                 # 任務進度追蹤
+│   ├── task.md                 # 任務進度追蹤
+│   └── log.md                  # 任務執行細節紀錄
+├── test/                       # 系統整合與功能測試 (test_search.py 等)
+├── tmp/                        # 臨時除錯腳本
 ├── history.md                  # 專案變更歷史記錄
-├── GEMINI.md                   # 本專案規格書
+├── GEMINI.md                   # 專案規格書 (與本檔同步)
+├── CLAUDE.md                   # [本檔案] 專案規格書
 └── requirements.txt
 ```
 
@@ -63,6 +74,7 @@ project_root/
 *   **Imports**: 使用絕對路徑 (e.g., `from src.database import ...`)。
 *   **Imports**: 不要使用任何註解，包括 docstring。
 *   **錯誤處理**: 底層函數統一返回 dict 格式。成功時：`{"status": "success", "result": ...}`；失敗時：`{"status": "failed", "error": ..., "stage": ...}`。調用方必須檢查 `status` 欄位。
+*   **錯誤顯示**: 輸出錯誤資訊或失敗的 `dict` 時，必須使用 `src.tool.ANSI.print_red` 以紅色標示。
 
 ### 4.3 資料庫設計 (Meilisearch)
 *   **ID 生成**: 使用 link+title 的 MD5 hash 作為唯一 ID。

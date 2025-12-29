@@ -5,15 +5,15 @@ project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 from src.services.search_service import SearchService
 from src.tool.ANSI import print_red
+from src.config import (
+    DEFAULT_SEARCH_LIMIT as DEFAULT_LIMIT,
+    DEFAULT_SEMANTIC_RATIO as SEMANTIC_RATIO,
+    DEFAULT_SIMILARITY_THRESHOLD as SIMILAR_THRESHOLD,
+    ENABLE_LLM,
+    MANUAL_SEMANTIC_RATIO,
+    ENABLE_KEYWORD_WEIGHT_RERANK,
+)
 import json
-
-DEFAULT_LIMIT = 5
-SEMANTIC_RATIO = 1.0
-ENABLE_LLM_SEARCH = True
-FORCE_MANUAL_RATIO = False
-# SIMILAR_THRESHOLD is a mock threshold for UI display, not for actual filtering.
-SIMILAR_THRESHOLD = 0.81
-ENABLE_RERANK = True
 
 
 def test_search(query: str):
@@ -26,9 +26,9 @@ def test_search(query: str):
             query,
             limit=DEFAULT_LIMIT,
             semantic_ratio=SEMANTIC_RATIO,
-            enable_llm=ENABLE_LLM_SEARCH,
-            manual_semantic_ratio=FORCE_MANUAL_RATIO,
-            enable_rerank=ENABLE_RERANK,
+            enable_llm=ENABLE_LLM,
+            manual_semantic_ratio=MANUAL_SEMANTIC_RATIO,
+            enable_rerank=ENABLE_KEYWORD_WEIGHT_RERANK,
             fall_back=False,
         )
         status = results.get("status")
@@ -93,12 +93,14 @@ def test_search(query: str):
 def main():
     test_queries = [
         # "2025 年 4 月份價格相關公告",
-        "與競爭對手 gemini 相關資料"
+        # "與競爭對手 gemini 相關資料"
         # "windows 11 相關公告"
         # "windows 11 server 漏洞"
         # "powerbi 近三個月更新"
         # "powerbi 近期更新"
         # "與 Gemini 相關資"
+        # "123"
+        "KB12453115"
     ]
     for query in test_queries:
         test_search(query)

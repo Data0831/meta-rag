@@ -157,6 +157,13 @@ class SearchService:
                         return intent_result
                 else:
                     intent = intent_result.get("result")
+                    # Fix: If LLM returns empty query strings (e.g. for nonsense input), fallback to user_query
+                    if not intent.keyword_query or not intent.keyword_query.strip():
+                        intent.keyword_query = user_query
+                        traces.append("Warning: LLM returned empty keyword_query, fallback to origin user_query")
+                    if not intent.semantic_query or not intent.semantic_query.strip():
+                        intent.semantic_query = user_query
+                        traces.append("Warning: LLM returned empty semantic_query, fallback to origin user_query")
 
             # Fallback intent if LLM failed or disabled
             if not intent:

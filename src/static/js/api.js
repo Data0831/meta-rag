@@ -26,7 +26,8 @@ export async function performCollectionSearch(query) {
         limit: searchConfig.limit,
         semantic_ratio: searchConfig.semanticRatio,
         enable_llm: searchConfig.enableLlm,
-        manual_semantic_ratio: searchConfig.manualSemanticRatio // Add manual flag
+        manual_semantic_ratio: searchConfig.manualSemanticRatio,
+        enable_rerank: searchConfig.enableKeywordWeightRerank
     };
 
     console.log('Request Body:', requestBody);
