@@ -7,6 +7,7 @@ class AnnouncementDoc(BaseModel):
     Simplified announcement document schema.
     """
 
+    id: str = Field(..., description="Unique document ID")
     link: str = Field(..., description="Source URL")
     year: str = Field(..., description="Year e.g. 2025")
     year_month: str = Field(

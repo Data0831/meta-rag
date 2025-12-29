@@ -115,7 +115,8 @@ class MeiliAdapter:
         if not ids:
             return []
         try:
-            id_filter = " OR ".join([f'id = "{doc_id}"' for doc_id in ids])
+            ids_str = ", ".join([f'"{doc_id}"' for doc_id in ids])
+            id_filter = f"id IN [{ids_str}]"
             results = self.index.search(
                 "",
                 {"filter": id_filter, "limit": len(ids), "attributesToRetrieve": ["*"]},
@@ -155,12 +156,8 @@ def build_meili_filter(intent) -> Optional[str]:
 def transform_doc_for_meilisearch(
     doc: AnnouncementDoc, embedding_vector: List[float]
 ) -> Dict[str, Any]:
-    import hashlib
-
-    # ID from link+title MD5
-    doc_id = hashlib.md5((doc.link + doc.title).encode()).hexdigest()
     return {
-        "id": doc_id,
+        "id": doc.id,
         "link": doc.link,
         "year_month": doc.year_month,
         "year": doc.year,

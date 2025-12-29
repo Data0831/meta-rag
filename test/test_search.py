@@ -31,15 +31,12 @@ def test_search(query: str):
             enable_rerank=ENABLE_RERANK,
             fall_back=False,
         )
-
         status = results.get("status")
-
         if status == "failed":
             print_red("\n[SEARCH FAILED]", bold=True)
             print_red(f"  Error: {results.get('error', 'Unknown error')}")
             print_red(f"  Stage: {results.get('stage', 'Unknown stage')}")
             return results
-
         print("\n[Intent Parsed]")
         intent = results["intent"]
         print(
@@ -47,10 +44,8 @@ def test_search(query: str):
                 {"intent": intent, "status": status}, indent=2, ensure_ascii=False
             )
         )
-
         final_ratio = results.get("final_semantic_ratio", SEMANTIC_RATIO)
         keyword_weight = 1 - final_ratio
-
         print(f"  Final Semantic Ratio: {final_ratio:.2f}")
         print(f"    ├─ Keyword Weight:  {keyword_weight:.2f}")
         print(f"    └─ Semantic Weight: {final_ratio:.2f}")
@@ -65,12 +60,13 @@ def test_search(query: str):
             has_keyword = doc.get("has_keyword", "N/A")
             print(f"\n[{idx}] {doc.get('title', 'No Title')}")
             print(f"{'─' * 80}")
-            print(f"  contain:       {str(contain).lower()}")
+            print(f"  contain:       {str(score_pass).lower()}")
             print(f"  has_keyword:   {has_keyword}")
             print(f"  year_month:    {doc.get('year_month', 'N/A')}")
             print(f"  Ranking Score: {score:.4f}")
             print(f"  Rerank Score:  {rerank_score:.4f}")
             print(f"  Link: {doc.get('link', 'N/A')}")
+            print(f"  heading_Link: {doc.get('heading_link', 'N/A')}")
         return results
     except Exception as e:
         print_red(f"\n[ERROR] {type(e).__name__}: {e}", bold=True)
