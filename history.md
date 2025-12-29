@@ -26,3 +26,4 @@
   - **Meilisearch 配置**：更新 `meilisearch_config.py`，將 `year` 加入過濾條件 (`FILTERABLE_ATTRIBUTES`)，並新增 `main_title` 至搜尋欄位 (`SEARCHABLE_ATTRIBUTES`)，但設定為最低權重 (Lowest Priority) 以避免干擾核心關鍵字排序。
   - **轉接器適配**：修改 `db_adapter_meili.py` 資料轉換邏輯，確保新欄位正確映射至 Meilisearch 索引。
 - **日誌美化 (Logging Aesthetics)**: 引入 `src.tool.ANSI` 工具，將 `SearchService`、`MeiliAdapter`、`app.py` 與 `client.py` 中的所有錯誤、警告、解析失敗、向量生成失敗及 API / LLM 呼叫異常訊息改為紅色輸出，提升後端除錯的可辨識度。
+- **關鍵字精確匹配與分數重排 (Keyword Reranking)**：實作 Python 後處理層的關鍵字加權演算法 (`src/services/keyword_alg.py`)，使用 Regex 邊界匹配 (`\b`) 解決版本號與專有名詞精確判定問題；在 `search_service.py` 整合 `ResultReranker`，於 Meilisearch 返回後、合併前執行分數重排（全中 ×2.5、部分命中線性加分、未命中 ×0.81），並將 `PRE_SEARCH_LIMIT` 提升至 50 以擴大 Recall；新增四個可配置參數至 `config.py` (全中加權、部分命中係數、未命中懲罰、標題加權)。

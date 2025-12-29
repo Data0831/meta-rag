@@ -13,6 +13,7 @@ from src.config import (
 from meilisearch_config import DEFAULT_SEMANTIC_RATIO
 from datetime import datetime
 from src.tool.ANSI import print_red
+from src.services.keyword_alg import ResultReranker
 
 
 class SearchService:
@@ -84,6 +85,8 @@ class SearchService:
         semantic_ratio: float = DEFAULT_SEMANTIC_RATIO,
         enable_llm: bool = True,
         manual_semantic_ratio: bool = False,
+        enable_rerank: bool = True,
+        fall_back: bool = False,
     ) -> Dict[str, Any]:
         # 1. Parse Intent
         intent = None
@@ -94,6 +97,8 @@ class SearchService:
             except Exception as e:
                 print_red(f"LLM Intent parsing failed: {e} | {user_query}")
                 llm_error = str(e)
+                if not fall_back:
+                    raise
         if not intent:
             if enable_llm:
                 print_red("Intent parsing failed. Using fallback basic search.")
@@ -132,6 +137,8 @@ class SearchService:
                 import traceback
 
                 traceback.print_exc()
+                if not fall_back:
+                    raise
                 query_vector = None
             if not query_vector:
                 print_red(
@@ -165,8 +172,21 @@ class SearchService:
             traceback.print_exc()
             raise
 
+        pre_merge_limit = round(limit * 1.3) + 1
+        reranker = ResultReranker(results, intent.must_have_keywords)
+        reranked_results = reranker.rerank(
+            top_k=pre_merge_limit, enable_rerank=enable_rerank
+        )
+        if self.enable_debug:
+            print(
+                f"  After reranking: {len(reranked_results)} results (top {pre_merge_limit})"
+            )
+
+        if reranked_results and "_rerank_score" in reranked_results[0]:
+            reranked_results.sort(key=lambda x: x.get("_rerank_score", 0), reverse=True)
+
         # 4.1 Merge documents with same link
-        merged_results = self._merge_duplicate_links(results)
+        merged_results = self._merge_duplicate_links(reranked_results)
         if self.enable_debug:
             print(f"  After merging duplicates: {len(merged_results)} results")
         # 4.2 Take top limit results
@@ -181,6 +201,7 @@ class SearchService:
             "meili_filter": meili_filter,
             "results": final_results,
             "final_semantic_ratio": semantic_ratio,
+            "mode": "semantic" if semantic_ratio > 0 else "keyword",
         }
         if llm_error:
             response["llm_error"] = llm_error
