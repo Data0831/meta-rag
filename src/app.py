@@ -115,12 +115,14 @@ def search():
         semantic_ratio = data.get("semantic_ratio", 0.5)
         enable_llm = data.get("enable_llm", True)
         manual_semantic_ratio = data.get("manual_semantic_ratio", False)
+        enable_keyword_weight_rerank = data.get("enable_keyword_weight_rerank", True)
 
         print(f"  Query: {query}")
         print(f"  Limit: {limit}")
         print(f"  Semantic Ratio: {semantic_ratio}")
         print(f"  Enable LLM: {enable_llm}")
         print(f"  Manual Semantic Ratio: {manual_semantic_ratio}")
+        print(f"  Enable Rerank: {enable_keyword_weight_rerank}")
 
         # Validate parameters
         if not isinstance(limit, int) or limit < 1 or limit > 100:
@@ -158,7 +160,23 @@ def search():
             semantic_ratio=semantic_ratio,
             enable_llm=enable_llm,
             manual_semantic_ratio=manual_semantic_ratio,
+            enable_keyword_weight_rerank=enable_keyword_weight_rerank,
         )
+
+        # Check if search failed
+        if results.get("status") == "failed":
+            error_msg = results.get("error", "Unknown error")
+            stage = results.get("stage", "unknown")
+            print_red(f"Search failed at stage '{stage}': {error_msg}")
+            print("=" * 60 + "\n")
+
+            # Return different HTTP status codes based on stage
+            if stage in ["meilisearch", "embedding", "llm"]:
+                status_code = 503  # Service Unavailable
+            else:
+                status_code = 500  # Internal Server Error
+
+            return jsonify(results), status_code
 
         print(f"Search completed. Results count: {len(results.get('results', []))}")
         print("=" * 60 + "\n")

@@ -226,8 +226,13 @@
 
       <!-- Error State -->
       <div id="errorState"
-        class="hidden bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-6 mb-10 text-center">
-        <p id="errorMessage" class="text-red-600 dark:text-red-400 font-medium"></p>
+        class="hidden bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-6 mb-10">
+        <div class="flex items-start gap-3">
+          <span class="material-icons-round text-red-600 dark:text-red-400 text-2xl flex-shrink-0">error</span>
+          <div class="flex-1">
+            <p id="errorMessage" class="text-red-600 dark:text-red-400 font-medium whitespace-pre-line"></p>
+          </div>
+        </div>
       </div>
 
       <!-- Empty State -->
@@ -265,39 +270,69 @@
           <p class="text-sm text-amber-800 dark:text-amber-300">LLM 服務暫時無法使用，使用基本搜尋模式</p>
         </div>
 
-        <div id="llmDetails" class="hidden">
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-2 pt-2">
-            <div class="space-y-3">
-              <div class="flex items-start gap-3">
-                <span class="text-sm font-bold text-slate-700 dark:text-slate-300 min-w-[80px]">關鍵字查詢 :</span>
+        <div id="llmDetails" class="hidden mt-2">
+          <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 p-5 bg-slate-50 dark:bg-slate-700/30 rounded-xl border border-slate-100 dark:border-slate-700 animate-fade-in-up">
+            
+            <!-- Column 1: Query Analysis (Span 5) -->
+            <div class="lg:col-span-5 space-y-4">
+              <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">查詢分析 (Query Analysis)</h4>
+              
+              <!-- Keywords -->
+              <div>
+                <span class="text-xs text-slate-500 dark:text-slate-400 block mb-1.5 font-medium">關鍵字 (Keywords)</span>
                 <div class="flex flex-wrap gap-2">
-                  <span id="intentKeywordQuery"
-                    class="px-2 py-1 bg-white dark:bg-slate-700 rounded text-xs text-slate-600 dark:text-slate-200 border border-slate-200 dark:border-slate-600"></span>
+                  <span id="intentKeywordQuery" class="px-2.5 py-1 bg-white dark:bg-slate-600 rounded-md text-sm text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-500 shadow-sm"></span>
                 </div>
               </div>
-              <div class="flex items-start gap-3">
-                <span class="text-sm font-bold text-slate-700 dark:text-slate-300 min-w-[80px]">語意查詢 :</span>
+
+              <!-- Semantic -->
+              <div>
+                <span class="text-xs text-slate-500 dark:text-slate-400 block mb-1.5 font-medium">語意理解 (Semantic)</span>
                 <div class="flex flex-wrap gap-2">
-                  <span id="intentSemanticQuery"
-                    class="px-2 py-1 bg-white dark:bg-slate-700 rounded text-xs text-slate-600 dark:text-slate-200 border border-slate-200 dark:border-slate-600"></span>
+                  <span id="intentSemanticQuery" class="px-2.5 py-1 bg-white dark:bg-slate-600 rounded-md text-sm text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-500 shadow-sm"></span>
                 </div>
               </div>
-              <div class="flex items-start gap-3 hidden">
-                <span class="text-sm font-bold text-slate-700 dark:text-slate-300 min-w-[80px]">LLM 建議權重 :</span>
-                <div class="flex flex-wrap gap-2">
-                  <span id="intentRecommendedRatio"
-                    class="px-2 py-1 bg-primary/20 dark:bg-primary/30 text-primary dark:text-primary-light rounded text-xs font-bold border border-primary/30 dark:border-primary/40"></span>
-                </div>
+
+              <!-- Sub Queries -->
+              <div id="intentSubQueriesContainer" class="hidden">
+                <span class="text-xs text-slate-500 dark:text-slate-400 block mb-1.5 font-medium">延伸查詢 (Sub-Queries)</span>
+                <div id="intentSubQueries" class="flex flex-wrap gap-2"></div>
               </div>
             </div>
-            <div class="space-y-3 md:mt-10">
-              <div class="flex items-start gap-3">
-                <span class="text-sm font-bold text-slate-700 dark:text-slate-300 min-w-[90px]">篩選條件 (Filter) :</span>
-                <div id="intentFilters" class="flex flex-wrap gap-2">
-                  <!-- Filters will be injected here -->
+
+            <!-- Column 2: Weights & Boosts (Span 4) -->
+            <div class="lg:col-span-4 space-y-5 border-t lg:border-t-0 lg:border-l border-slate-200 dark:border-slate-600 pt-4 lg:pt-0 lg:pl-6">
+              <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">權重與加權 (Weights)</h4>
+
+              <!-- Weight Visualizer -->
+              <div>
+                <span class="text-xs text-slate-500 dark:text-slate-400 block mb-2 font-medium">混合搜尋權重 (Hybrid Ratio)</span>
+                <div class="h-5 w-full bg-slate-200 dark:bg-slate-600 rounded-full overflow-hidden flex text-[10px] font-bold text-white shadow-inner">
+                  <div id="weightSemanticBar" class="bg-primary flex items-center justify-center transition-all duration-500" style="width: 50%">Sem</div>
+                  <div id="weightKeywordBar" class="bg-slate-400 dark:bg-slate-500 flex items-center justify-center transition-all duration-500" style="width: 50%">Key</div>
+                </div>
+                <div class="flex justify-between text-xs text-slate-500 dark:text-slate-400 mt-1.5 font-mono">
+                  <span id="weightSemanticLabel">Semantic: 0.50</span>
+                  <span id="weightKeywordLabel">Keyword: 0.50</span>
                 </div>
               </div>
+
+              <!-- Boosted Keywords -->
+              <div id="intentBoostedContainer" class="hidden">
+                <span class="text-xs text-slate-500 dark:text-slate-400 block mb-1.5 font-medium">關鍵字加重 (Boosted)</span>
+                <div id="intentBoostedKeywords" class="flex flex-wrap gap-2"></div>
+              </div>
             </div>
+
+            <!-- Column 3: Filters (Span 3) -->
+            <div class="lg:col-span-3 space-y-4 border-t lg:border-t-0 lg:border-l border-slate-200 dark:border-slate-600 pt-4 lg:pt-0 lg:pl-6">
+              <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">過濾條件 (Filters)</h4>
+              
+              <div id="intentFilters" class="flex flex-wrap gap-2 content-start">
+                <!-- Filters injected here -->
+              </div>
+            </div>
+
           </div>
         </div>
       </div>

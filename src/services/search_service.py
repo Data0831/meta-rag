@@ -120,7 +120,7 @@ class SearchService:
         semantic_ratio: float = DEFAULT_SEMANTIC_RATIO,
         enable_llm: bool = True,
         manual_semantic_ratio: bool = False,
-        enable_rerank: bool = True,
+        enable_keyword_weight_rerank: bool = True,
         fall_back: bool = False,
     ) -> Dict[str, Any]:
 
@@ -289,7 +289,7 @@ class SearchService:
 
             reranker = ResultReranker(all_hits, intent.must_have_keywords)
             reranked_results = reranker.rerank(
-                top_k=pre_merge_limit, enable_rerank=enable_rerank
+                top_k=pre_merge_limit, enable_keyword_weight_rerank=enable_keyword_weight_rerank
             )
 
             if reranked_results and "_rerank_score" in reranked_results[0]:

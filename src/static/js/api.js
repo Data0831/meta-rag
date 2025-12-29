@@ -27,7 +27,7 @@ export async function performCollectionSearch(query) {
         semantic_ratio: searchConfig.semanticRatio,
         enable_llm: searchConfig.enableLlm,
         manual_semantic_ratio: searchConfig.manualSemanticRatio,
-        enable_rerank: searchConfig.enableKeywordWeightRerank
+        enable_keyword_weight_rerank: searchConfig.enableKeywordWeightRerank
     };
 
     console.log('Request Body:', requestBody);
@@ -54,7 +54,19 @@ export async function performCollectionSearch(query) {
         let errorMessage;
         try {
             const error = JSON.parse(errorText);
-            errorMessage = error.error || `HTTP error! status: ${response.status}`;
+            const stage = error.stage || 'unknown';
+            const baseError = error.error || `HTTP error! status: ${response.status}`;
+
+            // Format error message with stage information
+            const stageLabels = {
+                'meilisearch': '資料庫連線錯誤',
+                'embedding': '向量服務錯誤',
+                'llm': 'AI 服務錯誤',
+                'intent_parsing': '查詢解析錯誤',
+                'unknown': '系統錯誤'
+            };
+            const stageLabel = stageLabels[stage] || stageLabels['unknown'];
+            errorMessage = `${stageLabel}\n${baseError}`;
         } catch {
             errorMessage = errorText || `HTTP error! status: ${response.status}`;
         }

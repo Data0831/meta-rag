@@ -11,7 +11,7 @@ import { renderResults, applyThresholdToResults, toggleResult, toggleIntentDetai
 
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
-    console.log('🚀 Collection Search initialized');
+    console.log('Collection Search initialized');
 
     // Load backend configuration
     loadBackendConfig();

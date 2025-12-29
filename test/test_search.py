@@ -28,7 +28,7 @@ def test_search(query: str):
             semantic_ratio=SEMANTIC_RATIO,
             enable_llm=ENABLE_LLM,
             manual_semantic_ratio=MANUAL_SEMANTIC_RATIO,
-            enable_rerank=ENABLE_KEYWORD_WEIGHT_RERANK,
+            enable_keyword_weight_rerank=ENABLE_KEYWORD_WEIGHT_RERANK,
             fall_back=False,
         )
         status = results.get("status")
@@ -93,14 +93,15 @@ def test_search(query: str):
 def main():
     test_queries = [
         # "2025 年 4 月份價格相關公告",
-        # "與競爭對手 gemini 相關資料"
+        "與競爭對手 gemini 相關資料"
         # "windows 11 相關公告"
         # "windows 11 server 漏洞"
         # "powerbi 近三個月更新"
         # "powerbi 近期更新"
         # "與 Gemini 相關資"
         # "123"
-        "KB12453115"
+        # "KB12453115"
+        # "與 gemini 競爭對手相關公告"
     ]
     for query in test_queries:
         test_search(query)

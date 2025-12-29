@@ -1,32 +1,11 @@
 # Project History
 
-## 2025-12-15 ~ 12-18
-- **核心架構與 Meilisearch 遷移**：完成基礎 ETL Pipeline 與 Gemini Metadata 提取；執行重大決策遷移至 Meilisearch 單一引擎 (移除 SQLite/Qdrant)，搜尋延遲降至 ~30ms。
-- **檢索策略優化**：引入 `jieba` 分詞、軟性強制關鍵字 (Soft Keyword Enforcement) 與雙語擴展技術，解決中英匹配與向量搜尋發散問題。
-- **前端整合與系統輕量化**：發布 Collection Search 介面，支援動態語意權重調整；簡化資料結構為扁平化 `parse.json`，並清理大量廢棄代碼。
-
-## 2025-12-19
-- **前端重構 (Modularization)**：將龐大的 `search.js` 拆分為 6 個 ES6 模組 (Config/DOM/API/UI/Render/Main)，大幅提升代碼可維護性。
-- **UI/UX 全面更新**：將介面升級為 Tailwind CSS 設計，引入 `marked.js` 支援 Markdown 渲染，並優化搜尋結果展示 (預設展開第一筆、改進卡片佈局)。
-- **配置整合**：建立後端配置 API (`/api/config`) 與前端動態同步機制，統一管理相似度閾值與語意權重 (Slider 調整為 0-100 整數範圍)。
-- **系統優化**：修正 `/collection_search` 路由重定向問題，並修復 LLM 過濾條件 (Year/Workspace/Links) 在前端的視覺化標籤顯示。
-
-## 2025-12-23
-- **Link 去重合併功能**：修改 `search_service.py` 實作 `_merge_duplicate_links()`，向 Meilisearch 請求多筆結果後按 `_rankingScore` 排序並拼接相同連結的內容，避免切塊重複輸出；同步更新 `archtect/search-flow.md`。
-- **UI 優化與錯誤標示**：搜尋結果顯示配色的類型標籤 (Keyword/Semantic/Hybrid)，標題長度限縮；實作 LLM 調用失敗檢測，在前端顯示琥珀色警告橫幅並自動回退至基本搜尋模式。
-- **搜尋模式邏輯修復**：修正手動設定與 LLM 建議權重的執行優先權，優化前端標籤判定的浮點數誤差處理。
-
-## 2025-12-24
-- **Azure OpenAI Structured Outputs 兼容性修復**：扁平化 `SearchIntent` Schema 結構（移除 nested class）以解決 Azure 400 錯誤；在 `client.py` 強制注入 `additionalProperties: false` 與 `required` 屬性。
-- **Azure App Service 部署與修復**：支援動態 Port 綁定 (`PORT` 環境變數) 並優化啟動日誌；修正前端 `render.js` 讀取扁平化意圖數據的邏輯，新增「必含關鍵字」渲染與 LLM 建議權重百分比顯示。
-
-## 2025-12-26
-- **資料格式與搜尋升級**：因應新版資料來源格式，更新全線架構。
-  - **Schema 擴充**：`AnnouncementDoc` 新增 `year` (年份)、`main_title` (主標題) 與 `heading_link` (錨點連結)，並將 `workspace` 改為可選欄位 (Optional) 以保持彈性。
-  - **Meilisearch 配置**：更新 `meilisearch_config.py`，將 `year` 加入過濾條件 (`FILTERABLE_ATTRIBUTES`)，並新增 `main_title` 至搜尋欄位 (`SEARCHABLE_ATTRIBUTES`)，但設定為最低權重 (Lowest Priority) 以避免干擾核心關鍵字排序。
-  - **轉接器適配**：修改 `db_adapter_meili.py` 資料轉換邏輯，確保新欄位正確映射至 Meilisearch 索引。
-- **日誌美化 (Logging Aesthetics)**: 引入 `src.tool.ANSI` 工具，將 `SearchService`、`MeiliAdapter`、`app.py` 與 `client.py` 中的所有錯誤、警告、解析失敗、向量生成失敗及 API / LLM 呼叫異常訊息改為紅色輸出，提升後端除錯的可辨識度。
-- **關鍵字精確匹配與分數重排 (Keyword Reranking)**：實作 Python 後處理層的關鍵字加權演算法 (`src/services/keyword_alg.py`)，使用 Regex 邊界匹配 (`\b`) 解決版本號與專有名詞精確判定問題；在 `search_service.py` 整合 `ResultReranker`，於 Meilisearch 返回後、合併前執行分數重排（全中 ×2.5、部分命中線性加分、未命中 ×0.81），並將 `PRE_SEARCH_LIMIT` 提升至 50 以擴大 Recall；新增四個可配置參數至 `config.py` (全中加權、部分命中係數、未命中懲罰、標題加權)。
+## 2025-12-15 ~ 12-26 系統奠基與檢索升級
+- **架構與部署**：遷移至 Meilisearch (30ms 延遲)，完成 Azure App Service 部署與 OpenAI Structured Outputs 兼容性修復。
+- **檢索優化**：Link 去重合併技術，實作關鍵字精確加權重排 (Reranking) 與雙語擴展，並優化 Schema (年份/主標題) 適配新資料源。
+- **UI/UX 重構**：前端模組化設計，採用 Tailwind CSS 與 Markdown 渲染，實作動態配置同步與 LLM 異常回退機制。
+- **日誌開發**：全面導入 ANSI 彩色日誌，提升後端解析與 API 異常除錯的可辨識度。
+  
 
 ## 2025-12-29
 - **錯誤處理機制統一 (Unified Error Handling)**：修復 `fall_back=False` 參數無效問題。統一底層函式（`call_with_schema`、`get_embedding`、`meili_adapter.search`）返回格式為 dict，成功時 `{"status": "success", "result": ...}`，失敗時 `{"status": "failed", "error": ..., "stage": ...}`；在 `search_service.py` 的四個執行階段中檢查 `status` 欄位，根據 `fall_back` 參數決定是否提前返回錯誤；在 `_init_meilisearch` 中啟用 `health()` 檢查，確保 Meilisearch 連接成功後才繼續執行。同步更新 `vectorPreprocessing.py` 與 `test_search.py` 以適配新格式。
@@ -35,3 +14,11 @@
 - **Schema ID 欄位補強與過濾器語法修復**：在 `AnnouncementDoc` 新增 `id` 欄位以支援從 `data.json` 預生成 ID 的載入；修改 `transform_doc_for_meilisearch()` 移除 MD5 生成邏輯，改為直接使用 `doc.id`；修復 `get_documents_by_ids()` 的 Meilisearch 過濾器語法，從 `OR` 改為 `IN` 操作符（`id IN [...]`），解決版本兼容性問題。
 - **關鍵字演算法優化 (Asymmetric Weighted Scoring)**：將線性加權改為非對稱評分模型 `$Final = Original \times (1 - P(1 - R)) + B \times R \times (1 - Original)$`，引入 `NO_HIT_PENALTY_FACTOR` (0.25) 與 `KEYWORD_HIT_BOOST_FACTOR` (0.55)。此改動能顯著提昇低分但命中關鍵字的結果（如 0.1 -> 0.6），同時對未命中但高語意分數的結果保留一定競爭力（如 0.9 -> 0.675），並確保分數嚴格限制在 [0, 1] 區間。新增 `docs/改變關鍵字權重.md` 提供參數調整指南。
 - **空查詢回退機制 (Empty Query Fallback)**：修復使用者輸入無意義字串（如 "123"）導致 LLM 回傳空 `keyword_query` / `semantic_query` 的問題。在 `search_service.py` 新增檢測邏輯，若解析結果為空則自動回退使用原始 `user_query`，並在 Traces 中記錄警告。
+- **統一配置管理系統 (Unified Configuration Management)**：建立前後端共享的配置架構。在 `config.py` 使用註解區隔「前端可調整變數」（`DEFAULT_SEARCH_LIMIT`, `DEFAULT_SIMILARITY_THRESHOLD`, `DEFAULT_SEMANTIC_RATIO`, `ENABLE_LLM`, `MANUAL_SEMANTIC_RATIO`, `ENABLE_KEYWORD_WEIGHT_RERANK`）與「純後端配置」（`PRE_SEARCH_LIMIT`, `NO_HIT_PENALTY_FACTOR`, `KEYWORD_HIT_BOOST_FACTOR`）；擴充 `/api/config` 端點返回所有前端可配置項；在前端 `config.js` 實作自動同步機制，載入後端配置並更新 UI 元素狀態；在 `index.html` 新增「啟用重排序 (Rerank)」checkbox；修改 `test_search.py` 移除硬編碼變數，改為從 `src.config` import。此架構確保單一真相來源（Single Source of Truth），前端調整通過無狀態請求參數傳遞，易於維護與擴展。
+
+### 2025-12-29 UI 與搜尋參數顯示優化
+優化搜尋結果與意圖顯示介面。將後端除錯參數整合至前端，全端更名 `enable_keyword_weight_rerank` 並修正分數顯示問題。搜尋卡片改為顯示 Match 分數（取小數點後兩位）與段落連結。重構意圖詳情區塊為三欄式佈局，新增權重視覺化條與子查詢顯示，提升介面美觀與資訊清晰度。- **關鍵字匹配邏輯增強 (Keyword Matching Enhancement)**：優化 `keyword_alg.py` 中的匹配演算法，新增 `_normalize` 方法以忽略關鍵字與文本中的空格、連字符與大小寫差異（例如 "Azure -- cloud" 可匹配 "azure cloud"），提升對不規則使用者輸入的兼容性與檢索召回率，並通過 reproduction script 驗證。
+
+
+### 2025-12-29 前端錯誤處理完整化 (Frontend Error Handling)
+建立完整的錯誤處理流程，使前端能正確顯示後端返回的錯誤信息。**後端 (app.py)**：在 /api/collection_search 檢查 search_service.search() 返回的 status 欄位，根據 stage 返回對應 HTTP status code（meilisearch/embedding/llm → 503 Service Unavailable，其他 → 500 Internal Server Error）並使用 print_red() 輸出錯誤日誌。**前端 API (api.js)**：解析錯誤 JSON 中的 stage 欄位，映射為友好的中文標籤（資料庫連線/向量服務/AI 服務/查詢解析/系統錯誤），格式化為「階段標籤 + 詳細訊息」的多行顯示。**前端渲染 (render.js)**：修正 llm_error → llm_warning 欄位名稱，與後端 search_service.py 保持一致。**UI 優化 (index.html)**：重構錯誤顯示區塊，添加錯誤圖示、支援多行顯示（whitespace-pre-line），改為左對齊 flexbox 排版，提升可讀性。此變更確保錯誤信息清晰傳遞給使用者，並區分不同錯誤階段。

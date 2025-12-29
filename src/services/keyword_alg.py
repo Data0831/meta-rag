@@ -15,20 +15,17 @@ class ResultReranker:
             [k.lower().strip() for k in target_keywords] if target_keywords else []
         )
 
+    def _normalize(self, text: str) -> str:
+        return text.lower().replace(" ", "").replace("-", "")
+
     def _check_match(self, text: str, keyword: str) -> bool:
         if not text or not keyword:
             return False
 
-        text = text.lower()
-        try:
-            if re.match(r"^[a-zA-Z0-9\.\-]+$", keyword):
-                pattern = r"(?<![\w\.\-])" + re.escape(keyword) + r"(?![\w\.\-])"
-            else:
-                return keyword in text
+        norm_text = self._normalize(text)
+        norm_keyword = self._normalize(keyword)
 
-            return bool(re.search(pattern, text, re.IGNORECASE))
-        except re.error:
-            return keyword in text
+        return norm_keyword in norm_text
 
     def _calculate_score(self, original_score: float, hit_ratio: float) -> float:
         # Formula: Final = Original * (1 - P * (1 - R)) + B * R * (1 - Original)
@@ -50,17 +47,25 @@ class ResultReranker:
         return min(max(final_score, 0.0), 1.0)
 
     def rerank(
-        self, top_k: Optional[int] = None, enable_rerank: bool = True
+        self, top_k: Optional[int] = None, enable_keyword_weight_rerank: bool = True
     ) -> List[Dict[str, Any]]:
         if not self.results:
             return self.results
 
-        if not enable_rerank:
+        # Default values for all docs
+        for doc in self.results:
+            if "_rerank_score" not in doc:
+                original_score = doc.get("_rankingScore", 1.0)
+                doc["_rerank_score"] = original_score
+                doc["_hit_ratio"] = 0.0
+                doc["has_keyword"] = "0/0"
+
+        if not enable_keyword_weight_rerank:
             for doc in self.results:
                 original_score = doc.get("_rankingScore", 1.0)
                 doc["_rerank_score"] = original_score
-                doc["_hit_ratio"] = "unknown"
-                doc["has_keyword"] = "unknown"
+                doc["_hit_ratio"] = "disabled"
+                doc["has_keyword"] = "disabled"
             self.results.sort(key=lambda x: x["_rerank_score"], reverse=True)
             return self.results[:top_k] if top_k else self.results
 
@@ -68,7 +73,8 @@ class ResultReranker:
 
         if not self.keywords:
             # If no keywords provided, just return original results sorted by ranking score
-            # Can also choose to normalize them, but without keywords, reranking is moot.
+            # But we already set the default _rerank_score above.
+            self.results.sort(key=lambda x: x.get("_rankingScore", 1.0), reverse=True)
             return self.results[:top_k] if top_k else self.results
 
         reranked_docs = []
