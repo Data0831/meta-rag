@@ -27,3 +27,6 @@
   - **轉接器適配**：修改 `db_adapter_meili.py` 資料轉換邏輯，確保新欄位正確映射至 Meilisearch 索引。
 - **日誌美化 (Logging Aesthetics)**: 引入 `src.tool.ANSI` 工具，將 `SearchService`、`MeiliAdapter`、`app.py` 與 `client.py` 中的所有錯誤、警告、解析失敗、向量生成失敗及 API / LLM 呼叫異常訊息改為紅色輸出，提升後端除錯的可辨識度。
 - **關鍵字精確匹配與分數重排 (Keyword Reranking)**：實作 Python 後處理層的關鍵字加權演算法 (`src/services/keyword_alg.py`)，使用 Regex 邊界匹配 (`\b`) 解決版本號與專有名詞精確判定問題；在 `search_service.py` 整合 `ResultReranker`，於 Meilisearch 返回後、合併前執行分數重排（全中 ×2.5、部分命中線性加分、未命中 ×0.81），並將 `PRE_SEARCH_LIMIT` 提升至 50 以擴大 Recall；新增四個可配置參數至 `config.py` (全中加權、部分命中係數、未命中懲罰、標題加權)。
+
+## 2025-12-29
+- **錯誤處理機制統一 (Unified Error Handling)**：修復 `fall_back=False` 參數無效問題。統一底層函式（`call_with_schema`、`get_embedding`、`meili_adapter.search`）返回格式為 dict，成功時 `{"status": "success", "result": ...}`，失敗時 `{"status": "failed", "error": ..., "stage": ...}`；在 `search_service.py` 的四個執行階段中檢查 `status` 欄位，根據 `fall_back` 參數決定是否提前返回錯誤；在 `_init_meilisearch` 中啟用 `health()` 檢查，確保 Meilisearch 連接成功後才繼續執行。同步更新 `vectorPreprocessing.py` 與 `test_search.py` 以適配新格式。

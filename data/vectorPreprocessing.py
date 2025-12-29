@@ -94,16 +94,17 @@ def process_and_write():
     meili_docs = []
 
     for i, doc in enumerate(docs):
-        # Use cleaned_content directly for embedding (no enriched text)
         text = doc.cleaned_content
-        vector = get_embedding(text)
+        embedding_result = get_embedding(text)
 
-        if vector:
-            # Transform to Meilisearch format
+        if embedding_result.get("status") == "success":
+            vector = embedding_result.get("result")
             meili_doc = transform_doc_for_meilisearch(doc, vector)
             meili_docs.append(meili_doc)
         else:
+            error_msg = embedding_result.get("error", "Unknown error")
             print(f"⚠ Failed to generate embedding for doc: {doc.title}")
+            print(f"  Error: {error_msg}")
 
         if (i + 1) % 10 == 0:
             print(f"  Processed {i + 1}/{len(docs)}")

@@ -29,10 +29,24 @@ def test_search(query: str):
             enable_llm=ENABLE_LLM_SEARCH,
             manual_semantic_ratio=FORCE_MANUAL_RATIO,
             enable_rerank=ENABLE_RERANK,
+            fall_back=False,
         )
+
+        status = results.get("status")
+
+        if status == "failed":
+            print_red("\n[SEARCH FAILED]", bold=True)
+            print_red(f"  Error: {results.get('error', 'Unknown error')}")
+            print_red(f"  Stage: {results.get('stage', 'Unknown stage')}")
+            return results
+
         print("\n[Intent Parsed]")
         intent = results["intent"]
-        print(json.dumps(intent, indent=2, ensure_ascii=False))
+        print(
+            json.dumps(
+                {"intent": intent, "status": status}, indent=2, ensure_ascii=False
+            )
+        )
 
         final_ratio = results.get("final_semantic_ratio", SEMANTIC_RATIO)
         keyword_weight = 1 - final_ratio

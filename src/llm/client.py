@@ -2,7 +2,7 @@ import os
 import json
 import sys
 import datetime
-from typing import Type, TypeVar, List
+from typing import Type, TypeVar, List, Dict, Any
 from openai import AzureOpenAI, APIError, APIStatusError
 from dotenv import load_dotenv
 from pydantic import BaseModel, ValidationError
@@ -137,7 +137,7 @@ class LLMClient:
         temperature: float = 0.0,
         model: str = None,
         max_retries: int = 1,
-    ) -> T | None:
+    ) -> Dict[str, Any]:
         schema = response_model.model_json_schema()
         schema_name = response_model.__name__
 
@@ -174,7 +174,10 @@ class LLMClient:
                 validated = response_model.model_validate(data)
 
                 print(f"✓ Schema 驗證成功 ({schema_name})")
-                return validated
+                return {
+                    "status": "success",
+                    "result": validated
+                }
 
             except json.JSONDecodeError as e:
                 print_red(f"JSON 解析錯誤 (attempt {attempt + 1}): {e}")
@@ -188,7 +191,11 @@ class LLMClient:
                 print(f"重試中... ({attempt + 1}/{max_retries})")
 
         print_red(f"✗ Schema 驗證失敗，已達最大重試次數")
-        return None
+        return {
+            "status": "failed",
+            "error": f"LLM schema validation failed after {max_retries + 1} attempts",
+            "stage": "llm_schema_validation"
+        }
 
 
 if __name__ == "__main__":

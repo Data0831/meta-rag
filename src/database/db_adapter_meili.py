@@ -51,7 +51,7 @@ class MeiliAdapter:
         filters: Optional[str] = None,
         limit: int = 20,
         semantic_ratio: float = DEFAULT_SEMANTIC_RATIO,
-    ) -> List[Dict[str, Any]]:
+    ) -> Dict[str, Any]:
         search_params = {
             "limit": limit,
             "attributesToRetrieve": ["*"],
@@ -69,13 +69,19 @@ class MeiliAdapter:
         try:
             results = self.index.search(query, search_params)
             hits = results["hits"]
-            # Manual sort to ensure hybrid ranking accuracy
             if hits and "_rankingScore" in hits[0]:
                 hits.sort(key=lambda x: x.get("_rankingScore", 0), reverse=True)
-            return hits
+            return {
+                "status": "success",
+                "result": hits
+            }
         except Exception as e:
             print_red(f"Meilisearch search error: {e}")
-            return []
+            return {
+                "status": "failed",
+                "error": f"Meilisearch search error: {str(e)}",
+                "stage": "meilisearch_search"
+            }
 
     def reset_index(self) -> None:
         try:
