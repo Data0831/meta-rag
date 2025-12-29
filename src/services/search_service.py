@@ -86,7 +86,7 @@ class SearchService:
             return {
                 "status": "failed",
                 "error": f"System prompt formatting or LLM call failed: {str(e)}",
-                "stage": "intent_parsing"
+                "stage": "intent_parsing",
             }
 
     def _merge_duplicate_links(
@@ -108,7 +108,9 @@ class SearchService:
                 existing_doc = link_to_doc[link]
                 existing_content = existing_doc.get("content", "")
                 new_content = doc.get("content", "")
-                existing_doc["content"] = f"{existing_content}\n---\n{new_content}"
+                # Avoid appending if content is identical (optional optimization)
+                if new_content not in existing_content:
+                    existing_doc["content"] = f"{existing_content}\n---\n{new_content}"
         return merged_results
 
     def search(
@@ -144,6 +146,7 @@ class SearchService:
             # 4.1 Parse Intent (Using LLM)
             intent = None
             llm_error = None
+            traces = []  # Log search steps
 
             if enable_llm:
                 intent_result = self.parse_intent(user_query)
@@ -158,8 +161,7 @@ class SearchService:
             # Fallback intent if LLM failed or disabled
             if not intent:
                 intent = SearchIntent(
-                    keyword_query=user_query,
-                    semantic_query=user_query,
+                    keyword_query=user_query, semantic_query=user_query, sub_queries=[]
                 )
 
             # Update params based on intent
@@ -171,39 +173,114 @@ class SearchService:
             ):
                 semantic_ratio = intent.recommended_semantic_ratio
 
-            # 4.2 Build Filter & Boost Keywords
+            # 4.2 Build Query Batch
+            # Collect all distinct queries: primary intent + sub_queries
+            query_candidates = []
+
+            # Add primary (original intent)
+            query_candidates.append(intent.keyword_query)
+            traces.append(f"Primary Query: {intent.keyword_query}")
+
+            # Add sub-queries
+            if intent.sub_queries:
+                for sq in intent.sub_queries:
+                    if sq and sq not in query_candidates:
+                        query_candidates.append(sq)
+                        traces.append(f"Sub-Query: {sq}")
+
+            # 4.3 Prepare Batch Request
             meili_filter = build_meili_filter(intent)
+
+            # Boost keywords logic
+            boosted_suffix = ""
             if intent.must_have_keywords:
                 boosted_keywords = []
                 for kw in intent.must_have_keywords:
                     boosted_keywords.extend([kw] * 2)
-                intent.keyword_query = (
-                    f"{intent.keyword_query} {' '.join(boosted_keywords)}"
-                )
+                boosted_suffix = f" {' '.join(boosted_keywords)}"
 
-            # 4.3 Generate Embedding
-            query_vector = None
-            if semantic_ratio > 0:
-                embedding_result = vector_utils.get_embedding(intent.semantic_query)
-                if embedding_result.get("status") == "failed":
-                    return embedding_result
-                query_vector = embedding_result.get("result")
+            # Generate Embeddings & Build Multi-Search Queries
+            multi_search_queries = []
 
-            # 4.4 Meilisearch Query
-            search_result = self.meili_adapter.search(
-                query=intent.keyword_query,
-                vector=query_vector,
-                filters=meili_filter,
-                limit=PRE_SEARCH_LIMIT,
-                semantic_ratio=semantic_ratio,
-            )
-            if search_result.get("status") == "failed":
-                return search_result
-            results = search_result.get("result")
+            for q_text in query_candidates:
+                # 1. Keyword Component
+                final_kw_query = f"{q_text}{boosted_suffix}"
 
-            # 4.5 Rerank & Process
-            pre_merge_limit = round(limit * 1.3) + 1
-            reranker = ResultReranker(results, intent.must_have_keywords)
+                # 2. Vector Component
+                vector = None
+                if semantic_ratio > 0:
+                    text_for_embedding = q_text
+                    # Use intent.semantic_query if this is the primary candidate
+                    if q_text == intent.keyword_query and intent.semantic_query:
+                        text_for_embedding = intent.semantic_query
+
+                    embedding_result = vector_utils.get_embedding(text_for_embedding)
+                    if embedding_result.get("status") == "success":
+                        vector = embedding_result.get("result")
+                    else:
+                        print_red(
+                            f"Embedding failed for '{q_text}': {embedding_result.get('error')}"
+                        )
+
+                # 3. Build Query Object
+                search_params = {
+                    "indexUid": MEILISEARCH_INDEX,
+                    "q": final_kw_query,
+                    "limit": PRE_SEARCH_LIMIT,
+                    "attributesToRetrieve": ["*"],
+                    "showRankingScore": True,
+                    "showRankingScoreDetails": True,
+                }
+
+                if meili_filter:
+                    search_params["filter"] = meili_filter
+
+                if vector:
+                    search_params["hybrid"] = {
+                        "semanticRatio": semantic_ratio,
+                        "embedder": "default",
+                    }
+                    search_params["vector"] = vector
+
+                multi_search_queries.append(search_params)
+
+            # 4.4 Execute Multi-Search
+            if not multi_search_queries:
+                return {
+                    "status": "success",
+                    "results": [],
+                    "traces": traces,
+                    "intent": (
+                        intent.model_dump()
+                        if hasattr(intent, "model_dump")
+                        else intent.dict()
+                    ),
+                }
+
+            batch_result = self.meili_adapter.multi_search(multi_search_queries)
+            if batch_result.get("status") == "failed":
+                return batch_result
+
+            # 4.5 Aggregate Results
+            raw_hits_batch = batch_result.get("result", {}).get("results", [])
+
+            # Flatten and Deduplicate by ID
+            all_hits = []
+            seen_ids = set()
+
+            for i, result_set in enumerate(raw_hits_batch):
+                hits = result_set.get("hits", [])
+
+                for hit in hits:
+                    doc_id = hit.get("id")
+                    if doc_id and doc_id not in seen_ids:
+                        seen_ids.add(doc_id)
+                        all_hits.append(hit)
+
+            # 4.6 Rerank & Process
+            pre_merge_limit = round(limit * 2.5)
+
+            reranker = ResultReranker(all_hits, intent.must_have_keywords)
             reranked_results = reranker.rerank(
                 top_k=pre_merge_limit, enable_rerank=enable_rerank
             )
@@ -213,10 +290,11 @@ class SearchService:
                     key=lambda x: x.get("_rerank_score", 0), reverse=True
                 )
 
+            # Merge same links
             merged_results = self._merge_duplicate_links(reranked_results)
             final_results = merged_results[:limit]
 
-            # 4.6 Response
+            # 4.7 Response
             response = {
                 "status": "success",
                 "intent": (
@@ -228,11 +306,10 @@ class SearchService:
                 "results": final_results,
                 "final_semantic_ratio": semantic_ratio,
                 "mode": "semantic" if semantic_ratio > 0 else "keyword",
+                "traces": traces,
             }
             if llm_error:
-                response["llm_warning"] = (
-                    llm_error  # 使用 warning 而非 error，因為 fallback 成功了
-                )
+                response["llm_warning"] = llm_error
 
             return response
 

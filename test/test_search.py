@@ -49,7 +49,20 @@ def test_search(query: str):
         print(f"  Final Semantic Ratio: {final_ratio:.2f}")
         print(f"    ├─ Keyword Weight:  {keyword_weight:.2f}")
         print(f"    └─ Semantic Weight: {final_ratio:.2f}")
-        filters = intent.get("filters", {})
+
+        # Print Traces
+        traces = results.get("traces", [])
+        print("\n[Search Traces (Agentic Thinking)]")
+        if traces:
+            for t in traces:
+                print(f"  ➤ {t}")
+        else:
+            print("  (No traces available)")
+
+        filters = results.get(
+            "meili_filter"
+        )  # Intent object doesn't have meili_filter field directly often
+
         print(f"\n[Result Limit] Used: {DEFAULT_LIMIT}")
         print("\n" + "=" * 80)
         print(f"[Search Results] Found {len(results['results'])} documents")
@@ -59,8 +72,9 @@ def test_search(query: str):
             score_pass = score >= SIMILAR_THRESHOLD
             has_keyword = doc.get("has_keyword", "N/A")
             print(f"\n[{idx}] {doc.get('title', 'No Title')}")
+            print(f"\n[main_title] {doc.get('main_title', 'No Title')}")
             print(f"{'─' * 80}")
-            print(f"  score_pass:       {str(score_pass).lower()}")
+            print(f"  score_pass:    {str(score_pass).lower()}")
             print(f"  has_keyword:   {has_keyword}")
             print(f"  year_month:    {doc.get('year_month', 'N/A')}")
             print(f"  Ranking Score: {score:.4f}")
@@ -79,9 +93,12 @@ def test_search(query: str):
 def main():
     test_queries = [
         # "2025 年 4 月份價格相關公告",
-        # "與競爭對手 gemini 相關資，"，
+        "與競爭對手 gemini 相關資料"
         # "windows 11 相關公告"
-        "windows 11 server 漏洞"
+        # "windows 11 server 漏洞"
+        # "powerbi 近三個月更新"
+        # "powerbi 近期更新"
+        # "與 Gemini 相關資"
     ]
     for query in test_queries:
         test_search(query)

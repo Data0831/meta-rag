@@ -71,16 +71,35 @@ class MeiliAdapter:
             hits = results["hits"]
             if hits and "_rankingScore" in hits[0]:
                 hits.sort(key=lambda x: x.get("_rankingScore", 0), reverse=True)
-            return {
-                "status": "success",
-                "result": hits
-            }
+            return {"status": "success", "result": hits}
         except Exception as e:
             print_red(f"Meilisearch search error: {e}")
             return {
                 "status": "failed",
                 "error": f"Meilisearch search error: {str(e)}",
-                "stage": "meilisearch_search"
+                "stage": "meilisearch_search",
+            }
+
+    def multi_search(self, queries: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """
+        Execute multiple searches in a single HTTP request using Meilisearch multi-search.
+        Args:
+            queries: List of search parameters. Each dict must include 'indexUid' and 'q'.
+        """
+        try:
+            # ensure indexUid is present in each query
+            for q in queries:
+                if "indexUid" not in q:
+                    q["indexUid"] = self.collection_name
+
+            results = self.client.multi_search(queries)
+            return {"status": "success", "result": results}
+        except Exception as e:
+            print_red(f"Meilisearch multi-search error: {e}")
+            return {
+                "status": "failed",
+                "error": f"Meilisearch multi-search error: {str(e)}",
+                "stage": "meilisearch_multi_search",
             }
 
     def reset_index(self) -> None:
@@ -103,10 +122,7 @@ class MeiliAdapter:
                 task_info = self.index.delete_documents(list(existing_ids))
                 print(f"✓ Deleted {len(existing_ids)} documents from Meilisearch.")
                 print(f"  Task UID: {task_info.task_uid}")
-            return {
-                "deleted": existing_docs,
-                "not_found": not_found_ids
-            }
+            return {"deleted": existing_docs, "not_found": not_found_ids}
         except Exception as e:
             print_red(f"Error deleting documents by IDs: {e}")
             return {"deleted": [], "not_found": ids}
