@@ -62,6 +62,7 @@ project_root/
 *   **Pydantic**: 資料交換與寫入 DB 前必須通過 Pydantic Model 驗證。
 *   **Imports**: 使用絕對路徑 (e.g., `from src.database import ...`)。
 *   **Imports**: 不要使用任何註解，包括 docstring。
+*   **錯誤處理**: 底層函數統一返回 dict 格式。成功時：`{"status": "success", "result": ...}`；失敗時：`{"status": "failed", "error": ..., "stage": ...}`。調用方必須檢查 `status` 欄位。
 
 ### 4.3 資料庫設計 (Meilisearch)
 *   **ID 生成**: 使用 link+title 的 MD5 hash 作為唯一 ID。

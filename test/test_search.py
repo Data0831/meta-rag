@@ -56,11 +56,11 @@ def test_search(query: str):
         for idx, doc in enumerate(results["results"], 1):
             score = doc.get("_rankingScore", 0)
             rerank_score = doc.get("_rerank_score", 0)
-            contain = score >= SIMILAR_THRESHOLD
+            score_pass = score >= SIMILAR_THRESHOLD
             has_keyword = doc.get("has_keyword", "N/A")
             print(f"\n[{idx}] {doc.get('title', 'No Title')}")
             print(f"{'─' * 80}")
-            print(f"  contain:       {str(score_pass).lower()}")
+            print(f"  score_pass:       {str(score_pass).lower()}")
             print(f"  has_keyword:   {has_keyword}")
             print(f"  year_month:    {doc.get('year_month', 'N/A')}")
             print(f"  Ranking Score: {score:.4f}")
