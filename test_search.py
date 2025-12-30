@@ -55,6 +55,27 @@ def test_api_search(query: str):
                         if message:
                             print(f"[{stage.upper()}] {message}")
 
+                        if stage == "search_result":
+                            results = step.get("results", [])
+                            intent = step.get("intent", {})
+                            meili_filter = step.get("meili_filter")
+                            print("\n  [INTERMEDIATE SEARCH RESULTS]")
+                            print(f"    Count: {len(results)}")
+                            print(
+                                f"    Intent: {json.dumps(intent, ensure_ascii=False)}"
+                            )
+                            print(f"    Filter: {meili_filter}")
+                            if results:
+                                for idx, r in enumerate(
+                                    results[:3], 1
+                                ):  # Show top 3 only
+                                    print(
+                                        f"      {idx}. {r.get('title', 'No Title')} (Score: {r.get('_rankingScore', 0):.4f})"
+                                    )
+                                if len(results) > 3:
+                                    print(f"      ... and {len(results)-3} more")
+                            print("")
+
                         if stage == "complete":
                             final_summary = step.get("summary", "")
                             final_results = step.get("results", [])

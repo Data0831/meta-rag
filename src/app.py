@@ -107,37 +107,29 @@ def chat_endpoint():
     try:
         print("\n" + "=" * 60)
         print("/api/chat called")
-
         data = request.get_json()
         if not data:
             return jsonify({"error": "Invalid JSON"}), 400
-
         user_message = data.get("message", "")
         # 接收前端傳來的 Context (搜尋結果)
         provided_context = data.get("context", [])
         # 接收前端傳來的 History (對話紀錄)
         chat_history = data.get("history", [])
-
         print(f"  Message: {user_message}")
         print(f"  Context items: {len(provided_context)}")
         print(f"  History items: {len(chat_history)}")
-
         if not user_message:
             return jsonify({"error": "Message is required"}), 400
-
         # 初始化 RAG Service 並執行
         rag_service = RAGService()
-
         response = rag_service.chat(
             user_query=user_message,
             provided_context=provided_context,
             history=chat_history,
         )
-
         print("Chat response generated")
         print("=" * 60 + "\n")
         return jsonify(response)
-
     except Exception as e:
         print_red(f"RAG Endpoint Error: {e}")
         import traceback
@@ -155,11 +147,9 @@ def search_endpoint():
     try:
         print("\n" + "=" * 60)
         print("/api/search (Streaming) called")
-
         data = request.get_json()
         if not data:
             return jsonify({"error": "Invalid JSON"}), 400
-
         query = data.get("query", "")
         limit = data.get("limit", DEFAULT_SEARCH_LIMIT)
         semantic_ratio = data.get("semantic_ratio", DEFAULT_SEMANTIC_RATIO)
@@ -168,17 +158,14 @@ def search_endpoint():
         enable_keyword_weight_rerank = data.get(
             "enable_keyword_weight_rerank", ENABLE_KEYWORD_WEIGHT_RERANK
         )
-
         if not query:
             return jsonify({"error": "Query is required"}), 400
-
         print(f"  Query: {query}")
         print(f"  Limit: {limit}")
         print(f"  Semantic Ratio: {semantic_ratio}")
         print(f"  Enable LLM: {enable_llm}")
         print(f"  Manual Semantic Ratio: {manual_semantic_ratio}")
         print(f"  Enable Rerank: {enable_keyword_weight_rerank}")
-
         # Validate parameters
         if not isinstance(limit, int) or limit < 1 or limit > 100:
             return (
@@ -189,7 +176,6 @@ def search_endpoint():
                 ),
                 400,
             )
-
         if (
             not isinstance(semantic_ratio, (int, float))
             or semantic_ratio < 0
@@ -206,7 +192,7 @@ def search_endpoint():
 
         def generate():
             agent = SrhSumAgent()
-            for step in agent.generate_summary(
+            for step in agent.run(
                 query=query,
                 limit=limit,
                 semantic_ratio=semantic_ratio,
@@ -219,7 +205,6 @@ def search_endpoint():
         return Response(
             stream_with_context(generate()), mimetype="application/x-ndjson"
         )
-
     except Exception as e:
         print_red(f"Search Endpoint Error: {e}")
         import traceback
@@ -239,9 +224,7 @@ def get_stats():
     try:
         adapter = get_meili_adapter()
         stats = adapter.get_stats()
-
         return jsonify({"index_name": MEILISEARCH_INDEX, "stats": stats})
-
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
@@ -252,7 +235,6 @@ def health_check():
     try:
         adapter = get_meili_adapter()
         stats = adapter.get_stats()
-
         return jsonify(
             {
                 "status": "healthy",
@@ -292,9 +274,7 @@ if __name__ == "__main__":
     print("=" * 60)
     print(f"Meilisearch Host: {MEILISEARCH_HOST}")
     print(f"Index Name: {MEILISEARCH_INDEX}")
-
     port = int(os.environ.get("PORT", 5000))
     print(f"Server will run on: http://0.0.0.0:{port}")
     print("=" * 60)
-
     app.run(threaded=True, debug=True, host="0.0.0.0", port=port)
