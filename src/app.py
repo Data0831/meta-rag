@@ -10,15 +10,24 @@ from pathlib import Path
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
-from flask import Flask, render_template, jsonify, request, redirect, url_for
+from flask import (
+    Flask,
+    render_template,
+    jsonify,
+    request,
+    redirect,
+    url_for,
+    Response,
+    stream_with_context,
+)
 import os
+import json
 from dotenv import load_dotenv
 from typing import Dict, Any
 
 from src.database.db_adapter_meili import MeiliAdapter
 from src.agents.srhSumAgent import SrhSumAgent
-
-
+from src.services.search_service import SearchService
 from src.config import (
     MEILISEARCH_HOST,
     MEILISEARCH_API_KEY,
@@ -87,19 +96,6 @@ def get_config():
 
 @app.route("/api/collection_search", methods=["POST"])
 def search():
-    """
-    Perform hybrid search using SearchService
-
-    Request JSON:
-    {
-        "query": "user query string",
-        "limit": 20,  // optional
-        "semantic_ratio": 0.5  // optional, 0.0 to 1.0
-    }
-
-    Returns:
-        JSON response with search results
-    """
     try:
         print("\n" + "=" * 60)
         print("/api/collection_search called")
@@ -249,16 +245,12 @@ def chat_endpoint():
 @app.route("/api/summary", methods=["POST"])
 def generate_summary():
     """
-    API Route: Generate summary for search results
-    處理前端傳來的摘要請求
-    Request JSON: {
-        "query": "user query string",
-        "results": [ ... top 5 search results ... ]
-    }
+    API Route: Generate summary for search results (Streaming)
+    處理前端傳來的摘要請求，並串流回傳執行狀態
     """
     try:
         print("\n" + "=" * 60)
-        print("/api/summary called")
+        print("/api/summary (Streaming) called")
 
         data = request.get_json()
         if not data:
@@ -268,22 +260,18 @@ def generate_summary():
         search_results = data.get("results", [])
 
         if not user_query:
-            print("Missing 'query' field")
             return jsonify({"error": "Query is required"}), 400
 
-        print(f"  Query: {user_query}")
-        print(f"  Results to summarize: {len(search_results)}")
+        def generate():
+            agent = SrhSumAgent()
+            # 呼叫產生器
+            for step in agent.generate_summary(user_query, search_results):
+                # 每個步驟都以 JSON 字串加換行符號回傳
+                yield json.dumps(step, ensure_ascii=False) + "\n"
 
-        # 初始化 Agent
-        agent = SrhSumAgent()
-
-        # 呼叫 Agent 生成摘要
-        summary_text = agent.generate_summary(user_query, search_results)
-
-        print("Summary generated")
-        print("=" * 60 + "\n")
-
-        return jsonify({"summary": summary_text})
+        return Response(
+            stream_with_context(generate()), mimetype="application/x-ndjson"
+        )
 
     except Exception as e:
         print_red(f"Summary Endpoint Error: {e}")

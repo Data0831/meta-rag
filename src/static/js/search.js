@@ -135,6 +135,9 @@ async function performSearch() {
     // 每次新搜尋前，先隱藏摘要區塊 (避免看到上次的殘留)
     hideSummary();
 
+    // 記錄總開始時間 (用於計算完整耗時)
+    const totalStartTime = performance.now();
+
     try {
         // 發送搜尋請求
         const { data, duration } = await performCollectionSearch(query);
@@ -154,8 +157,8 @@ async function performSearch() {
 
         // 2. ★★★ 觸發摘要生成 (移到這裡，確保 data 讀取得到) ★★★
         if (data.results && data.results.length > 0) {
-            // 有搜尋結果才做摘要
-            generateSearchSummary(query, data.results);
+            // 有搜尋結果才做摘要，傳入總開始時間
+            generateSearchSummary(query, data.results, totalStartTime);
         } else {
             // 沒結果就隱藏摘要區塊
             hideSummary();
@@ -170,14 +173,15 @@ async function performSearch() {
     }
 }
 
-async function generateSearchSummary(query, results) {
+async function generateSearchSummary(query, results, totalStartTime) {
     const summaryContainer = document.getElementById('summaryContainer');
     const summaryContent = document.getElementById('summaryContent');
     const summaryTitle = document.getElementById('summaryTitle');
+    const searchTimeValue = document.getElementById('searchTimeValue');
 
     // 初始化 UI：顯示容器，並顯示 Loading 狀態
     summaryContainer.classList.remove('hidden');
-    summaryTitle.innerHTML = `正在為您總結「<span class="text-primary">${query}</span>」的相關公告...`;
+    summaryTitle.innerHTML = `<span class="material-icons-round animate-pulse mr-2 align-middle text-primary">manage_search</span>正在為您總結「<span class="text-primary">${query}</span>」的相關公告...`;
 
     // 顯示 Loading 動畫 (Skeleton)
     summaryContent.innerHTML = `
@@ -188,62 +192,125 @@ async function generateSearchSummary(query, results) {
         </div>
     `;
 
+    // 用於追蹤是否已經替換過結果
+    let hasUpdatedResults = false;
+
     try {
-        // 準備要傳給後端的資料 (只傳前 5 筆 ID 或內容，減少傳輸量)
         const topResults = results.slice(0, 5).map(item => ({
             title: item.title,
             content: item.content || item.cleaned_content
         }));
 
-        // 呼叫後端 API
         const response = await fetch('/api/summary', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                query: query,
-                results: topResults
-            })
+            body: JSON.stringify({ query: query, results: topResults })
         });
 
-        const data = await response.json();
+        if (!response.body) throw new Error("ReadableStream not supported");
 
-        if (data.summary && data.summary.trim()) {
-            // 更新標題
-            summaryTitle.innerHTML = `以下為「<span class="text-primary">${query}</span>」的相關公告總結：`;
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = "";
 
-            // 渲染 Markdown 內容
-            // 使用 marked.parse 來解析後端回傳的 Markdown 列表
-            summaryContent.innerHTML = marked.parse(data.summary);
+        while (true) {
+            const { value, done } = await reader.read();
+            if (done) break;
 
-            // 讓列表樣式更好看 (Tailwind Typography)
-            // 確保 summaryContent 外層或本身有 prose class，或手動調整 CSS
-            const ul = summaryContent.querySelector('ul');
-            if (ul) {
-                ul.classList.add('list-disc', 'pl-5', 'space-y-1');
+            buffer += decoder.decode(value, { stream: true });
+            const lines = buffer.split("\n");
+            buffer = lines.pop(); // 剩餘不完整的一行留到下次
+
+            for (const line of lines) {
+
+                if (!line.trim()) continue;
+
+                try {
+
+                    const data = JSON.parse(line);
+
+                    console.log('Agent Stream:', data.status, data); // ★ 修改為印出完整 data
+
+
+
+                    // 根據狀態更新 UI (使用 Material Icons)
+                    if (data.status === "checking") {
+                        summaryTitle.innerHTML = `<span class="material-icons-round animate-pulse mr-2 align-middle text-secondary">fact_check</span>${data.message}`;
+                    } else if (data.status === "rewriting") {
+                        summaryTitle.innerHTML = `<span class="material-icons-round animate-pulse mr-2 align-middle text-amber-500">edit_note</span>${data.message}`;
+                    } else if (data.status === "searching") {
+                        summaryTitle.innerHTML = `<span class="material-icons-round animate-spin mr-2 align-middle text-primary">sync</span>${data.message}`;
+                        // 標記需要更新結果
+                        hasUpdatedResults = true;
+                        // 時間顯示加入模糊效果
+                        if (searchTimeValue) {
+                            searchTimeValue.style.filter = 'blur(3px)';
+                            searchTimeValue.style.opacity = '0.5';
+                        }
+                    } else if (data.status === "retrying") {
+                        summaryTitle.innerHTML = `<span class="material-icons-round animate-spin mr-2 align-middle text-amber-500">sync_problem</span>${data.message}`;
+                        // 時間顯示加入模糊效果
+                        if (searchTimeValue) {
+                            searchTimeValue.style.filter = 'blur(3px)';
+                            searchTimeValue.style.opacity = '0.5';
+                        }
+                    } else if (data.status === "summarizing") {
+                        summaryTitle.innerHTML = `<span class="material-icons-round animate-pulse mr-2 align-middle text-primary">auto_awesome</span>${data.message}`;
+                    } else if (data.status === "complete") {
+                        // 計算總耗時
+                        const totalEndTime = performance.now();
+                        const totalDuration = Math.round(totalEndTime - totalStartTime);
+
+                        // 更新檢索耗時為總時間
+                        if (searchTimeValue) {
+                            searchTimeValue.textContent = totalDuration;
+                            searchTimeValue.style.filter = 'none';
+                            searchTimeValue.style.opacity = '1';
+                        }
+
+                        // 最終結果
+                        summaryTitle.innerHTML = `以下為「<span class="text-primary">${query}</span>」的相關公告總結：`;
+                        if (data.summary) {
+                            summaryContent.innerHTML = marked.parse(data.summary);
+                            const ul = summaryContent.querySelector('ul');
+                            if (ul) ul.classList.add('list-disc', 'pl-5', 'space-y-1');
+                        }
+
+                        // ★★★ 如果 Agent 回傳了新的搜尋結果，且我們之前標記過需要更新 (代表發生過重寫搜尋)
+                        // 則更新下方的列表
+                        if (data.results && hasUpdatedResults) {
+                            console.log("Agent found better results, updating list...", data.results);
+
+                            // 構建符合 renderResults 預期的物件
+                            const newData = {
+                                results: data.results,
+                                // 這裡沒有 intent 資訊，所以設為 null 或保留原本的 (如果能存取到的話)
+                                intent: null
+                            };
+
+                            // 更新列表
+                            renderResults(newData, 0, query, searchConfig);
+
+                            // 顯示一個小的 Toast 提示 (可選，這裡直接用 console log 或簡單修改標題提示)
+                            // 這裡我們在標題旁加一個小標記
+                            summaryTitle.innerHTML += `<span class="ml-2 text-xs bg-primary/10 text-primary px-2 py-1 rounded-full animate-fade-in-up">已更新搜尋結果</span>`;
+                        }
+                    }
+                } catch (e) {
+                    console.error("解析串流資料失敗:", e, line);
+                }
             }
-        } else if (data.error) {
-            // 後端返回錯誤
-            summaryTitle.innerHTML = `摘要生成失敗`;
-            summaryContent.innerHTML = `
-                <div class="flex items-center gap-2 text-amber-600 dark:text-amber-400">
-                    <span class="material-icons-round text-lg">warning</span>
-                    <p class="text-sm">AI 服務暫時無法使用，請稍後再試。</p>
-                </div>
-            `;
-        } else {
-            // 後端沒返回摘要也沒返回錯誤
-            summaryTitle.innerHTML = `摘要生成失敗`;
-            summaryContent.innerHTML = `
-                <div class="flex items-center gap-2 text-slate-500 dark:text-slate-400">
-                    <span class="material-icons-round text-lg">info</span>
-                    <p class="text-sm">無法生成摘要，請稍後再試。</p>
-                </div>
-            `;
         }
 
     } catch (error) {
         console.error("摘要生成失敗:", error);
-        // 顯示錯誤訊息而不是隱藏區塊
+
+        // 移除時間模糊效果
+        if (searchTimeValue) {
+            searchTimeValue.style.filter = 'none';
+            searchTimeValue.style.opacity = '1';
+        }
+
         summaryTitle.innerHTML = `摘要生成失敗`;
         summaryContent.innerHTML = `
             <div class="flex items-center gap-2 text-red-600 dark:text-red-400">

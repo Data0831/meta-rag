@@ -27,3 +27,9 @@
 實作 `SrhSumAgent` 專門負責摘要生成的迭代檢索流程。**架構解耦**：將 `summarize` 功能從 `RAGService` 剝離，改由 `app.py` 直接呼叫 Agent，原 `chat` 流程維持調用 `SearchService`。**迭代檢索迴圈 (Iterative Search Loop)**：Agent 執行「搜尋 -> LLM 相關性檢查 -> 查詢重寫」的循環；若初次搜尋結果無效，系統自動排除已知無效 IDs 並重寫查詢再次嘗試 (Max 2 Retries)，提升摘要的準確度。**底層支援**：`SearchService` 新增 `exclude_ids` 參數並建構 `NOT id IN [...]` 過濾器，防止無效文檔重複出現。
 - **Meilisearch 配置修正 (Config Fix)**：為支援代理式搜尋的「排除已讀文檔」功能，修正 `meilisearch_config.py` 將 `id` 加入 `FILTERABLE_ATTRIBUTES`，並執行線上更新指令，解決 `invalid_search_filter` 錯誤。
 - **測試工具增強 (Testing)**：在 `test_search.py` 新增 `test_agent_sum` 函式，並透過 monkey patch 攔截 `_rewrite_query` 實現互動式暫停 (Enter to continue)，便於開發者觀察 Agent 在迭代檢索過程中的決策邏輯。
+
+### 2025-12-30 分數顯示與閾值判斷統一 (Score Display & Threshold Unification)
+修正前端 `render.js` 的分數來源不一致問題。統一 Match 分數顯示與相似度閾值判斷皆使用 `_rerank_score`（優先），不存在時 fallback 至 `_rankingScore`。Match 分數改為無條件捨去小數的整數百分比格式（例如：85%），確保右上角顯示分數與 dimmed-result 閾值判斷邏輯完全一致，提升使用者體驗的直觀性與準確性。
+
+### 2025-12-30 檢索耗時計算優化 (Search Duration Calculation Enhancement)
+修改前端 `search.js` 將 Summary Agent retry 時間納入總檢索耗時。在 `performSearch()` 記錄總開始時間 `totalStartTime`，傳遞給 `generateSearchSummary()`。當 Agent 進入 `searching` 或 `retrying` 狀態時，時間顯示添加模糊效果（`blur(3px)`, `opacity: 0.5`）作為視覺提示。`complete` 狀態時計算總耗時（`performance.now() - totalStartTime`），更新 `searchTimeValue` 並移除模糊效果。所有時間計算在前端執行，涵蓋從用戶點擊搜尋到最終答案呈現的完整時間（包含網路傳輸、初始搜尋、Agent 處理與 retry）。

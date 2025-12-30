@@ -90,8 +90,8 @@ export function renderResults(data, duration, query) {
         return renderResultCard(result, index + 1, searchConfig, finalSemanticRatio);
     }).join('');
 
-    // Show summary container with mock data
-    renderSummary(query);
+    // Show summary container with mock data - REMOVED to prevent overwriting real summary
+    // renderSummary(query);
 
     // Apply current threshold to results immediately after rendering
     applyThresholdToResults();
@@ -235,16 +235,15 @@ function updateIntentDisplay(data) {
  * @returns {string} HTML string
  */
 function renderResultCard(result, rank, searchConfig, finalSemanticRatio) {
-    const score = result._rankingScore || 0;
-    const scorePercent = Math.round(score * 100);
     const id = rank - 1; // 0-based index for IDs
     const isFirst = rank === 1;
 
-    // Truncate score to 2 decimal places (floor)
-    let displayScore = 'N/A';
-    if (result._rerank_score !== undefined) {
-        displayScore = (Math.floor(result._rerank_score * 100) / 100).toFixed(2);
-    }
+    // Use _rerank_score if available, fallback to _rankingScore
+    const rawScore = result._rerank_score !== undefined ? result._rerank_score : (result._rankingScore || 0);
+    const scorePercent = Math.round(rawScore * 100);
+
+    // Display score as percentage (floor, no decimals)
+    const displayScore = Math.floor(rawScore * 100) + '%';
 
     // Map fields
     const title = result.title || '無標題';
@@ -400,9 +399,11 @@ export function applyThresholdToResults() {
     resultCards.forEach((card, index) => {
         if (index < currentResults.length) {
             const result = currentResults[index];
-            const score = Math.round((result._rankingScore || 0) * 100);
+            // Use _rerank_score if available, fallback to _rankingScore
+            const rawScore = result._rerank_score !== undefined ? result._rerank_score : (result._rankingScore || 0);
+            const scorePercent = Math.round(rawScore * 100);
 
-            if (score < searchConfig.similarityThreshold) {
+            if (scorePercent < searchConfig.similarityThreshold) {
                 card.classList.add('dimmed-result');
                 dimmedCount++;
             } else {

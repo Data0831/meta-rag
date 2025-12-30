@@ -13,7 +13,7 @@ class SrhSumAgent:
     def __init__(self):
         self.tool = SearchTool()
         self.llm_client = LLMClient()
-        self.max_retries = 2
+        self.max_retries = 1
 
     def run(self, user_query: str) -> Dict[str, Any]:
         """
@@ -131,37 +131,43 @@ class SrhSumAgent:
         except:
             return original_query
 
-    def generate_summary(self, query: str, initial_results: List[Dict]) -> str:
+    def generate_summary(self, query: str, initial_results: List[Dict]):
         """
-        Agentic Summary Generation:
+        Agentic Summary Generation (Streaming Version):
         1. Check relevance of provided results.
         2. If good -> Summarize.
-        3. If bad -> Start Search Loop (max 2 retries).
+        3. If bad -> Start Search Loop (max 1 retries).
         4. Summarize final results.
         """
         current_results = initial_results
 
         # 1. Initial Check
+        yield {"status": "checking", "message": "正在檢查初始搜尋結果的關聯性..."}
         is_relevant, relevant_ids = self._check_relevance(query, current_results)
 
         if is_relevant:
+            yield {"status": "summarizing", "message": "搜尋結果高度相關，正在為您生成公告總結..."}
             # Filter relevant
             final_results = [r for r in current_results if r.get("id") in relevant_ids]
             if not final_results:
                 final_results = current_results
-            return self.tool.summarize(query, final_results)
+            summary = self.tool.summarize(query, final_results)
+            # Return summary AND the results used
+            yield {"status": "complete", "summary": summary, "results": current_results}
+            return
 
         # 2. If valid results not found in initial set, start loop
-        print("Initial results irrelevant. Starting Agentic Search Loop...")
+        yield {"status": "rewriting", "message": "初始結果關聯度不足，AI 正在嘗試重寫查詢語句...", "original_query": query}
+        
         exclude_ids = [r.get("id") for r in current_results if r.get("id")]
-
         current_query = query
         retry_count = 0
 
         while retry_count < self.max_retries:
             # Rewrite first since initial failed
             new_query = self._rewrite_query(query, current_query, current_results)
-            print(f"Rewriting query: '{current_query}' -> '{new_query}'")
+            yield {"status": "searching", "message": f"AI 正在嘗試使用新關鍵字重新搜尋：'{new_query}'...", "new_query": new_query}
+            
             current_query = new_query
 
             # Search
@@ -170,19 +176,31 @@ class SrhSumAgent:
 
             if not results:
                 retry_count += 1
+                if retry_count < self.max_retries:
+                    yield {"status": "retrying", "message": "未找到結果，嘗試再次調整查詢語句..."}
                 continue
 
             # Check
+            yield {"status": "checking", "message": "正在評估重新搜尋結果的關聯性..."}
             is_relevant, relevant_ids = self._check_relevance(query, results)
+            
             if is_relevant:
+                yield {"status": "summarizing", "message": "找到相關資訊，正在為您生成總結內容..."}
                 final_results = [r for r in results if r.get("id") in relevant_ids]
                 if not final_results:
                     final_results = results
-                return self.tool.summarize(query, final_results)
+                summary = self.tool.summarize(query, final_results)
+                # Return summary AND the new results found
+                yield {"status": "complete", "summary": summary, "results": results}
+                return
 
             # Bad again
             exclude_ids.extend([r.get("id") for r in results if r.get("id")])
             current_results = results  # for next rewrite context
             retry_count += 1
+            if retry_count < self.max_retries:
+                yield {"status": "rewriting", "message": "結果仍未達標，正在進行最後一次重寫嘗試..."}
 
-        return "抱歉，經由多次搜尋仍未找到足夠相關的資訊以生成摘要。"
+        yield {"status": "complete", "summary": "抱歉，經由多次搜尋仍未找到足夠相關的資訊以生成摘要。", "results": current_results}
+
+        

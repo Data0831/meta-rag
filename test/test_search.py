@@ -131,12 +131,20 @@ def test_agent_sum(query: str):
     initial_results = initial_search.get("results", [])
     print(f"  Initial Results: {len(initial_results)}")
 
-    print("[2] clearCalling Agent.generate_summary...")
-    summary = agent.generate_summary(query, initial_results)
+    print("[2] Calling Agent.generate_summary (Streaming)...")
+    summary_gen = agent.generate_summary(query, initial_results)
+    
+    final_summary = ""
+    for step in summary_gen:
+        status = step.get("status")
+        msg = step.get("message")
+        print(f"  [{status.upper()}] {msg}")
+        if status == "complete":
+            final_summary = step.get("summary", "")
 
     print("\n" + "=" * 80)
     print("[Final Summary]")
-    print(summary)
+    print(final_summary)
     print("=" * 80)
 
 
