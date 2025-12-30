@@ -5,7 +5,8 @@ from src.agents.tool import SearchTool
 from src.llm.client import LLMClient
 from src.tool.ANSI import print_red
 
-from src.llm.rag_prompts import CHECK_RELEVANCE_PROMPT, QUERY_REWRITE_PROMPT
+from src.llm.prompts.check_relevance import CHECK_RELEVANCE_PROMPT
+from src.llm.prompts.query_rewrite import QUERY_REWRITE_PROMPT
 
 
 class SrhSumAgent:

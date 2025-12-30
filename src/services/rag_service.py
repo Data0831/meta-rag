@@ -4,7 +4,7 @@ import json
 from typing import Dict, Any, List, Optional
 from src.services.search_service import SearchService
 from src.llm.client import LLMClient
-from src.llm.rag_prompts import RAG_SYSTEM_PROMPT
+from src.llm.prompts.rag import RAG_SYSTEM_PROMPT
 
 
 class RAGService:
