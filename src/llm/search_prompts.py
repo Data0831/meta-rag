@@ -14,15 +14,20 @@ Analyze the user's input (comprising a `Current Date` and a `User Query`) and ma
 # Input Format
 You will receive input in the following format:
 - **user query:** "question description or url"
+- **direction:** "{direction}" (If not empty, follow this direction for the next search)
 
 # Processing Rules
 
-## 0. History Constraint (CRITICAL)
+## 0. History & Direction Constraint (CRITICAL)
 If `previous_queries` is provided and not "None":
 - These queries have FAILED to produce good results.
 - You MUST generate **DIFFERENT** keywords and sub-queries.
 - Avoid specific phrasings or keywords that dominate the failed queries.
 - Try a broader or different angle (e.g. if "pricing" failed, try "cost" or "billing").
+
+If `direction` is provided and not empty:
+- You MUST adjust your search strategy, keywords, and sub-queries to prioritize this **direction**.
+- This is the guidance from a relevance analyst who reviewed the previous failed search results.
 
 ## 1. Date Resolution (CRITICAL)
 You must calculate the `year_month` list based on the provided **Current Date**.

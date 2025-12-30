@@ -19,6 +19,7 @@ class SearchTool:
         enable_keyword_weight_rerank: bool = True,
         exclude_ids: List[str] = None,
         history: List[str] = None,
+        direction: str = None,
     ) -> Dict[str, Any]:
         """
         Executes a search using the SearchService.
@@ -32,33 +33,73 @@ class SearchTool:
             enable_keyword_weight_rerank=enable_keyword_weight_rerank,
             exclude_ids=exclude_ids,
             history=history,
+            direction=direction,
         )
 
-    def summarize(self, user_query: str, search_results: List[Dict]) -> str:
+    def summarize(self, user_query: str, search_results: List[Dict]) -> Dict[str, Any]:
         """
         Summarizes the provided search results relevant to the user query.
+        Returns structured summary with hyperlink mapping.
         """
-        if not search_results:
-            return ""
+        from src.schema.schemas import StructuredSummary
+        from src.tool.ANSI import print_red
 
-        # 1. Prepare Context (Take top 5)
+        if not search_results:
+            return {
+                "status": "success",
+                "summary": {
+                    "brief_answer": "沒有參考資料",
+                    "detailed_answer": "",
+                    "general_summary": "",
+                },
+                "link_mapping": {},
+            }
+
+        # 1. Prepare Context with XML tags (Take top 5)
         context_text = ""
+        link_mapping = {}
+
         for idx, doc in enumerate(search_results[:5], 1):
             title = doc.get("title", "No Title")
-            # Handle potential None content
+            link = doc.get("heading_link") or doc.get("link", "")
             content = doc.get("content") or doc.get("cleaned_content") or ""
             if len(content) > 500:
                 content = content[:500] + "..."
-            context_text += f"[Document {idx}] Title: {title}\nContent: {content}\n\n"
+
+            context_text += f'<document index="{idx}">\n<title>{title}</title>\n<content>{content}</content>\n</document>\n\n'
+            link_mapping[str(idx)] = link
 
         # 2. Build Prompt
         prompt = SUMMARY_SYSTEM_PROMPT.format(context=context_text, query=user_query)
         messages = [{"role": "user", "content": prompt}]
 
-        # 3. Call LLM
-        try:
-            summary = self.llm_client.call_gemini(messages=messages, temperature=0.3)
-            return summary
-        except Exception as e:
-            print(f"Summary Generation Error: {e}")
-            return ""
+        # 3. Call LLM with schema
+        llm_response = self.llm_client.call_with_schema(
+            messages=messages,
+            response_model=StructuredSummary,
+            temperature=0.3,
+        )
+
+        if llm_response.get("status") == "success":
+            validated_result = llm_response.get("result")
+            return {
+                "status": "success",
+                "summary": {
+                    "brief_answer": validated_result.brief_answer,
+                    "detailed_answer": validated_result.detailed_answer,
+                    "general_summary": validated_result.general_summary,
+                },
+                "link_mapping": link_mapping,
+            }
+        else:
+            print_red(f"Summary generation failed: {llm_response.get('error')}")
+            return {
+                "status": "failed",
+                "error": llm_response.get("error"),
+                "summary": {
+                    "brief_answer": "",
+                    "detailed_answer": "",
+                    "general_summary": "",
+                },
+                "link_mapping": {},
+            }

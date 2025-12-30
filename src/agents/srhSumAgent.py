@@ -4,8 +4,8 @@ from typing import Dict, Any, List
 from src.agents.tool import SearchTool
 from src.llm.client import LLMClient
 from src.tool.ANSI import print_red
-from src.llm.prompts.check_relevance import CHECK_RELEVANCE_PROMPT
-from src.schema.schemas import RelevanceCheckResult
+from src.llm.prompts.check_retry_search import CHECK_RETRY_SEARCH_PROMPT
+from src.schema.schemas import RetrySearchDecision
 
 
 class SrhSumAgent:
@@ -14,94 +14,41 @@ class SrhSumAgent:
         self.llm_client = LLMClient()
         self.max_retries = 1
 
-    def _check_relevance(self, query: str, results: List[Dict]) -> Dict[str, Any]:
-        from src.config import (
-            SCORE_PASS_THRESHOLD,
-            get_score_min_threshold,
-            FALLBACK_RESULT_COUNT,
-        )
-
+    def _check_retry_search(self, query: str, results: List[Dict]) -> Dict[str, Any]:
         if not results:
             return {
-                "is_relevant": False,
-                "relevant_ids": [],
-                "filtered_count": 0,
-                "score_range": None,
-                "titles": [],
+                "relevant": False,
+                "search_direction": "無任何結果，請嘗試搜尋更通用的關鍵字",
                 "decision": "無搜尋結果",
             }
 
-        filtered_results = []
-        for doc in results:
-            score = doc.get("_rankingScore")
-            if score is not None and score >= SCORE_PASS_THRESHOLD:
-                filtered_results.append(doc)
-
-        if len(filtered_results) < 1:
-            sorted_results = sorted(
-                results,
-                key=lambda x: x.get("_rerank_score", x.get("_rankingScore", 0)),
-                reverse=True,
-            )
-            filtered_results = [
-                r
-                for r in sorted_results[:FALLBACK_RESULT_COUNT]
-                if r.get("_rankingScore", 0) >= get_score_min_threshold()
-            ]
-
-        if not filtered_results:
-            return {
-                "is_relevant": False,
-                "relevant_ids": [],
-                "filtered_count": 0,
-                "score_range": None,
-                "titles": [],
-                "decision": "結果分數未達門檻，需重新搜尋",
-            }
-
         context_preview = ""
-        for doc in filtered_results[:5]:
+        for doc in results[:5]:
             context_preview += f"ID: {doc.get('id')}\nTitle: {doc.get('title')}\nContent: {str(doc.get('content'))[:200]}...\n\n"
 
-        prompt = CHECK_RELEVANCE_PROMPT.format(query=query, documents=context_preview)
-
-        valid_ids = {doc.get("id") for doc in filtered_results if doc.get("id")}
+        prompt = CHECK_RETRY_SEARCH_PROMPT.format(
+            query=query, documents=context_preview
+        )
 
         llm_response = self.llm_client.call_with_schema(
             messages=[{"role": "user", "content": prompt}],
-            response_model=RelevanceCheckResult,
+            response_model=RetrySearchDecision,
             temperature=0.0,
         )
 
-        scores = [r.get("_rankingScore", 0) for r in filtered_results]
-        score_range = (min(scores), max(scores)) if scores else None
-        titles = [r.get("title", "") for r in filtered_results]
-
         if llm_response.get("status") == "success":
             validated_result = llm_response.get("result")
-            validated_ids = [
-                doc_id
-                for doc_id in validated_result.relevant_ids
-                if doc_id in valid_ids
-            ]
-
             return {
-                "is_relevant": validated_result.relevant,
-                "relevant_ids": validated_ids,
-                "filtered_count": len(filtered_results),
-                "score_range": score_range,
-                "titles": titles,
+                "relevant": validated_result.relevant,
+                "search_direction": validated_result.search_direction,
                 "decision": validated_result.decision,
             }
         else:
-            print_red(f"Relevance check failed: {llm_response.get('error')}")
+            print_red(f"Retry check failed: {llm_response.get('error')}")
             return {
-                "is_relevant": True,
-                "relevant_ids": list(valid_ids),
-                "filtered_count": len(filtered_results),
-                "score_range": score_range,
-                "titles": titles,
-                "decision": "相關性檢查失敗，採用全部結果",
+                "relevant": True,
+                "search_direction": "",
+                "decision": "評估失敗，採用現有內容",
             }
 
     def run(
@@ -113,7 +60,11 @@ class SrhSumAgent:
         manual_semantic_ratio: bool = False,
         enable_keyword_weight_rerank: bool = True,
     ):
-        from src.config import SCORE_PASS_THRESHOLD, get_score_min_threshold
+        from src.config import (
+            SCORE_PASS_THRESHOLD,
+            get_score_min_threshold,
+            FALLBACK_RESULT_COUNT,
+        )
 
         score_min = get_score_min_threshold()
         threshold_info = f"，Pass: {SCORE_PASS_THRESHOLD:.2f}, Min: {score_min:.2f}"
@@ -146,7 +97,6 @@ class SrhSumAgent:
 
         final_intent = search_response.get("intent", {})
 
-        # Yield detailed search results
         yield {
             "status": "success",
             "stage": "search_result",
@@ -166,31 +116,45 @@ class SrhSumAgent:
         yield {
             "status": "success",
             "stage": "checking",
-            "message": "正在檢查初始搜尋結果的關聯性...",
+            "message": "正在評估初始搜尋結果的品質...",
         }
+        search_direction = ""
         if collected_results:
-            relevance_result = self._check_relevance(
-                query, list(collected_results.values())
-            )
+            results_list = list(collected_results.values())
 
-            if relevance_result["filtered_count"] > 0:
-                score_range = relevance_result["score_range"]
-                score_str = (
-                    f"{score_range[0]:.2f}-{score_range[1]:.2f}"
-                    if score_range
-                    else "N/A"
+            filtered = [
+                r
+                for r in results_list
+                if r.get("_rankingScore", 0) >= SCORE_PASS_THRESHOLD
+            ]
+            if not filtered:
+                sorted_all = sorted(
+                    results_list,
+                    key=lambda x: x.get("_rerank_score", x.get("_rankingScore", 0)),
+                    reverse=True,
                 )
+                filtered = [
+                    r
+                    for r in sorted_all[:FALLBACK_RESULT_COUNT]
+                    if r.get("_rankingScore", 0) >= score_min
+                ]
+
+            if filtered:
+                scores = [r.get("_rankingScore", 0) for r in filtered]
+                score_range_str = f"{min(scores):.2f}-{max(scores):.2f}"
                 titles_str = "\n".join(
-                    [f"  - {title}" for title in relevance_result["titles"][:3]]
+                    [f"  - {r.get('title', 'Unknown')}" for r in filtered[:3]]
                 )
-
                 yield {
                     "status": "success",
                     "stage": "filtered",
-                    "message": f"找到 {relevance_result['filtered_count']} 筆相關資料（分數：{score_str}{threshold_info}）\n{titles_str}",
+                    "message": f"找到 {len(filtered)} 筆相關資料（分數：{score_range_str}{threshold_info}）\n{titles_str}",
                 }
 
-            if relevance_result["is_relevant"]:
+            relevance_result = self._check_retry_search(query, results_list)
+            search_direction = relevance_result.get("search_direction", "")
+
+            if relevance_result["relevant"]:
                 yield {
                     "status": "success",
                     "stage": "summarizing",
@@ -201,22 +165,31 @@ class SrhSumAgent:
                     key=lambda x: x.get("_rerank_score", x.get("_rankingScore", 0)),
                     reverse=True,
                 )[:limit]
-                summary = self.tool.summarize(query, final_results)
-                yield {
-                    "status": "success",
-                    "stage": "complete",
-                    "summary": summary,
-                    "results": final_results,
-                    "intent": final_intent,
-                }
+                summary_response = self.tool.summarize(query, final_results)
+                if summary_response.get("status") == "success":
+                    yield {
+                        "status": "success",
+                        "stage": "complete",
+                        "summary": summary_response.get("summary"),
+                        "link_mapping": summary_response.get("link_mapping"),
+                        "results": final_results,
+                        "intent": final_intent,
+                    }
+                else:
+                    yield {
+                        "status": "failed",
+                        "stage": "summarizing",
+                        "error": summary_response.get("error"),
+                    }
                 return
             else:
-                decision_msg = relevance_result.get("decision", "初始結果關聯度不足")
+                decision_msg = relevance_result.get("decision", "初始結果品質不足")
                 yield {
                     "status": "success",
                     "stage": "rewriting",
-                    "message": f"{decision_msg}，AI 正在嘗試重寫查詢語句...",
+                    "message": f"{decision_msg}，AI 正在嘗試根據優化方向重寫查詢...",
                     "original_query": query,
+                    "direction": search_direction,
                 }
         else:
             yield {
@@ -242,9 +215,9 @@ class SrhSumAgent:
                 enable_keyword_weight_rerank=enable_keyword_weight_rerank,
                 exclude_ids=list(all_seen_ids),
                 history=query_history,
+                direction=search_direction,
             )
 
-            # Yield detailed retry search results
             yield {
                 "status": "success",
                 "stage": "search_result",
@@ -296,37 +269,50 @@ class SrhSumAgent:
             yield {
                 "status": "success",
                 "stage": "checking",
-                "message": "正在評估重新搜尋結果的關聯性...",
+                "message": "正在評估重新搜尋結果的品質...",
             }
-            if not collected_results:
+            if collected_results:
+                results_list = list(collected_results.values())
+
+                filtered = [
+                    r
+                    for r in results_list
+                    if r.get("_rankingScore", 0) >= SCORE_PASS_THRESHOLD
+                ]
+                if not filtered:
+                    sorted_all = sorted(
+                        results_list,
+                        key=lambda x: x.get("_rerank_score", x.get("_rankingScore", 0)),
+                        reverse=True,
+                    )
+                    filtered = [
+                        r
+                        for r in sorted_all[:FALLBACK_RESULT_COUNT]
+                        if r.get("_rankingScore", 0) >= score_min
+                    ]
+
+                if filtered:
+                    scores = [r.get("_rankingScore", 0) for r in filtered]
+                    score_range_str = f"{min(scores):.2f}-{max(scores):.2f}"
+                    titles_str = "\n".join(
+                        [f"  - {r.get('title', 'Unknown')}" for r in filtered[:3]]
+                    )
+                    yield {
+                        "status": "success",
+                        "stage": "filtered",
+                        "message": f"找到 {len(filtered)} 筆相關資料（分數：{score_range_str}{threshold_info}）\n{titles_str}",
+                    }
+
+                relevance_result = self._check_retry_search(query, results_list)
+            else:
                 relevance_result = {
-                    "is_relevant": False,
-                    "filtered_count": 0,
+                    "relevant": False,
+                    "search_direction": "嘗試擴大範圍",
                     "decision": "無搜尋結果",
                 }
-            else:
-                relevance_result = self._check_relevance(
-                    query, list(collected_results.values())
-                )
+            search_direction = relevance_result.get("search_direction", "")
 
-            if relevance_result["filtered_count"] > 0:
-                score_range = relevance_result["score_range"]
-                score_str = (
-                    f"{score_range[0]:.2f}-{score_range[1]:.2f}"
-                    if score_range
-                    else "N/A"
-                )
-                titles_str = "\n".join(
-                    [f"  - {title}" for title in relevance_result["titles"][:3]]
-                )
-
-                yield {
-                    "status": "success",
-                    "stage": "filtered",
-                    "message": f"找到 {relevance_result['filtered_count']} 筆相關資料（分數：{score_str}{threshold_info}）\n{titles_str}",
-                }
-
-            if relevance_result["is_relevant"]:
+            if relevance_result["relevant"]:
                 decision_msg = relevance_result.get("decision", "找到相關資訊")
                 yield {
                     "status": "success",
@@ -338,21 +324,29 @@ class SrhSumAgent:
                     key=lambda x: x.get("_rerank_score", x.get("_rankingScore", 0)),
                     reverse=True,
                 )[:limit]
-                summary = self.tool.summarize(query, final_results)
-                yield {
-                    "status": "success",
-                    "stage": "complete",
-                    "summary": summary,
-                    "results": final_results,
-                    "intent": final_intent,
-                }
+                summary_response = self.tool.summarize(query, final_results)
+                if summary_response.get("status") == "success":
+                    yield {
+                        "status": "success",
+                        "stage": "complete",
+                        "summary": summary_response.get("summary"),
+                        "link_mapping": summary_response.get("link_mapping"),
+                        "results": final_results,
+                        "intent": final_intent,
+                    }
+                else:
+                    yield {
+                        "status": "failed",
+                        "stage": "summarizing",
+                        "error": summary_response.get("error"),
+                    }
                 return
             retry_count += 1
             if retry_count < self.max_retries:
                 yield {
                     "status": "success",
                     "stage": "rewriting",
-                    "message": "結果仍未達標，正在進行最後一次嘗試...",
+                    "message": f"結果品質仍可優化，正在進行最後一次嘗試（方向：{search_direction}）...",
                 }
 
         final_results = sorted(
@@ -361,18 +355,31 @@ class SrhSumAgent:
             reverse=True,
         )[:limit]
         if final_results:
-            summary = self.tool.summarize(query, final_results)
-            yield {
-                "status": "success",
-                "stage": "complete",
-                "summary": summary,
-                "results": final_results,
-                "intent": final_intent,
-            }
+            summary_response = self.tool.summarize(query, final_results)
+            if summary_response.get("status") == "success":
+                yield {
+                    "status": "success",
+                    "stage": "complete",
+                    "summary": summary_response.get("summary"),
+                    "link_mapping": summary_response.get("link_mapping"),
+                    "results": final_results,
+                    "intent": final_intent,
+                }
+            else:
+                yield {
+                    "status": "failed",
+                    "stage": "summarizing",
+                    "error": summary_response.get("error"),
+                }
         else:
             yield {
                 "status": "success",
                 "stage": "complete",
-                "summary": "抱歉，經由多次搜尋仍未找到足夠相關的資訊以生成摘要。",
+                "summary": {
+                    "brief_answer": "沒有參考資料",
+                    "detailed_answer": "",
+                    "general_summary": "",
+                },
+                "link_mapping": {},
                 "results": [],
             }

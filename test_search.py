@@ -50,10 +50,24 @@ def test_api_search(query: str):
                     try:
                         step = json.loads(decoded_line)
 
+                        # Create a display copy to hide large content content
+                        display_step = step.copy()
+                        if "results" in display_step and isinstance(display_step["results"], list):
+                            clean_results = []
+                            for item in display_step["results"]:
+                                if isinstance(item, dict):
+                                    clean_item = item.copy()
+                                    clean_item.pop("content", None)
+                                    clean_item.pop("cleaned_content", None)
+                                    clean_results.append(clean_item)
+                                else:
+                                    clean_results.append(item)
+                            display_step["results"] = clean_results
+
                         print("\n" + "─" * 80)
                         print(
                             json.dumps(
-                                step, indent=2, ensure_ascii=False, sort_keys=True
+                                display_step, indent=2, ensure_ascii=False, sort_keys=True
                             )
                         )
                         print("─" * 80)

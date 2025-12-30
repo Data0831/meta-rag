@@ -120,6 +120,104 @@ function setupEventListeners() {
 }
 
 /**
+ * Convert citation markers [1], [2] etc. to hyperlinks
+ */
+function convertCitationsToLinks(text, linkMapping) {
+    if (!text || !linkMapping) return text;
+
+    return text.replace(/\[(\d+)\]/g, (match, num) => {
+        const link = linkMapping[num];
+        if (link) {
+            return `<a href="${link}" target="_blank" class="citation-link" style="color: #3b82f6; text-decoration: none; font-weight: 600; vertical-align: super; font-size: 0.85em;">${match}</a>`;
+        }
+        return match;
+    });
+}
+
+/**
+ * Render structured summary with three parts
+ */
+function renderStructuredSummary(summary, linkMapping) {
+    if (typeof summary === 'string') {
+        return marked.parse(summary);
+    }
+
+    const { brief_answer, detailed_answer, general_summary } = summary;
+
+    const isNoResults = brief_answer === '沒有參考資料' || brief_answer === '從內容 search 不到';
+
+    let html = '';
+
+    // Part 1: Brief Answer (置顶，突出显示)
+    if (brief_answer) {
+        const icon = isNoResults ? 'warning' : 'check_circle';
+        const iconColor = isNoResults ? 'text-amber-500' : 'text-green-500';
+        const bgColor = isNoResults ? 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800' : 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800';
+
+        html += `
+            <div class="mb-6 p-4 rounded-lg border ${bgColor}">
+                <div class="flex items-center gap-2">
+                    <span class="material-icons-round ${iconColor}">${icon}</span>
+                    <span class="text-lg font-bold text-slate-800 dark:text-slate-100">${brief_answer}</span>
+                </div>
+            </div>
+        `;
+    }
+
+    // Part 2: Detailed Answer
+    if (detailed_answer && detailed_answer.trim()) {
+        const detailedParsed = marked.parse(detailed_answer);
+        const detailedWithLinks = convertCitationsToLinks(detailedParsed, linkMapping);
+
+        html += `
+            <div class="mb-6">
+                <h4 class="font-bold text-slate-700 dark:text-slate-300 mb-2">詳細說明</h4>
+                <div class="text-slate-600 dark:text-slate-300 leading-relaxed prose prose-sm dark:prose-invert max-w-none">
+                    ${detailedWithLinks}
+                </div>
+            </div>
+        `;
+    } else if (detailed_answer === '') {
+        html += `
+            <div class="mb-6">
+                <h4 class="font-bold text-slate-700 dark:text-slate-300 mb-2">詳細說明</h4>
+                <p class="text-slate-400 dark:text-slate-500 text-sm italic">無詳細內容</p>
+            </div>
+        `;
+    }
+
+    // Part 3: General Summary
+    if (general_summary && general_summary.trim()) {
+        const summaryParsed = marked.parse(general_summary);
+
+        html += `
+            <div class="mb-4">
+                <h4 class="font-bold text-slate-700 dark:text-slate-300 mb-2">內容總結</h4>
+                <div class="text-slate-600 dark:text-slate-300 leading-relaxed prose prose-sm dark:prose-invert max-w-none">
+                    ${summaryParsed}
+                </div>
+            </div>
+        `;
+
+        // Add list styling
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = html;
+        const ul = tempDiv.querySelector('ul');
+        if (ul) ul.classList.add('list-disc', 'pl-5', 'space-y-1');
+        html = tempDiv.innerHTML;
+    } else if (general_summary === '') {
+        html += `
+            <div class="mb-4">
+                <h4 class="font-bold text-slate-700 dark:text-slate-300 mb-2">內容總結</h4>
+                <p class="text-slate-400 dark:text-slate-500 text-sm italic">無總結內容</p>
+            </div>
+        `;
+    }
+
+    return html;
+}
+
+/**
  * Perform search operation with streaming handling
  */
 async function performSearch() {
@@ -219,12 +317,10 @@ async function performSearch() {
 
                          // Update Title
                          summaryTitle.innerHTML = `以下為「<span class="text-primary">${query}</span>」的相關公告總結：`;
-                         
-                         // Render Summary
+
+                         // Render Structured Summary
                          if (data.summary) {
-                            summaryContent.innerHTML = marked.parse(data.summary);
-                            const ul = summaryContent.querySelector('ul');
-                            if (ul) ul.classList.add('list-disc', 'pl-5', 'space-y-1');
+                            summaryContent.innerHTML = renderStructuredSummary(data.summary, data.link_mapping || {});
                          } else {
                             summaryContent.innerHTML = "<p>無相關總結。</p>";
                          }

@@ -69,7 +69,7 @@ class SearchService:
             return msg
 
     def parse_intent(
-        self, user_query: str, history: List[str] = None
+        self, user_query: str, history: List[str] = None, direction: str = ""
     ) -> Dict[str, Any]:
         try:
             previous_queries_str = str(history) if history else "None"
@@ -77,6 +77,7 @@ class SearchService:
             system_prompt = SEARCH_INTENT_PROMPT.format(
                 current_date=datetime.now().strftime("%Y-%m-%d"),
                 previous_queries=previous_queries_str,
+                direction=direction or "",
             )
             messages = [
                 {"role": "system", "content": system_prompt},
@@ -131,6 +132,7 @@ class SearchService:
         fall_back: bool = False,
         exclude_ids: List[str] = None,
         history: List[str] = None,
+        direction: str = None,
     ) -> Dict[str, Any]:
 
         # --- Stage 1: Check Meilisearch Connection ---
@@ -158,7 +160,9 @@ class SearchService:
             traces = []  # Log search steps
 
             if enable_llm:
-                intent_result = self.parse_intent(user_query, history=history)
+                intent_result = self.parse_intent(
+                    user_query, history=history, direction=direction
+                )
                 if intent_result.get("status") == "failed":
                     llm_error = intent_result.get("error")
                     print_red(f"LLM Intent parsing failed: {llm_error}")

@@ -53,7 +53,7 @@ def load_processed_data() -> List[AnnouncementDoc]:
             docs.append(AnnouncementDoc(**item))
         except Exception as e:
             print(f"Error parsing document at index {i}: {e}")
-            print(f"Item: {item}")  # Debug output for troubleshooting
+            # print(f"Item: {item}")  # Debug output for troubleshooting
     return docs
 
 

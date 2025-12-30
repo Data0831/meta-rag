@@ -43,3 +43,16 @@
 ### 2025-12-30 Agent 排序與測試顯示優化 (Sorting & Display Optimization)
 - **排序邏輯一致化**：修正 `SrhSumAgent.run` 中的排序 key，優先使用 `_rerank_score` (關鍵字加權分數) 並以 `_rankingScore` 為 fallback。確保 Agent 最終選擇的摘要參考文件與搜尋引擎的加權邏輯完全一致。
 - **測試工具詳細化**：恢復 `test_search.py` 的詳細文件顯示格式，並優化分數呈現：優先顯示 `Rerank Score` 隨後顯示 `Ranking Score`。保留 `main_title`、`link` 等關鍵欄位，便於開發者精準評估檢索品質與 Agent 決策依據。
+
+### 2025-12-30 搜尋方向引導與重試 Refactor (Search Direction & Retry Refactoring)
+- **結構重命名與職責優化**：將 `_check_relevance` 重構為 `_check_retry_search`，不再負責物理過濾文檔 ID，而是專注於評估現有內容對查詢的覆蓋品質。同步重命名 `RelevanceCheckResult` Schema 為 `RetrySearchDecision`。
+- **搜尋方向引導 (Search Direction)**：在 `SearchIntent` 與搜尋流程中新增 `direction` 參數。當 Agent 判定現有結果不足時，LLM 會產出明確的「搜尋方向」（例如：著重特定產品或具體技術細節），並作為下次搜尋重寫的強制指引 (`SEARCH_INTENT_PROMPT` 新增 direction 約束）。
+- **重試流程強健化**：優化 `SrhSumAgent` 循環邏輯，確保在所有搜尋路徑（初次搜尋成功、判定後重試、判定失敗回退）中皆能正確傳遞搜尋方向。即使達到最大重試次數，系統仍會根據已收集到的最佳資訊進行總結，取代原本的直接報錯，提升系統可用性。
+- **Prompt 大修與同步**：將 `check_relevance.py` 遷徙至 `check_retry_search.py` 並更新 Prompt，使其專注於判斷內容足夠性與生成重試建議（而非過濾 ID），實現更精細的代理式決策。
+
+### 2025-12-30 Schema 增強與驗證規範 (Schema Enhancement & Validation)
+- **AnnouncementDoc 欄位擴充**：於 `src/schema/schemas.py` 為 `AnnouncementDoc` 新增 `website: str` 欄位。
+- **嚴格驗證實作**：利用 Pydantic 的 `Field(..., min_length=1)` 強制執行「非空字串」檢查，確保入庫資料具備明確的來源標記。
+
+### 2025-12-30 結構化摘要與前端適配 (Structured Summary & Frontend Adaptation)
+實作三段式結構化摘要系統。新增 `StructuredSummary` Schema 包含 `brief_answer`（簡答20字）、`detailed_answer`（詳答含引用）、`general_summary`（內容總結500字）。重構 `tool.py` 的 `summarize` 函數返回結構化物件與 `link_mapping`（index→超連結映射）。更新 `summary.py` Prompt 使用 XML 標籤包覆 context，要求 LLM 生成三部分內容並使用 `[index]` 標註引用。修改 `srhSumAgent.py` 三處調用點以適配新返回格式。前端 `search.js` 新增 `renderStructuredSummary` 與 `convertCitationsToLinks` 函數，實現簡答置頂（特殊情況顯示警告色）、詳答與總結分段展示、引用標記轉換為藍色上標超連結（新標籤頁打開），並修正處理順序（先 Markdown 渲染再轉連結）以確保連結可點擊。

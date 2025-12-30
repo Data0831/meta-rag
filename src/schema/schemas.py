@@ -23,6 +23,7 @@ class AnnouncementDoc(BaseModel):
     cleaned_content: str = Field(
         ..., description="Cleaned content for search and embedding"
     )
+    website: str = Field(..., min_length=1, description="Website source description")
 
     class Config:
         populate_by_name = True
@@ -62,18 +63,41 @@ class SearchIntent(BaseModel):
         default_factory=list,
         description="List of 3-5 sub-queries (natural language) to broaden the search scope. Each should focus on a different aspect (e.g. specific product, specific issue type, broad intent).",
     )
+    direction: str = Field(
+        default="",
+        description="Search direction or focus provided by previous search attempts to guide the next search.",
+    )
 
 
-class RelevanceCheckResult(BaseModel):
-    """Result from relevance check validation"""
+class RetrySearchDecision(BaseModel):
+    """Result from search evaluation to decide if retry is needed"""
 
     relevant: bool = Field(
-        ..., description="Whether at least one document is relevant to the query"
+        ...,
+        description="Whether the current documents are enough to answer the user's query clearly.",
     )
-    relevant_ids: List[str] = Field(
-        default_factory=list, description="List of document IDs that are relevant"
+    search_direction: str = Field(
+        default="",
+        description="If relevant=False, provide a specific direction or focus for the next search attempt (in Chinese).",
     )
     decision: str = Field(
         default="",
-        description="Decision explanation in Chinese (10-20 characters). If relevant=True, explain why results are relevant. If relevant=False, explain why results are not relevant and need re-querying.",
+        description="Decision explanation in Chinese (10-20 characters).",
+    )
+
+
+class StructuredSummary(BaseModel):
+    """Structured summary response with three parts"""
+
+    brief_answer: str = Field(
+        ...,
+        description="Brief answer to the query (max 20 characters). Return '沒有參考資料' if no results, or '從內容 search 不到' if results exist but are irrelevant.",
+    )
+    detailed_answer: str = Field(
+        default="",
+        description="Detailed answer with citations using [index]. Empty if no results. If results are irrelevant, explain what the content is about and why it doesn't answer the question.",
+    )
+    general_summary: str = Field(
+        default="",
+        description="General summary of all search results (max 500 characters), independent of the query. Empty if no results.",
     )
