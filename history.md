@@ -40,3 +40,6 @@
 
 ### 2025-12-30 相關性篩選與反饋優化 (Relevance Filtering & Feedback Enhancement)
 重構 `_check_relevance` 方法實作智慧分數篩選邏輯：優先選擇 `score >= SCORE_PASS_THRESHOLD` 的高分資料，若不足 1 筆則取最高分的 `FALLBACK_RESULT_COUNT` 筆（須 >= `SCORE_MIN_THRESHOLD = max(0, SCORE_PASS_THRESHOLD - 0.2)`），對篩選結果再用 LLM 做二次驗證。新增 `filtered` 階段 yield 事件，即時顯示篩選資料數量、分數範圍與前三筆標題。移除冗餘的「參考歷史紀錄」訊息。在 `config.py` 新增 `SCORE_MIN_THRESHOLD` 與 `FALLBACK_RESULT_COUNT` 配置，提升篩選邏輯的可維護性與透明度。
+### 2025-12-30 Agent 排序與測試顯示優化 (Sorting & Display Optimization)
+- **排序邏輯一致化**：修正 `SrhSumAgent.run` 中的排序 key，優先使用 `_rerank_score` (關鍵字加權分數) 並以 `_rankingScore` 為 fallback。確保 Agent 最終選擇的摘要參考文件與搜尋引擎的加權邏輯完全一致。
+- **測試工具詳細化**：恢復 `test_search.py` 的詳細文件顯示格式，並優化分數呈現：優先顯示 `Rerank Score` 隨後顯示 `Ranking Score`。保留 `main_title`、`link` 等關鍵欄位，便於開發者精準評估檢索品質與 Agent 決策依據。

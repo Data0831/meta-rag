@@ -13,6 +13,9 @@ Instructions:
 3. Return a JSON object with:
    - "relevant": boolean (true if at least one document is useful)
    - "relevant_ids": list of strings (IDs of the relevant documents)
+   - "decision": string (Chinese, 10-20 characters)
+     - If relevant=true: explain why the results are highly relevant (e.g., "搜尋結果高度相關")
+     - If relevant=false: explain why the results are not relevant (e.g., "文件主題與查詢不符，需重新搜尋")
 
 Output JSON only.
 """

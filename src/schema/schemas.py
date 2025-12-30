@@ -62,3 +62,18 @@ class SearchIntent(BaseModel):
         default_factory=list,
         description="List of 3-5 sub-queries (natural language) to broaden the search scope. Each should focus on a different aspect (e.g. specific product, specific issue type, broad intent).",
     )
+
+
+class RelevanceCheckResult(BaseModel):
+    """Result from relevance check validation"""
+
+    relevant: bool = Field(
+        ..., description="Whether at least one document is relevant to the query"
+    )
+    relevant_ids: List[str] = Field(
+        default_factory=list, description="List of document IDs that are relevant"
+    )
+    decision: str = Field(
+        default="",
+        description="Decision explanation in Chinese (10-20 characters). If relevant=True, explain why results are relevant. If relevant=False, explain why results are not relevant and need re-querying.",
+    )

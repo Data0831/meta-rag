@@ -5,6 +5,7 @@ from src.agents.tool import SearchTool
 from src.llm.client import LLMClient
 from src.tool.ANSI import print_red
 from src.llm.prompts.check_relevance import CHECK_RELEVANCE_PROMPT
+from src.schema.schemas import RelevanceCheckResult
 
 
 class SrhSumAgent:
@@ -16,7 +17,7 @@ class SrhSumAgent:
     def _check_relevance(self, query: str, results: List[Dict]) -> Dict[str, Any]:
         from src.config import (
             SCORE_PASS_THRESHOLD,
-            SCORE_MIN_THRESHOLD,
+            get_score_min_threshold,
             FALLBACK_RESULT_COUNT,
         )
 
@@ -27,6 +28,7 @@ class SrhSumAgent:
                 "filtered_count": 0,
                 "score_range": None,
                 "titles": [],
+                "decision": "無搜尋結果",
             }
 
         filtered_results = []
@@ -37,14 +39,14 @@ class SrhSumAgent:
 
         if len(filtered_results) < 1:
             sorted_results = sorted(
-                [r for r in results if r.get("_rankingScore") is not None],
-                key=lambda x: x.get("_rankingScore", 0),
+                results,
+                key=lambda x: x.get("_rerank_score", x.get("_rankingScore", 0)),
                 reverse=True,
             )
             filtered_results = [
                 r
                 for r in sorted_results[:FALLBACK_RESULT_COUNT]
-                if r.get("_rankingScore", 0) >= SCORE_MIN_THRESHOLD
+                if r.get("_rankingScore", 0) >= get_score_min_threshold()
             ]
 
         if not filtered_results:
@@ -54,6 +56,7 @@ class SrhSumAgent:
                 "filtered_count": 0,
                 "score_range": None,
                 "titles": [],
+                "decision": "結果分數未達門檻，需重新搜尋",
             }
 
         context_preview = ""
@@ -61,36 +64,44 @@ class SrhSumAgent:
             context_preview += f"ID: {doc.get('id')}\nTitle: {doc.get('title')}\nContent: {str(doc.get('content'))[:200]}...\n\n"
 
         prompt = CHECK_RELEVANCE_PROMPT.format(query=query, documents=context_preview)
-        try:
-            response = self.llm_client.call_gemini(
-                messages=[{"role": "user", "content": prompt}], temperature=0.0
-            )
-            cleaned = response.strip().replace("```json", "").replace("```", "")
-            data = json.loads(cleaned)
 
-            scores = [r.get("_rankingScore", 0) for r in filtered_results]
-            score_range = (min(scores), max(scores)) if scores else None
-            titles = [r.get("title", "") for r in filtered_results]
+        valid_ids = {doc.get("id") for doc in filtered_results if doc.get("id")}
+
+        llm_response = self.llm_client.call_with_schema(
+            messages=[{"role": "user", "content": prompt}],
+            response_model=RelevanceCheckResult,
+            temperature=0.0,
+        )
+
+        scores = [r.get("_rankingScore", 0) for r in filtered_results]
+        score_range = (min(scores), max(scores)) if scores else None
+        titles = [r.get("title", "") for r in filtered_results]
+
+        if llm_response.get("status") == "success":
+            validated_result = llm_response.get("result")
+            validated_ids = [
+                doc_id
+                for doc_id in validated_result.relevant_ids
+                if doc_id in valid_ids
+            ]
 
             return {
-                "is_relevant": data.get("relevant", False),
-                "relevant_ids": data.get("relevant_ids", []),
+                "is_relevant": validated_result.relevant,
+                "relevant_ids": validated_ids,
                 "filtered_count": len(filtered_results),
                 "score_range": score_range,
                 "titles": titles,
+                "decision": validated_result.decision,
             }
-        except Exception as e:
-            print_red(f"Relevance check failed: {e}")
-            scores = [r.get("_rankingScore", 0) for r in filtered_results]
-            score_range = (min(scores), max(scores)) if scores else None
-            titles = [r.get("title", "") for r in filtered_results]
-
+        else:
+            print_red(f"Relevance check failed: {llm_response.get('error')}")
             return {
                 "is_relevant": True,
-                "relevant_ids": [r.get("id") for r in filtered_results],
+                "relevant_ids": list(valid_ids),
                 "filtered_count": len(filtered_results),
                 "score_range": score_range,
                 "titles": titles,
+                "decision": "相關性檢查失敗，採用全部結果",
             }
 
     def run(
@@ -102,7 +113,10 @@ class SrhSumAgent:
         manual_semantic_ratio: bool = False,
         enable_keyword_weight_rerank: bool = True,
     ):
-        from src.config import SCORE_PASS_THRESHOLD
+        from src.config import SCORE_PASS_THRESHOLD, get_score_min_threshold
+
+        score_min = get_score_min_threshold()
+        threshold_info = f"，Pass: {SCORE_PASS_THRESHOLD:.2f}, Min: {score_min:.2f}"
 
         collected_results = {}
         all_seen_ids = set()
@@ -173,18 +187,18 @@ class SrhSumAgent:
                 yield {
                     "status": "success",
                     "stage": "filtered",
-                    "message": f"找到 {relevance_result['filtered_count']} 筆相關資料（分數：{score_str}）\n{titles_str}",
+                    "message": f"找到 {relevance_result['filtered_count']} 筆相關資料（分數：{score_str}{threshold_info}）\n{titles_str}",
                 }
 
             if relevance_result["is_relevant"]:
                 yield {
                     "status": "success",
                     "stage": "summarizing",
-                    "message": "搜尋結果高度相關，正在為您生成公告總結...",
+                    "message": f"{relevance_result.get('decision', '搜尋結果高度相關')}，正在為您生成公告總結...",
                 }
                 final_results = sorted(
                     list(collected_results.values()),
-                    key=lambda x: x.get("_rankingScore", 0),
+                    key=lambda x: x.get("_rerank_score", x.get("_rankingScore", 0)),
                     reverse=True,
                 )[:limit]
                 summary = self.tool.summarize(query, final_results)
@@ -196,19 +210,27 @@ class SrhSumAgent:
                     "intent": final_intent,
                 }
                 return
+            else:
+                decision_msg = relevance_result.get("decision", "初始結果關聯度不足")
+                yield {
+                    "status": "success",
+                    "stage": "rewriting",
+                    "message": f"{decision_msg}，AI 正在嘗試重寫查詢語句...",
+                    "original_query": query,
+                }
         else:
             yield {
                 "status": "success",
                 "stage": "checking",
-                "message": "初始結果未達關聯度門檻...",
+                "message": f"初始結果未達關聯度門檻（{threshold_info.strip('， ')}）...",
             }
 
-        yield {
-            "status": "success",
-            "stage": "rewriting",
-            "message": "初始結果關聯度不足，AI 正在嘗試重寫查詢語句...",
-            "original_query": query,
-        }
+            yield {
+                "status": "success",
+                "stage": "rewriting",
+                "message": "無符合條件的搜尋結果，AI 正在嘗試重寫查詢語句...",
+                "original_query": query,
+            }
         retry_count = 0
         while retry_count < self.max_retries:
             search_response = self.tool.search(
@@ -277,7 +299,11 @@ class SrhSumAgent:
                 "message": "正在評估重新搜尋結果的關聯性...",
             }
             if not collected_results:
-                relevance_result = {"is_relevant": False, "filtered_count": 0}
+                relevance_result = {
+                    "is_relevant": False,
+                    "filtered_count": 0,
+                    "decision": "無搜尋結果",
+                }
             else:
                 relevance_result = self._check_relevance(
                     query, list(collected_results.values())
@@ -297,18 +323,19 @@ class SrhSumAgent:
                 yield {
                     "status": "success",
                     "stage": "filtered",
-                    "message": f"找到 {relevance_result['filtered_count']} 筆相關資料（分數：{score_str}）\n{titles_str}",
+                    "message": f"找到 {relevance_result['filtered_count']} 筆相關資料（分數：{score_str}{threshold_info}）\n{titles_str}",
                 }
 
             if relevance_result["is_relevant"]:
+                decision_msg = relevance_result.get("decision", "找到相關資訊")
                 yield {
                     "status": "success",
                     "stage": "summarizing",
-                    "message": "找到相關資訊，正在為您生成總結內容...",
+                    "message": f"{decision_msg}，正在為您生成總結內容...",
                 }
                 final_results = sorted(
                     list(collected_results.values()),
-                    key=lambda x: x.get("_rankingScore", 0),
+                    key=lambda x: x.get("_rerank_score", x.get("_rankingScore", 0)),
                     reverse=True,
                 )[:limit]
                 summary = self.tool.summarize(query, final_results)
@@ -330,7 +357,7 @@ class SrhSumAgent:
 
         final_results = sorted(
             list(collected_results.values()),
-            key=lambda x: x.get("_rankingScore", 0),
+            key=lambda x: x.get("_rerank_score", x.get("_rankingScore", 0)),
             reverse=True,
         )[:limit]
         if final_results:

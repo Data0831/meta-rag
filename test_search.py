@@ -49,33 +49,16 @@ def test_api_search(query: str):
                     decoded_line = line.decode("utf-8")
                     try:
                         step = json.loads(decoded_line)
-                        stage = step.get("stage", "")
-                        message = step.get("message", "")
 
-                        if message:
-                            print(f"[{stage.upper()}] {message}")
-
-                        if stage == "search_result":
-                            results = step.get("results", [])
-                            intent = step.get("intent", {})
-                            meili_filter = step.get("meili_filter")
-                            print("\n  [INTERMEDIATE SEARCH RESULTS]")
-                            print(f"    Count: {len(results)}")
-                            print(
-                                f"    Intent: {json.dumps(intent, ensure_ascii=False)}"
+                        print("\n" + "─" * 80)
+                        print(
+                            json.dumps(
+                                step, indent=2, ensure_ascii=False, sort_keys=True
                             )
-                            print(f"    Filter: {meili_filter}")
-                            if results:
-                                for idx, r in enumerate(
-                                    results[:3], 1
-                                ):  # Show top 3 only
-                                    print(
-                                        f"      {idx}. {r.get('title', 'No Title')} (Score: {r.get('_rankingScore', 0):.4f})"
-                                    )
-                                if len(results) > 3:
-                                    print(f"      ... and {len(results)-3} more")
-                            print("")
+                        )
+                        print("─" * 80)
 
+                        stage = step.get("stage", "")
                         if stage == "complete":
                             final_summary = step.get("summary", "")
                             final_results = step.get("results", [])
@@ -83,7 +66,7 @@ def test_api_search(query: str):
                     except json.JSONDecodeError:
                         print(f"Received raw line: {decoded_line}")
 
-        # Print Final Results similar to original test script
+        # Print Final Results
         print("\n" + "=" * 80)
         print("[Final Summary]")
         print(final_summary)
@@ -92,25 +75,19 @@ def test_api_search(query: str):
 
         if final_results:
             print("\n" + "=" * 80)
-            print(f"[Search Results] Found {len(final_results)} documents")
+            print(f"[Final Results] Found {len(final_results)} documents")
             for idx, doc in enumerate(final_results, 1):
-                score = doc.get("_rankingScore", 0)
                 rerank_score = doc.get("_rerank_score", 0)
-                # score_pass logic is server-side now, but we can assume logic matches if we care,
-                # or just print what we get.
-                has_keyword = doc.get("has_keyword", "N/A")
+                ranking_score = doc.get("_rankingScore", 0)
 
                 print(f"\n[{idx}] {doc.get('title', 'No Title')}")
-                print(f"\n[main_title] {doc.get('main_title', 'No Title')}")
+                print(f"[main_title] {doc.get('main_title', 'No Title')}")
                 print(f"{'─' * 80}")
-                # Note: score_pass is not explicitly returned in the document dictionary usually unless added by service.
-                # We'll omit calculating it locally to avoid desync, or just check 'score' if needed.
-                print(f"  has_keyword:   {has_keyword}")
-                print(f"  year_month:    {doc.get('year_month', 'N/A')}")
-                print(f"  Ranking Score: {score:.4f}")
                 print(f"  Rerank Score:  {rerank_score:.4f}")
+                print(f"  Ranking Score: {ranking_score:.4f}")
+                print(f"  year_month:    {doc.get('year_month', 'N/A')}")
                 print(f"  Link: {doc.get('link', 'N/A')}")
-                print(f"  heading_Link: {doc.get('heading_link', 'N/A')}")
+                print(f"  heading_link: {doc.get('heading_link', 'N/A')}")
         else:
             print("\n[Search Results] No documents found.")
 
@@ -125,7 +102,9 @@ def test_api_search(query: str):
 
 def main():
     test_queries = [
-        "競爭對手的最新消息",
+        # "競爭對手的最新消息",
+        # "2025年12月的最新消息",
+        "與 gemini 競爭對手相關資料",
     ]
 
     for query in test_queries:
