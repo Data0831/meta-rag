@@ -265,71 +265,81 @@
         </div>
 
         <!-- LLM Warning Banner -->
-        <div id="llmWarningBanner" class="hidden mt-3 mb-2 flex items-center gap-2 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-3">
-          <span class="material-icons-round text-amber-600 dark:text-amber-400 text-lg">warning</span>
-          <p class="text-sm text-amber-800 dark:text-amber-300">LLM 服務暫時無法使用，使用基本搜尋模式</p>
+        <div id="llmWarningBanner" class="llm-warning-banner hidden">
+          <span class="material-icons-round">warning</span>
+          <p>LLM 服務暫時無法使用，使用基本搜尋模式</p>
         </div>
 
         <div id="llmDetails" class="hidden mt-2">
-          <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 p-5 bg-slate-50 dark:bg-slate-700/30 rounded-xl border border-slate-100 dark:border-slate-700 animate-fade-in-up">
-            
-            <!-- Column 1: Query Analysis (Span 5) -->
-            <div class="lg:col-span-5 space-y-4">
-              <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">查詢分析 (Query Analysis)</h4>
-              
+          <div class="intent-details-grid">
+
+            <!-- Left Column: Query Analysis -->
+            <div class="intent-card">
+              <h4 class="intent-section-title">
+                <span class="material-icons-round text-primary">search</span>
+                查詢分析
+              </h4>
+
               <!-- Keywords -->
-              <div>
-                <span class="text-xs text-slate-500 dark:text-slate-400 block mb-1.5 font-medium">關鍵字 (Keywords)</span>
-                <div class="flex flex-wrap gap-2">
-                  <span id="intentKeywordQuery" class="px-2.5 py-1 bg-white dark:bg-slate-600 rounded-md text-sm text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-500 shadow-sm"></span>
+              <div class="intent-field">
+                <label class="intent-label">關鍵字</label>
+                <div class="intent-badge-container">
+                  <span id="intentKeywordQuery" class="intent-badge"></span>
                 </div>
               </div>
 
               <!-- Semantic -->
-              <div>
-                <span class="text-xs text-slate-500 dark:text-slate-400 block mb-1.5 font-medium">語意理解 (Semantic)</span>
-                <div class="flex flex-wrap gap-2">
-                  <span id="intentSemanticQuery" class="px-2.5 py-1 bg-white dark:bg-slate-600 rounded-md text-sm text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-500 shadow-sm"></span>
+              <div class="intent-field">
+                <label class="intent-label">語意理解</label>
+                <div class="intent-badge-container">
+                  <span id="intentSemanticQuery" class="intent-badge"></span>
                 </div>
               </div>
 
               <!-- Sub Queries -->
-              <div id="intentSubQueriesContainer" class="hidden">
-                <span class="text-xs text-slate-500 dark:text-slate-400 block mb-1.5 font-medium">延伸查詢 (Sub-Queries)</span>
-                <div id="intentSubQueries" class="flex flex-wrap gap-2"></div>
+              <div id="intentSubQueriesContainer" class="intent-field hidden">
+                <label class="intent-label">延伸查詢</label>
+                <div id="intentSubQueries" class="intent-badge-container"></div>
               </div>
             </div>
 
-            <!-- Column 2: Weights & Boosts (Span 4) -->
-            <div class="lg:col-span-4 space-y-5 border-t lg:border-t-0 lg:border-l border-slate-200 dark:border-slate-600 pt-4 lg:pt-0 lg:pl-6">
-              <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">權重與加權 (Weights)</h4>
+            <!-- Right Column: Weights & Filters -->
+            <div class="intent-card">
+              <h4 class="intent-section-title">
+                <span class="material-icons-round text-primary">tune</span>
+                權重與過濾
+              </h4>
 
-              <!-- Weight Visualizer -->
-              <div>
-                <span class="text-xs text-slate-500 dark:text-slate-400 block mb-2 font-medium">混合搜尋權重 (Hybrid Ratio)</span>
-                <div class="h-5 w-full bg-slate-200 dark:bg-slate-600 rounded-full overflow-hidden flex text-[10px] font-bold text-white shadow-inner">
-                  <div id="weightSemanticBar" class="bg-primary flex items-center justify-center transition-all duration-500" style="width: 50%">Sem</div>
-                  <div id="weightKeywordBar" class="bg-slate-400 dark:bg-slate-500 flex items-center justify-center transition-all duration-500" style="width: 50%">Key</div>
-                </div>
-                <div class="flex justify-between text-xs text-slate-500 dark:text-slate-400 mt-1.5 font-mono">
-                  <span id="weightSemanticLabel">Semantic: 0.50</span>
-                  <span id="weightKeywordLabel">Keyword: 0.50</span>
+              <!-- Weight Display -->
+              <div class="intent-field">
+                <label class="intent-label">混合搜尋權重</label>
+                <div class="weight-display">
+                  <div class="weight-item">
+                    <span class="weight-icon material-icons-round">psychology</span>
+                    <span class="weight-text">語意：</span>
+                    <span id="weightSemanticLabel" class="weight-value">0.50</span>
+                  </div>
+                  <div class="weight-divider"></div>
+                  <div class="weight-item">
+                    <span class="weight-icon material-icons-round">key</span>
+                    <span class="weight-text">關鍵字：</span>
+                    <span id="weightKeywordLabel" class="weight-value">0.50</span>
+                  </div>
                 </div>
               </div>
 
               <!-- Boosted Keywords -->
-              <div id="intentBoostedContainer" class="hidden">
-                <span class="text-xs text-slate-500 dark:text-slate-400 block mb-1.5 font-medium">關鍵字加重 (Boosted)</span>
-                <div id="intentBoostedKeywords" class="flex flex-wrap gap-2"></div>
+              <div id="intentBoostedContainer" class="intent-field hidden">
+                <label class="intent-label">關鍵字加權</label>
+                <div id="intentBoostedKeywords" class="intent-badge-container"></div>
               </div>
-            </div>
 
-            <!-- Column 3: Filters (Span 3) -->
-            <div class="lg:col-span-3 space-y-4 border-t lg:border-t-0 lg:border-l border-slate-200 dark:border-slate-600 pt-4 lg:pt-0 lg:pl-6">
-              <h4 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">過濾條件 (Filters)</h4>
-              
-              <div id="intentFilters" class="flex flex-wrap gap-2 content-start">
-                <!-- Filters injected here -->
+              <!-- Filters -->
+              <div class="intent-field">
+                <label class="intent-label">過濾條件</label>
+                <div id="intentFilters" class="intent-badge-container">
+                  <!-- Filters injected here -->
+                </div>
               </div>
             </div>
 

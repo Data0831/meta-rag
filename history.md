@@ -33,3 +33,7 @@
 
 ### 2025-12-30 檢索耗時計算優化 (Search Duration Calculation Enhancement)
 修改前端 `search.js` 將 Summary Agent retry 時間納入總檢索耗時。在 `performSearch()` 記錄總開始時間 `totalStartTime`，傳遞給 `generateSearchSummary()`。當 Agent 進入 `searching` 或 `retrying` 狀態時，時間顯示添加模糊效果（`blur(3px)`, `opacity: 0.5`）作為視覺提示。`complete` 狀態時計算總耗時（`performance.now() - totalStartTime`），更新 `searchTimeValue` 並移除模糊效果。所有時間計算在前端執行，涵蓋從用戶點擊搜尋到最終答案呈現的完整時間（包含網路傳輸、初始搜尋、Agent 處理與 retry）。
+
+### 2025-12-30 Agentic Search 邏輯優化 (Accumulated Search & History-Aware Rewrite)
+- **結果合併去重 (Result Accumulation)**：修改 `SrhSumAgent` 的 `generate_summary` 邏輯。在重試搜尋時，不再丟棄舊結果，而是將 `_rankingScore` 高於閥值 (`DEFAULT_SIMILARITY_THRESHOLD`) 的高分結果保留並合併 (Deduplicated by ID)。確保 LLM 在生成摘要時能獲得跨多次搜尋的最佳資訊集合。
+- **具備歷史意識的重寫 (History-Aware Query Rewrite)**：新增 Prompt `retry_query_rewrite.py` 並傳入 `history` (過去使用過的查詢列表)。要求 LLM 在重寫查詢時必須參考歷史紀錄，避免生成重複或相似的關鍵字策略，從而提高重試搜尋的覆蓋率與成功率。

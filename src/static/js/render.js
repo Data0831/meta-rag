@@ -142,7 +142,7 @@ function updateIntentDisplay(data) {
         subQueriesEl.innerHTML = '';
         if (intent.sub_queries && intent.sub_queries.length > 0) {
             const subQueryItems = intent.sub_queries.map(sq =>
-                `<span class="px-2.5 py-1 bg-indigo-50 dark:bg-indigo-900/40 rounded-md text-sm text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-700 shadow-sm">${sq}</span>`
+                `<span class="intent-badge" style="background: linear-gradient(135deg, #818cf8 0%, #6366f1 100%);">${sq}</span>`
             ).join('');
             subQueriesEl.innerHTML = subQueryItems;
             if (subQueriesContainer) subQueriesContainer.classList.remove('hidden');
@@ -151,26 +151,14 @@ function updateIntentDisplay(data) {
         }
     }
 
-    // Update Hybrid Weight Visualizer
-    const weightSemanticBar = document.getElementById('weightSemanticBar');
-    const weightKeywordBar = document.getElementById('weightKeywordBar');
+    // Update Hybrid Weight Display
     const weightSemanticLabel = document.getElementById('weightSemanticLabel');
     const weightKeywordLabel = document.getElementById('weightKeywordLabel');
 
-    if (weightSemanticBar && weightKeywordBar) {
+    if (weightSemanticLabel && weightKeywordLabel) {
         const finalRatio = data.final_semantic_ratio !== undefined ? data.final_semantic_ratio : searchConfig.semanticRatio;
-        const semanticPercent = Math.round(finalRatio * 100);
-        const keywordPercent = 100 - semanticPercent;
-
-        weightSemanticBar.style.width = `${semanticPercent}%`;
-        weightKeywordBar.style.width = `${keywordPercent}%`;
-        
-        // Hide text if bar is too small
-        weightSemanticBar.textContent = semanticPercent > 15 ? 'Sem' : '';
-        weightKeywordBar.textContent = keywordPercent > 15 ? 'Key' : '';
-
-        if (weightSemanticLabel) weightSemanticLabel.textContent = `Semantic: ${finalRatio.toFixed(2)}`;
-        if (weightKeywordLabel) weightKeywordLabel.textContent = `Keyword: ${(1 - finalRatio).toFixed(2)}`;
+        weightSemanticLabel.textContent = finalRatio.toFixed(2);
+        weightKeywordLabel.textContent = (1 - finalRatio).toFixed(2);
     }
 
     // Update Boosted Keywords
@@ -181,7 +169,7 @@ function updateIntentDisplay(data) {
         boostedKeywordsEl.innerHTML = '';
         if (intent.must_have_keywords && intent.must_have_keywords.length > 0) {
             const boostedItems = intent.must_have_keywords.map(kw =>
-                `<span class="px-2.5 py-1 bg-amber-50 dark:bg-amber-900/40 rounded-md text-sm text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-700 shadow-sm font-bold">${kw}</span>`
+                `<span class="intent-badge" style="background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);">${kw}</span>`
             ).join('');
             boostedKeywordsEl.innerHTML = boostedItems;
             if (boostedContainer) boostedContainer.classList.remove('hidden');
@@ -196,7 +184,7 @@ function updateIntentDisplay(data) {
     // 1. Year Month
     if (intent.year_month && intent.year_month.length > 0) {
         const yearMonthItems = intent.year_month.map(ym =>
-            `<span class="px-2 py-0.5 rounded border text-xs bg-blue-50 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-700">${ym}</span>`
+            `<span class="intent-badge" style="background: linear-gradient(135deg, #60a5fa 0%, #3b82f6 100%); font-size: 0.75rem;">${ym}</span>`
         ).join('');
         DOM.intentFilters.innerHTML += yearMonthItems;
     }
@@ -204,7 +192,7 @@ function updateIntentDisplay(data) {
     // 2. Workspaces
     if (intent.workspaces && intent.workspaces.length > 0) {
         const workspaceItems = intent.workspaces.map(ws =>
-            `<span class="px-2 py-0.5 rounded border text-xs bg-green-50 dark:bg-green-900/40 text-green-700 dark:text-green-300 border-green-200 dark:border-green-700">${ws}</span>`
+            `<span class="intent-badge" style="background: linear-gradient(135deg, #34d399 0%, #10b981 100%); font-size: 0.75rem;">${ws}</span>`
         ).join('');
         DOM.intentFilters.innerHTML += workspaceItems;
     }
@@ -212,18 +200,18 @@ function updateIntentDisplay(data) {
     // 3. Links
     if (intent.links && intent.links.length > 0) {
         const linkItems = intent.links.map(link =>
-            `<span class="px-2 py-0.5 rounded border text-xs bg-purple-50 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-700">${link}</span>`
+            `<span class="intent-badge" style="background: linear-gradient(135deg, #a78bfa 0%, #8b5cf6 100%); font-size: 0.75rem;">${link}</span>`
         ).join('');
         DOM.intentFilters.innerHTML += linkItems;
     }
 
     // 4. Limit (Always show)
     const limitVal = intent.limit !== null && intent.limit !== undefined ? intent.limit : 'Null';
-    const limitClass = (intent.limit !== null && intent.limit !== undefined) ?
-        "bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-600" :
-        "bg-transparent text-slate-400 border-slate-200 dark:border-slate-700 border-dashed";
+    const limitStyle = (intent.limit !== null && intent.limit !== undefined) ?
+        "background: linear-gradient(135deg, #94a3b8 0%, #64748b 100%);" :
+        "background: transparent; border: 1px dashed #cbd5e1; color: #94a3b8;";
 
-    DOM.intentFilters.innerHTML += `<span class="px-2 py-0.5 rounded border text-xs ${limitClass}">Limit: ${limitVal}</span>`;
+    DOM.intentFilters.innerHTML += `<span class="intent-badge" style="${limitStyle} font-size: 0.75rem;">Limit: ${limitVal}</span>`;
 }
 
 /**

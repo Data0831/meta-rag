@@ -28,7 +28,7 @@ sequenceDiagram
     Agent->>LLM: Check Relevance Prompt
     LLM-->>Agent: {relevant: boolean, ids: [...]}
 
-    alt 初始結果相關 (Relevant)
+    alt 初始結果相關 (Relevant) (Based on Accumulated High-Score Results)
         Agent-->>API: yield {status: "summarizing", ...}
         API-->>UI: Stream Line JSON
         UI->>UI: 更新摘要標題: 💡 正在生成摘要...
@@ -45,7 +45,7 @@ sequenceDiagram
         API-->>UI: Stream Line JSON
         UI->>UI: 更新摘要標題: ✍️ 正在重寫查詢...
         
-        Agent->>LLM: Rewrite Query Prompt
+        Agent->>LLM: Rewrite Query Prompt (History Aware)
         LLM-->>Agent: New Query String
         
         %% 階段 2: 重新搜尋循環
@@ -57,19 +57,21 @@ sequenceDiagram
             Agent->>DB: Search(New Query)
             DB-->>Agent: New Results
             
+            Note right of Agent: Filter by Score > Threshold & Accumulate unique IDs
+            
             Agent-->>API: yield {status: "checking", ...}
             API-->>UI: Stream Line JSON
             
-            Agent->>LLM: Check Relevance (New Results)
+            Agent->>LLM: Check Relevance (Accumulated Results)
             LLM-->>Agent: {relevant: boolean}
             
-            alt 新結果相關
+            alt 累積結果相關
                 Agent-->>API: yield {status: "summarizing", ...}
-                Agent->>LLM: Summarize
+                Agent->>LLM: Summarize (Accumulated Results)
                 LLM-->>Agent: Summary
                 
-                Note right of Agent: 回傳 summary 與 new results
-                Agent-->>API: yield {status: "complete", summary: "...", results: NewResults}
+                Note right of Agent: 回傳 summary 與 Accumulated results
+                Agent-->>API: yield {status: "complete", summary: "...", results: AccumulatedResults}
                 API-->>UI: Stream Line JSON
                 UI->>UI: 1. 渲染摘要<br/>2. 發現 results 更新 -> 刷新下方列表
                 

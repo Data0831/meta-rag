@@ -116,3 +116,217 @@ table {
         transform: translateY(0);
     }
 }
+
+/* LLM Warning Banner */
+.llm-warning-banner {
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+    margin-top: 0.75rem;
+    margin-bottom: 0.5rem;
+    padding: 0.875rem 1rem;
+    background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+    border: 1px solid #fbbf24;
+    border-radius: 0.75rem;
+    box-shadow: 0 2px 6px rgba(251, 191, 36, 0.15);
+}
+
+.dark .llm-warning-banner {
+    background: linear-gradient(135deg, #78350f 0%, #92400e 100%);
+    border-color: #f59e0b;
+}
+
+.llm-warning-banner .material-icons-round {
+    color: #d97706;
+    font-size: 1.25rem;
+    flex-shrink: 0;
+}
+
+.dark .llm-warning-banner .material-icons-round {
+    color: #fbbf24;
+}
+
+.llm-warning-banner p {
+    margin: 0;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #92400e;
+}
+
+.dark .llm-warning-banner p {
+    color: #fde68a;
+}
+
+/* Intent Container Styles */
+.intent-details-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1.25rem;
+    padding: 1.25rem;
+    background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+    border-radius: 1rem;
+    border: 1px solid #e2e8f0;
+    animation: fadeInUp 0.3s ease-out forwards;
+}
+
+.dark .intent-details-grid {
+    background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+    border-color: #334155;
+}
+
+@media (min-width: 768px) {
+    .intent-details-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
+.intent-card {
+    background: white;
+    border-radius: 0.75rem;
+    padding: 1.25rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+    border: 1px solid #e2e8f0;
+    transition: all 0.2s ease;
+}
+
+.dark .intent-card {
+    background: #1e293b;
+    border-color: #334155;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.intent-card:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    transform: translateY(-1px);
+}
+
+.dark .intent-card:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.intent-section-title {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.875rem;
+    font-weight: 700;
+    color: #334155;
+    margin-bottom: 1rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 2px solid #e2e8f0;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.dark .intent-section-title {
+    color: #cbd5e1;
+    border-bottom-color: #334155;
+}
+
+.intent-field {
+    margin-bottom: 1rem;
+}
+
+.intent-field:last-child {
+    margin-bottom: 0;
+}
+
+.intent-label {
+    display: block;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #64748b;
+    margin-bottom: 0.5rem;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+.dark .intent-label {
+    color: #94a3b8;
+}
+
+.intent-badge-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.intent-badge {
+    display: inline-block;
+    padding: 0.375rem 0.75rem;
+    background: linear-gradient(135deg, #7facb6 0%, #5f8595 100%);
+    color: white;
+    border-radius: 0.5rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    box-shadow: 0 2px 4px rgba(127, 172, 182, 0.2);
+    transition: all 0.2s ease;
+}
+
+.intent-badge:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(127, 172, 182, 0.3);
+}
+
+.dark .intent-badge {
+    background: linear-gradient(135deg, #5f8595 0%, #4a6a78 100%);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.weight-display {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.875rem;
+    background: #f1f5f9;
+    border-radius: 0.5rem;
+    border: 1px solid #e2e8f0;
+}
+
+.dark .weight-display {
+    background: #0f172a;
+    border-color: #334155;
+}
+
+.weight-item {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    flex: 1;
+}
+
+.weight-icon {
+    font-size: 1.125rem;
+    color: #7facb6;
+}
+
+.weight-text {
+    font-size: 0.8125rem;
+    color: #64748b;
+    font-weight: 500;
+}
+
+.dark .weight-text {
+    color: #94a3b8;
+}
+
+.weight-value {
+    font-size: 0.9375rem;
+    font-weight: 700;
+    color: #1e293b;
+    font-family: 'Courier New', monospace;
+}
+
+.dark .weight-value {
+    color: #e2e8f0;
+}
+
+.weight-divider {
+    width: 1px;
+    height: 1.5rem;
+    background: #cbd5e1;
+}
+
+.dark .weight-divider {
+    background: #475569;
+}
