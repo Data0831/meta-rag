@@ -6,7 +6,7 @@ from src.llm.client import LLMClient
 from src.tool.ANSI import print_red
 
 from src.llm.prompts.check_relevance import CHECK_RELEVANCE_PROMPT
-from src.llm.prompts.query_rewrite import QUERY_REWRITE_PROMPT
+from src.llm.prompts.check_relevance import CHECK_RELEVANCE_PROMPT
 
 
 class SrhSumAgent:
@@ -136,34 +136,24 @@ class SrhSumAgent:
         Agentic Summary Generation (Streaming Version):
         1. Check relevance of provided results.
         2. If good -> Summarize.
-        3. If bad -> Start Search Loop (max 1 retries).
+        3. If bad -> Start Search Loop (max 1 retries) using history-aware search.
         4. Summarize final results.
         """
         from src.config import DEFAULT_SIMILARITY_THRESHOLD
 
         # Use a dict to deduplicate by ID, storing only results that meet the threshold
         collected_results = {}
+        # Initial history is just the user query
         query_history = [query]
 
         # 0. Initial Filtering & Accumulation
-        # Filter initial results by threshold and add to collection
         for r in initial_results:
-            # If _rankingScore is missing, we assume it might be relevant (or check logic elsewhere)
-            # But here we strictly follow: "超過就保留，低於就移除"
             score = r.get("_rankingScore")
             if score is not None and score >= DEFAULT_SIMILARITY_THRESHOLD:
                 collected_results[r.get("id")] = r
 
         # 1. Initial Check
         yield {"status": "checking", "message": "正在檢查初始搜尋結果的關聯性..."}
-
-        # We check relevance against the *collected* (high quality) results if any,
-        # or fall back to checking strict relevance on original set if collection is empty
-        # (though if collection is empty, it means all were below threshold).
-
-        # Let's perform relevance check on the *collected* items + any others?
-        # User requirement: "retry 搜索的結果不要重複，但高 match 值的結果要保留下來，合併去重到下次的結果內"
-        # So we base our decisions on the *accumulated* set.
 
         current_check_target = (
             list(collected_results.values()) if collected_results else initial_results
@@ -190,58 +180,73 @@ class SrhSumAgent:
             "original_query": query,
         }
 
-        current_query = query
         retry_count = 0
 
         while retry_count < self.max_retries:
-            # Rewrite with history
-            new_query = self._rewrite_query_with_history(
-                query, current_query, query_history
-            )
-            query_history.append(new_query)
+            # We don't manually rewrite here anymore.
+            # We let SearchService logic (via tool.search passing history) handle the "rewrite" implicitly
+            # by generating NEW intents based on history.
+
+            # Start search with history
+            # Visual indication of "rewriting" is slightly different now, as it happens INSIDE search steps (intent parsing).
+            # But for UI continuity, we can say "Planning new search strategy..."
 
             yield {
                 "status": "searching",
-                "message": f"AI 正在嘗試使用新關鍵字重新搜尋：'{new_query}'...",
-                "new_query": new_query,
+                "message": f"AI 正在參考歷史紀錄 ({len(query_history)} 筆) 規劃新的搜尋策略...",
             }
 
-            current_query = new_query
-
-            # Search - exclude IDs we already have in our collection
+            # Search - exclude IDs we already have
             search_response = self.tool.search(
-                current_query, exclude_ids=list(collected_results.keys())
+                query, exclude_ids=list(collected_results.keys()), history=query_history
             )
-            new_results = search_response.get("results", [])
+
+            # Extract actual used queries from response to update history
+            if search_response.get("status") == "success":
+                intent = search_response.get("intent", {})
+                kw = intent.get("keyword_query")
+                sq = intent.get("sub_queries", [])
+
+                # Update history with what was actually used
+                if kw and kw not in query_history:
+                    query_history.append(kw)
+                for q in sq:
+                    if q and q not in query_history:
+                        query_history.append(q)
+
+                new_results = search_response.get("results", [])
+
+                # UI Update: Show what we actually searched for (maybe just the keyword query for brevity)
+                if kw:
+                    yield {
+                        "status": "searching",
+                        "message": f"正在嘗試新策略搜尋：'{kw}'...",
+                        "new_query": kw,
+                    }
+
+            else:
+                new_results = []
 
             if not new_results:
                 retry_count += 1
                 if retry_count < self.max_retries:
                     yield {
                         "status": "retrying",
-                        "message": "未找到結果，嘗試再次調整查詢語句...",
+                        "message": "未找到結果，嘗試再次調整...",
                     }
                 continue
 
             # Accumulate new high-score results
-            found_new_high_score = False
             for r in new_results:
                 score = r.get("_rankingScore")
                 if score is not None and score >= DEFAULT_SIMILARITY_THRESHOLD:
                     if r.get("id") not in collected_results:
                         collected_results[r.get("id")] = r
-                        found_new_high_score = True
 
             # Check relevance on the *updated* collection
             yield {"status": "checking", "message": "正在評估重新搜尋結果的關聯性..."}
 
-            # If we have collected results, we check them. If still empty, we might check the raw new_results
-            # just to see if LLM thinks they are relevant despite low score (edge case),
-            # but user rule says "low score -> remove". So we stick to collected_results.
-
             if not collected_results:
-                # If nothing passed threshold, we effectively have no results to summarize.
-                # We force a retry if possible.
                 is_relevant = False
             else:
                 is_relevant, relevant_ids = self._check_relevance(
@@ -261,19 +266,17 @@ class SrhSumAgent:
                 }
                 return
 
-            # If not relevant or explicitly bad, we continue
+            # If not relevant
             retry_count += 1
             if retry_count < self.max_retries:
                 yield {
                     "status": "rewriting",
-                    "message": "結果仍未達標，正在進行最後一次重寫嘗試...",
+                    "message": "結果仍未達標，正在進行最後一次嘗試...",
                 }
 
         # Fallback
         final_list = list(collected_results.values())
         if final_list:
-            # If we have some results but LLM didn't think they were seemingly "perfectly relevant" or sufficient,
-            # we still try to summarize what we have.
             summary = self.tool.summarize(query, final_list)
             yield {"status": "complete", "summary": summary, "results": final_list}
         else:
@@ -282,23 +285,3 @@ class SrhSumAgent:
                 "summary": "抱歉，經由多次搜尋仍未找到足夠相關的資訊以生成摘要。",
                 "results": [],
             }
-
-    def _rewrite_query_with_history(
-        self, original_query: str, current_query: str, history: List[str]
-    ) -> str:
-        """
-        Uses LLM to rewrite the query with history awareness.
-        """
-        from src.llm.prompts.retry_query_rewrite import RETRY_QUERY_REWRITE_PROMPT
-
-        prompt = RETRY_QUERY_REWRITE_PROMPT.format(
-            original_query=original_query, current_query=current_query, history=history
-        )
-        try:
-            response = self.llm_client.call_gemini(
-                messages=[{"role": "user", "content": prompt}], temperature=0.7
-            )
-            return response.strip()
-        except Exception as e:
-            print_red(f"Rewrite failed: {e}")
-            return original_query

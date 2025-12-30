@@ -9,7 +9,9 @@ class SearchTool:
         self.search_service = SearchService()
         self.llm_client = LLMClient()
 
-    def search(self, query: str, exclude_ids: List[str] = None) -> Dict[str, Any]:
+    def search(
+        self, query: str, exclude_ids: List[str] = None, history: List[str] = None
+    ) -> Dict[str, Any]:
         """
         Executes a search using the SearchService.
         """
@@ -21,6 +23,7 @@ class SearchTool:
             semantic_ratio=0.5,
             enable_llm=True,
             exclude_ids=exclude_ids,
+            history=history,
         )
 
     def summarize(self, user_query: str, search_results: List[Dict]) -> str:

@@ -9,12 +9,20 @@ Analyze the user's input (comprising a `Current Date` and a `User Query`) and ma
 
 # Data
 - **current date:** {current_date}
+- **previous queries (HISTORY):** {previous_queries}
 
 # Input Format
 You will receive input in the following format:
 - **user query:** "question description or url"
 
 # Processing Rules
+
+## 0. History Constraint (CRITICAL)
+If `previous_queries` is provided and not "None":
+- These queries have FAILED to produce good results.
+- You MUST generate **DIFFERENT** keywords and sub-queries.
+- Avoid specific phrasings or keywords that dominate the failed queries.
+- Try a broader or different angle (e.g. if "pricing" failed, try "cost" or "billing").
 
 ## 1. Date Resolution (CRITICAL)
 You must calculate the `year_month` list based on the provided **Current Date**.

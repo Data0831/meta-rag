@@ -37,3 +37,7 @@
 ### 2025-12-30 Agentic Search 邏輯優化 (Accumulated Search & History-Aware Rewrite)
 - **結果合併去重 (Result Accumulation)**：修改 `SrhSumAgent` 的 `generate_summary` 邏輯。在重試搜尋時，不再丟棄舊結果，而是將 `_rankingScore` 高於閥值 (`DEFAULT_SIMILARITY_THRESHOLD`) 的高分結果保留並合併 (Deduplicated by ID)。確保 LLM 在生成摘要時能獲得跨多次搜尋的最佳資訊集合。
 - **具備歷史意識的重寫 (History-Aware Query Rewrite)**：新增 Prompt `retry_query_rewrite.py` 並傳入 `history` (過去使用過的查詢列表)。要求 LLM 在重寫查詢時必須參考歷史紀錄，避免生成重複或相似的關鍵字策略，從而提高重試搜尋的覆蓋率與成功率。
+
+### 2025-12-30 重構與邏輯整合 (Refactoring & Logic Integration)
+- **SearchService 整合重試邏輯**：將原 `SrhSumAgent` 的重試查詢改寫邏輯移入 `SearchService`。透過 `SEARCH_INTENT_PROMPT` 新增 `history` 參數，讓 LLM 在解析意圖時能參考過往失敗的查詢紀錄，直接生成具備差異化的新查詢策略，取代了原本獨立的 `retry_query_rewrite.py`。
+- **架構簡化**：`SrhSumAgent` 不再負責調用改寫 Prompt，而是維護 `query_history` 並傳遞給 `SearchTool.search()`，实现了更 clean 的職責分離。單元測試已驗證此新流程的正確性。

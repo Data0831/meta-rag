@@ -113,6 +113,7 @@ def search():
         enable_llm = data.get("enable_llm", True)
         manual_semantic_ratio = data.get("manual_semantic_ratio", False)
         enable_keyword_weight_rerank = data.get("enable_keyword_weight_rerank", True)
+        history = data.get("history", None)
 
         print(f"  Query: {query}")
         print(f"  Limit: {limit}")
@@ -120,6 +121,7 @@ def search():
         print(f"  Enable LLM: {enable_llm}")
         print(f"  Manual Semantic Ratio: {manual_semantic_ratio}")
         print(f"  Enable Rerank: {enable_keyword_weight_rerank}")
+        print(f"  History: {history}")
 
         # Validate parameters
         if not isinstance(limit, int) or limit < 1 or limit > 100:
@@ -158,6 +160,7 @@ def search():
             enable_llm=enable_llm,
             manual_semantic_ratio=manual_semantic_ratio,
             enable_keyword_weight_rerank=enable_keyword_weight_rerank,
+            history=history,
         )
 
         # Check if search failed

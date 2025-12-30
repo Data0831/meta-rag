@@ -68,17 +68,24 @@ class SearchService:
             print_red(msg)
             return msg
 
-    def parse_intent(self, user_query: str) -> Dict[str, Any]:
+    def parse_intent(
+        self, user_query: str, history: List[str] = None
+    ) -> Dict[str, Any]:
         try:
+            previous_queries_str = str(history) if history else "None"
+
             system_prompt = SEARCH_INTENT_PROMPT.format(
-                current_date=datetime.now().strftime("%Y-%m-%d")
+                current_date=datetime.now().strftime("%Y-%m-%d"),
+                previous_queries=previous_queries_str,
             )
             messages = [
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_query},
             ]
             result = self.llm_client.call_with_schema(
-                messages=messages, response_model=SearchIntent, temperature=0.0
+                messages=messages,
+                response_model=SearchIntent,
+                temperature=0.7 if history else 0.0,
             )
             return result
         except Exception as e:
@@ -123,6 +130,7 @@ class SearchService:
         enable_keyword_weight_rerank: bool = True,
         fall_back: bool = False,
         exclude_ids: List[str] = None,
+        history: List[str] = None,
     ) -> Dict[str, Any]:
 
         # --- Stage 1: Check Meilisearch Connection ---
@@ -150,7 +158,7 @@ class SearchService:
             traces = []  # Log search steps
 
             if enable_llm:
-                intent_result = self.parse_intent(user_query)
+                intent_result = self.parse_intent(user_query, history=history)
                 if intent_result.get("status") == "failed":
                     llm_error = intent_result.get("error")
                     print_red(f"LLM Intent parsing failed: {llm_error}")
