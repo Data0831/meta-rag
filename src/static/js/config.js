@@ -1,13 +1,15 @@
 /**
  * Search Configuration Module
  */
-
 export const searchConfig = {
-    limit: 5,  // Number of results to return
-    semanticRatio: 0.5,  // Weight for semantic search (0.0 = pure keyword, 1.0 = pure semantic)
-    similarityThreshold: 0,  // Similarity threshold (0-100), results below this will be dimmed
+    limit: 5,
+    semanticRatio: 0.5,
+    similarityThreshold: 0,
     enableLlm: true,
-    manualSemanticRatio: false // Checkbox state: true = use manual ratio, false = auto (LLM)
+    manualSemanticRatio: false, 
+    // ★★★ 請補上這兩行 ★★★
+    startDate: null,
+    endDate: null
 };
 
 /**

@@ -95,6 +95,25 @@ function setupSearchConfig() {
             searchConfig.enableLlm = e.target.checked;
         });
     }
+
+    const startDateInput = document.getElementById('startDateInput');
+    if (startDateInput) {
+        startDateInput.addEventListener('change', (e) => {
+            // 客人改了日期，抄進記事本
+            searchConfig.startDate = e.target.value;
+            console.log('開始日期已更新:', searchConfig.startDate);
+        });
+    }
+
+    // 2. 抓取結束時間的格子
+    const endDateInput = document.getElementById('endDateInput');
+    if (endDateInput) {
+        endDateInput.addEventListener('change', (e) => {
+            // 客人改了日期，抄進記事本
+            searchConfig.endDate = e.target.value;
+            console.log('結束日期已更新:', searchConfig.endDate);
+        });
+    }
 }
 
 /**

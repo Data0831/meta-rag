@@ -147,6 +147,19 @@ function updateIntentDisplay(intent) {
     // Update Filters
     DOM.intentFilters.innerHTML = '';
 
+    if (searchConfig.startDate) {
+        DOM.intentFilters.innerHTML += 
+            `<span class="px-2 py-0.5 rounded border text-xs bg-teal-100 dark:bg-teal-900 text-teal-800 dark:text-teal-300 border-teal-200 dark:border-teal-700">
+                開始: ${searchConfig.startDate}
+            </span>`;
+    }
+
+    if (searchConfig.endDate) {
+        DOM.intentFilters.innerHTML += 
+            `<span class="px-2 py-0.5 rounded border text-xs bg-teal-100 dark:bg-teal-900 text-teal-800 dark:text-teal-300 border-teal-200 dark:border-teal-700">
+                結束: ${searchConfig.endDate}
+            </span>`;
+    }
     // 1. Year Month
     if (intent.year_month && intent.year_month.length > 0) {
         const yearMonthItems = intent.year_month.map(ym =>

@@ -10,5 +10,18 @@ grpcio>=1.62,<1.64
 # sqlite-utils==3.36
 # jieba==0.42.1
 # qdrant-client
+<<<<<<< HEAD
 
 
+=======
+flask==3.0.3
+gunicorn==22.0.0
+python-dotenv==1.0.1
+openai==1.30.0
+google-generativeai==0.5.4
+pydantic==2.7.1
+sqlite-utils==3.36
+ollama==0.2.1
+meilisearch==0.31.0
+jieba==0.42.1
+>>>>>>> origin/brian
