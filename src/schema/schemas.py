@@ -19,6 +19,10 @@ class AnnouncementDoc(BaseModel):
     cleaned_content: str = Field(
         ..., description="Cleaned content for search and embedding"
     )
+    website: str = Field(
+        default="general", 
+        description="Origin website source e.g. partner_center, azure_update"
+    )
 
     class Config:
         populate_by_name = True

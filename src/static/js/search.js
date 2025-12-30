@@ -95,6 +95,28 @@ function setupSearchConfig() {
             searchConfig.enableLlm = e.target.checked;
         });
     }
+    // --- 新增：資料來源篩選 (全選/取消全選邏輯) ---
+    const selectAllCheckbox = document.getElementById('selectAllSources');
+    // 注意：這裡假設你的 HTML checkbox 有 class="source-item"
+    const sourceCheckboxes = document.querySelectorAll('input[name="source_checkbox"]'); 
+
+    if (selectAllCheckbox && sourceCheckboxes.length > 0) {
+        // 1. 全選被點擊
+        selectAllCheckbox.addEventListener('change', (e) => {
+            const isChecked = e.target.checked;
+            sourceCheckboxes.forEach(cb => {
+                cb.checked = isChecked;
+            });
+        });
+
+        // 2. 個別選項被點擊 (檢查是否要取消全選勾勾)
+        sourceCheckboxes.forEach(cb => {
+            cb.addEventListener('change', () => {
+                const allChecked = Array.from(sourceCheckboxes).every(item => item.checked);
+                selectAllCheckbox.checked = allChecked;
+            });
+        });
+    }
 }
 
 /**

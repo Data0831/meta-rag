@@ -159,6 +159,51 @@
             LLM 查詢重寫</label>
         </div>
       </div>
+      <div class="bg-card-light dark:bg-card-dark rounded-xl p-5 shadow-sm transition-colors duration-300 space-y-3">
+        <div class="flex items-center justify-between mb-2">
+          <div class="flex items-center space-x-2 text-slate-700 dark:text-slate-200">
+            <span class="material-icons-round text-xl">library_books</span>
+            <h3 class="font-bold">資料來源</h3>
+          </div>
+          <div class="flex items-center space-x-2">
+            <label class="text-xs text-slate-500 dark:text-slate-400 cursor-pointer select-none" for="selectAllSources">全選</label>
+            <input id="selectAllSources" type="checkbox" checked
+              class="w-4 h-4 text-primary bg-white dark:bg-slate-700 border-slate-300 dark:border-slate-500 rounded focus:ring-primary transition-colors cursor-pointer" />
+          </div>
+        </div>
+        
+        <div class="grid grid-cols-1 gap-3" id="sourceCheckboxList">
+          <label class="flex items-center space-x-3 cursor-pointer group">
+            <input type="checkbox" name="source_checkbox" value="partner_center" checked
+              class="source-item w-4 h-4 text-primary bg-white dark:bg-slate-700 border-slate-300 dark:border-slate-500 rounded focus:ring-primary transition-colors group-hover:border-primary" />
+            <span class="text-sm text-slate-600 dark:text-slate-300 group-hover:text-primary transition-colors">Partner Center</span>
+          </label>
+
+          <label class="flex items-center space-x-3 cursor-pointer group">
+            <input type="checkbox" name="source_checkbox" value="azure_update" checked
+              class="source-item w-4 h-4 text-primary bg-white dark:bg-slate-700 border-slate-300 dark:border-slate-500 rounded focus:ring-primary transition-colors group-hover:border-primary" />
+            <span class="text-sm text-slate-600 dark:text-slate-300 group-hover:text-primary transition-colors">Azure Updates</span>
+          </label>
+
+          <label class="flex items-center space-x-3 cursor-pointer group">
+            <input type="checkbox" name="source_checkbox" value="m365_roadmap" checked
+              class="source-item w-4 h-4 text-primary bg-white dark:bg-slate-700 border-slate-300 dark:border-slate-500 rounded focus:ring-primary transition-colors group-hover:border-primary" />
+            <span class="text-sm text-slate-600 dark:text-slate-300 group-hover:text-primary transition-colors">M365 Roadmap</span>
+          </label>
+
+          <label class="flex items-center space-x-3 cursor-pointer group">
+            <input type="checkbox" name="source_checkbox" value="windows_message_center" checked
+              class="source-item w-4 h-4 text-primary bg-white dark:bg-slate-700 border-slate-300 dark:border-slate-500 rounded focus:ring-primary transition-colors group-hover:border-primary" />
+            <span class="text-sm text-slate-600 dark:text-slate-300 group-hover:text-primary transition-colors">Windows Message</span>
+          </label>
+
+          <label class="flex items-center space-x-3 cursor-pointer group">
+            <input type="checkbox" name="source_checkbox" value="powerbi_blog" checked
+              class="source-item w-4 h-4 text-primary bg-white dark:bg-slate-700 border-slate-300 dark:border-slate-500 rounded focus:ring-primary transition-colors group-hover:border-primary" />
+            <span class="text-sm text-slate-600 dark:text-slate-300 group-hover:text-primary transition-colors">PowerBI Blog</span>
+          </label>
+        </div>
+      </div>
       <div class="bg-card-light dark:bg-card-dark rounded-xl p-5 shadow-sm transition-colors duration-300 space-y-4">
         <div class="flex items-center space-x-2 text-slate-700 dark:text-slate-200 mb-2">
           <span class="material-icons-round text-xl">schedule</span>
