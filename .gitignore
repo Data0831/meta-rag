@@ -8,3 +8,4 @@ src/logs/*
 .deployment
 *.json
 task/*
+docs/vault

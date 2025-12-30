@@ -168,7 +168,7 @@ class RAGService:
         """
         針對搜尋結果生成摘要
         """
-        print(f"📝 RAGService: Generating summary for '{user_query}'")
+        print(f"RAGService: Generating summary for '{user_query}'")
 
         if not search_results:
             return ""
