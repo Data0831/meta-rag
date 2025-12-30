@@ -10,18 +10,26 @@ class SearchTool:
         self.llm_client = LLMClient()
 
     def search(
-        self, query: str, exclude_ids: List[str] = None, history: List[str] = None
+        self,
+        query: str,
+        limit: int = 20,
+        semantic_ratio: float = 0.5,
+        enable_llm: bool = True,
+        manual_semantic_ratio: bool = False,
+        enable_keyword_weight_rerank: bool = True,
+        exclude_ids: List[str] = None,
+        history: List[str] = None,
     ) -> Dict[str, Any]:
         """
         Executes a search using the SearchService.
         """
-        # Call the existing search service provided by the project
-        # Using default settings except handling exclude_ids
         return self.search_service.search(
             user_query=query,
-            limit=3,
-            semantic_ratio=0.5,
-            enable_llm=True,
+            limit=limit,
+            semantic_ratio=semantic_ratio,
+            enable_llm=enable_llm,
+            manual_semantic_ratio=manual_semantic_ratio,
+            enable_keyword_weight_rerank=enable_keyword_weight_rerank,
             exclude_ids=exclude_ids,
             history=history,
         )

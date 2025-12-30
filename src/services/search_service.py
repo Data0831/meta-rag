@@ -213,14 +213,8 @@ class SearchService:
 
             # Append exclude_ids filter if present
             if exclude_ids:
-                exclude_filter = (
-                    f"NOT id IN [{', '.join([f'{eid}' for eid in exclude_ids])}]"
-                )
-                # Note: Meilisearch expects strings to be quoted in filter?
-                # Our IDs are usually strings like "34c9..." so quotes might be needed if they contain special chars.
-                # Assuming simple alphanumeric hashes for now, but adding quotes is safer.
                 exclude_filter_safe = (
-                    f"NOT id IN [{', '.join([f'\"{eid}\"' for eid in exclude_ids])}]"
+                    f"id NOT IN [{', '.join([f'\"{eid}\"' for eid in exclude_ids])}]"
                 )
 
                 if meili_filter:

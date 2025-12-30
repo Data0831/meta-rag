@@ -5,8 +5,8 @@
 
 import { searchConfig, loadBackendConfig } from './config.js';
 import * as DOM from './dom.js';
-import { performCollectionSearch } from './api.js';
-import { showLoading, showError } from './ui.js';
+import { performSearchStream } from './api.js';
+import { showLoading, showError, hideAllStates } from './ui.js';
 import { renderResults, applyThresholdToResults, toggleResult, toggleIntentDetails, currentResults } from './render.js';
 
 // Initialize
@@ -19,6 +19,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Setup event listeners
     setupEventListeners();
     setupSearchConfig();
+    setupChatbot();
 });
 
 /**
@@ -119,7 +120,7 @@ function setupEventListeners() {
 }
 
 /**
- * Perform search operation
+ * Perform search operation with streaming handling
  */
 async function performSearch() {
     const query = DOM.searchInput.value.trim();
@@ -130,83 +131,40 @@ async function performSearch() {
         return;
     }
 
-    showLoading();
-
-    // 每次新搜尋前，先隱藏摘要區塊 (避免看到上次的殘留)
-    hideSummary();
-
-    // 記錄總開始時間 (用於計算完整耗時)
-    const totalStartTime = performance.now();
-
-    try {
-        // 發送搜尋請求
-        const { data, duration } = await performCollectionSearch(query);
-
-        // Log filters if LLM rewrite is enabled
-        if (searchConfig.enableLlm) {
-            console.group('LLM Query Rewrite');
-            console.log('Filters (JSON):', data.intent?.filters);
-            if (data.meili_filter) {
-                console.log('Meilisearch Expression:', data.meili_filter);
-            }
-            console.groupEnd();
-        }
-
-        // 1. 渲染搜尋列表 (只要成功拿到資料就渲染)
-        renderResults(data, duration, query, searchConfig);
-
-        // 2. ★★★ 觸發摘要生成 (移到這裡，確保 data 讀取得到) ★★★
-        if (data.results && data.results.length > 0) {
-            // 有搜尋結果才做摘要，傳入總開始時間
-            generateSearchSummary(query, data.results, totalStartTime);
-        } else {
-            // 沒結果就隱藏摘要區塊
-            hideSummary();
-        }
-
-    } catch (error) {
-        console.error('Search failed:', error);
-        console.error('  Error message:', error.message);
-        showError(error.message);
-        // 發生錯誤時也要隱藏摘要
-        hideSummary();
-    }
-}
-
-async function generateSearchSummary(query, results, totalStartTime) {
+    // Reset UI states
+    hideAllStates();
+    
+    // Use summary container for status updates instead of generic loading dots
     const summaryContainer = document.getElementById('summaryContainer');
     const summaryContent = document.getElementById('summaryContent');
     const summaryTitle = document.getElementById('summaryTitle');
     const searchTimeValue = document.getElementById('searchTimeValue');
 
-    // 初始化 UI：顯示容器，並顯示 Loading 狀態
-    summaryContainer.classList.remove('hidden');
-    summaryTitle.innerHTML = `<span class="material-icons-round animate-pulse mr-2 align-middle text-primary">manage_search</span>正在為您總結「<span class="text-primary">${query}</span>」的相關公告...`;
+    if (summaryContainer) {
+        summaryContainer.classList.remove('hidden');
+        summaryTitle.innerHTML = `<span class="material-icons-round animate-pulse mr-2 align-middle text-primary">manage_search</span>正在初始化搜尋...`;
+        
+        // Show Skeleton in content area while working
+        summaryContent.innerHTML = `
+            <div class="animate-pulse space-y-3">
+                <div class="h-2 bg-slate-200 dark:bg-slate-700 rounded w-3/4"></div>
+                <div class="h-2 bg-slate-200 dark:bg-slate-700 rounded w-full"></div>
+                <div class="h-2 bg-slate-200 dark:bg-slate-700 rounded w-5/6"></div>
+            </div>
+        `;
+    } else {
+        // Fallback if summary container missing
+        showLoading();
+    }
 
-    // 顯示 Loading 動畫 (Skeleton)
-    summaryContent.innerHTML = `
-        <div class="animate-pulse space-y-3">
-            <div class="h-2 bg-slate-200 dark:bg-slate-700 rounded w-3/4"></div>
-            <div class="h-2 bg-slate-200 dark:bg-slate-700 rounded w-full"></div>
-            <div class="h-2 bg-slate-200 dark:bg-slate-700 rounded w-5/6"></div>
-        </div>
-    `;
-
-    // 用於追蹤是否已經替換過結果
+    // Record start time
+    const totalStartTime = performance.now();
     let hasUpdatedResults = false;
 
     try {
-        const topResults = results.slice(0, 5).map(item => ({
-            title: item.title,
-            content: item.content || item.cleaned_content
-        }));
-
-        const response = await fetch('/api/summary', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ query: query, results: topResults })
-        });
-
+        // Initiate Stream
+        const response = await performSearchStream(query);
+        
         if (!response.body) throw new Error("ReadableStream not supported");
 
         const reader = response.body.getReader();
@@ -219,111 +177,96 @@ async function generateSearchSummary(query, results, totalStartTime) {
 
             buffer += decoder.decode(value, { stream: true });
             const lines = buffer.split("\n");
-            buffer = lines.pop(); // 剩餘不完整的一行留到下次
+            buffer = lines.pop(); // Keep incomplete line
 
             for (const line of lines) {
-
                 if (!line.trim()) continue;
 
                 try {
-
                     const data = JSON.parse(line);
-
                     console.log('Agent Stream:', data.status, data); // ★ 修改為印出完整 data
 
+                    // Handle Status Updates
+                    if (data.status === "failed") {
+                         throw new Error(data.error || "Unknown error during search");
+                    }
 
-
-                    // 根據狀態更新 UI (使用 Material Icons)
-                    if (data.status === "checking") {
-                        summaryTitle.innerHTML = `<span class="material-icons-round animate-pulse mr-2 align-middle text-secondary">fact_check</span>${data.message}`;
-                    } else if (data.status === "rewriting") {
-                        summaryTitle.innerHTML = `<span class="material-icons-round animate-pulse mr-2 align-middle text-amber-500">edit_note</span>${data.message}`;
-                    } else if (data.status === "searching") {
-                        summaryTitle.innerHTML = `<span class="material-icons-round animate-spin mr-2 align-middle text-primary">sync</span>${data.message}`;
-                        // 標記需要更新結果
-                        hasUpdatedResults = true;
-                        // 時間顯示加入模糊效果
-                        if (searchTimeValue) {
+                    if (data.stage === "searching") {
+                         summaryTitle.innerHTML = `<span class="material-icons-round animate-spin mr-2 align-middle text-primary">sync</span>${data.message}`;
+                         // Blur time if needed
+                         if (searchTimeValue) {
                             searchTimeValue.style.filter = 'blur(3px)';
                             searchTimeValue.style.opacity = '0.5';
-                        }
-                    } else if (data.status === "retrying") {
-                        summaryTitle.innerHTML = `<span class="material-icons-round animate-spin mr-2 align-middle text-amber-500">sync_problem</span>${data.message}`;
-                        // 時間顯示加入模糊效果
-                        if (searchTimeValue) {
-                            searchTimeValue.style.filter = 'blur(3px)';
-                            searchTimeValue.style.opacity = '0.5';
-                        }
-                    } else if (data.status === "summarizing") {
-                        summaryTitle.innerHTML = `<span class="material-icons-round animate-pulse mr-2 align-middle text-primary">auto_awesome</span>${data.message}`;
-                    } else if (data.status === "complete") {
-                        // 計算總耗時
-                        const totalEndTime = performance.now();
-                        const totalDuration = Math.round(totalEndTime - totalStartTime);
+                         }
+                    } else if (data.stage === "checking") {
+                         summaryTitle.innerHTML = `<span class="material-icons-round animate-pulse mr-2 align-middle text-secondary">fact_check</span>${data.message}`;
+                    } else if (data.stage === "rewriting") {
+                         summaryTitle.innerHTML = `<span class="material-icons-round animate-pulse mr-2 align-middle text-amber-500">edit_note</span>${data.message}`;
+                    } else if (data.stage === "retrying") {
+                         summaryTitle.innerHTML = `<span class="material-icons-round animate-spin mr-2 align-middle text-amber-500">sync_problem</span>${data.message}`;
+                    } else if (data.stage === "summarizing") {
+                         summaryTitle.innerHTML = `<span class="material-icons-round animate-pulse mr-2 align-middle text-primary">auto_awesome</span>${data.message}`;
+                    } else if (data.stage === "complete") {
+                         // Finalize
+                         const totalEndTime = performance.now();
+                         const totalDuration = Math.round(totalEndTime - totalStartTime);
 
-                        // 更新檢索耗時為總時間
-                        if (searchTimeValue) {
+                         if (searchTimeValue) {
                             searchTimeValue.textContent = totalDuration;
                             searchTimeValue.style.filter = 'none';
                             searchTimeValue.style.opacity = '1';
-                        }
+                         }
 
-                        // 最終結果
-                        summaryTitle.innerHTML = `以下為「<span class="text-primary">${query}</span>」的相關公告總結：`;
-                        if (data.summary) {
+                         // Update Title
+                         summaryTitle.innerHTML = `以下為「<span class="text-primary">${query}</span>」的相關公告總結：`;
+                         
+                         // Render Summary
+                         if (data.summary) {
                             summaryContent.innerHTML = marked.parse(data.summary);
                             const ul = summaryContent.querySelector('ul');
                             if (ul) ul.classList.add('list-disc', 'pl-5', 'space-y-1');
-                        }
+                         } else {
+                            summaryContent.innerHTML = "<p>無相關總結。</p>";
+                         }
 
-                        // ★★★ 如果 Agent 回傳了新的搜尋結果，且我們之前標記過需要更新 (代表發生過重寫搜尋)
-                        // 則更新下方的列表
-                        if (data.results && hasUpdatedResults) {
-                            console.log("Agent found better results, updating list...", data.results);
-
-                            // 構建符合 renderResults 預期的物件
-                            const newData = {
-                                results: data.results,
-                                // 這裡沒有 intent 資訊，所以設為 null 或保留原本的 (如果能存取到的話)
-                                intent: null
-                            };
-
-                            // 更新列表
-                            renderResults(newData, 0, query, searchConfig);
-
-                            // 顯示一個小的 Toast 提示 (可選，這裡直接用 console log 或簡單修改標題提示)
-                            // 這裡我們在標題旁加一個小標記
-                            summaryTitle.innerHTML += `<span class="ml-2 text-xs bg-primary/10 text-primary px-2 py-1 rounded-full animate-fade-in-up">已更新搜尋結果</span>`;
-                        }
+                         // Render Results
+                         if (data.results && data.results.length > 0) {
+                             const renderData = {
+                                 results: data.results,
+                                 intent: null, // Intent might be lost in stream unless passed? Agent doesn't pass it in 'complete' yet.
+                                 // If we want intent, we should modify Agent to pass it. 
+                                 // For now, assume null is okay or Agent passes it in 'complete' payload (not currently in spec).
+                                 // Actually srhSumAgent.py yields 'results' and 'summary'.
+                             };
+                             
+                             // Calculate duration for display (using total time)
+                             renderResults(renderData, totalDuration, query);
+                         } else {
+                             // No results found
+                             if (DOM.resultsContainer) DOM.resultsContainer.classList.add('hidden');
+                             // Maybe show empty state if summary is also empty?
+                             if (!data.summary) {
+                                 showError("未找到相關結果");
+                             }
+                         }
                     }
+
+                    // Handle intermediate results if available (optional, dependent on agent implementation)
+                    if (data.new_query) {
+                        // Just an update, handled by stage message
+                    }
+
                 } catch (e) {
-                    console.error("解析串流資料失敗:", e, line);
+                    console.error("Error parsing stream line:", e, line);
                 }
             }
         }
 
     } catch (error) {
-        console.error("摘要生成失敗:", error);
-
-        // 移除時間模糊效果
-        if (searchTimeValue) {
-            searchTimeValue.style.filter = 'none';
-            searchTimeValue.style.opacity = '1';
-        }
-
-        summaryTitle.innerHTML = `摘要生成失敗`;
-        summaryContent.innerHTML = `
-            <div class="flex items-center gap-2 text-red-600 dark:text-red-400">
-                <span class="material-icons-round text-lg">error</span>
-                <p class="text-sm">網路連線錯誤，請檢查後端服務是否正常運行。</p>
-            </div>
-        `;
+        console.error('Search failed:', error);
+        showError(error.message);
+        if (summaryContainer) summaryContainer.classList.add('hidden');
     }
-}
-
-function hideSummary() {
-    const summaryContainer = document.getElementById('summaryContainer');
-    if (summaryContainer) summaryContainer.classList.add('hidden');
 }
 
 /**
@@ -332,16 +275,12 @@ function hideSummary() {
 window.toggleResult = toggleResult;
 window.toggleIntentDetails = toggleIntentDetails;
 
-// --- Chatbot Logic (Add to end of search.js) ---
-
-document.addEventListener('DOMContentLoaded', () => {
-    setupChatbot();
-});
+// --- Chatbot Logic ---
 
 function setupChatbot() {
     const container = document.getElementById('chatbotContainer');
     const triggerBtn = document.getElementById('chatTriggerBtn');
-    const clearBtn = document.getElementById('clearChatBtn'); // ★ 新增
+    const clearBtn = document.getElementById('clearChatBtn');
     const iconArrow = document.getElementById('chatIconArrow');
     const chatInput = document.getElementById('chatInput');
     const sendBtn = document.getElementById('sendChatBtn');
@@ -403,7 +342,6 @@ function setupChatbot() {
         });
     }
 
-    // ★ 清除紀錄邏輯
     if (clearBtn) {
         clearBtn.addEventListener('click', () => {
             chatHistory = []; // 清空記憶

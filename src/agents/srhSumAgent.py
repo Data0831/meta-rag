@@ -4,8 +4,6 @@ from typing import Dict, Any, List
 from src.agents.tool import SearchTool
 from src.llm.client import LLMClient
 from src.tool.ANSI import print_red
-
-from src.llm.prompts.check_relevance import CHECK_RELEVANCE_PROMPT
 from src.llm.prompts.check_relevance import CHECK_RELEVANCE_PROMPT
 
 
@@ -114,68 +112,119 @@ class SrhSumAgent:
                 r.get("id") for r in results
             ]  # Default to true on error to avoid blocking
 
-    def _rewrite_query(
-        self, original_query: str, current_query: str, bad_results: List[Dict]
-    ) -> str:
-        """
-        Uses LLM to rewrite the query based on failure.
-        """
-        prompt = QUERY_REWRITE_PROMPT.format(
-            original_query=original_query, current_query=current_query
-        )
-        try:
-            response = self.llm_client.call_gemini(
-                messages=[{"role": "user", "content": prompt}], temperature=0.7
-            )
-            return response.strip()
-        except:
-            return original_query
-
-    def generate_summary(self, query: str, initial_results: List[Dict]):
+    def generate_summary(
+        self,
+        query: str,
+        limit: int = 20,
+        semantic_ratio: float = 0.5,
+        enable_llm: bool = True,
+        manual_semantic_ratio: bool = False,
+        enable_keyword_weight_rerank: bool = True,
+    ):
         """
         Agentic Summary Generation (Streaming Version):
-        1. Check relevance of provided results.
-        2. If good -> Summarize.
-        3. If bad -> Start Search Loop (max 1 retries) using history-aware search.
-        4. Summarize final results.
+        1. Execute initial search internally.
+        2. Check relevance of results.
+        3. If good -> Summarize.
+        4. If bad -> Start Search Loop (max 1 retries) using history-aware search.
+        5. Summarize final results.
         """
-        from src.config import DEFAULT_SIMILARITY_THRESHOLD
+        from src.config import SCORE_PASS_THRESHOLD
 
         # Use a dict to deduplicate by ID, storing only results that meet the threshold
         collected_results = {}
+        # Track ALL seen IDs to exclude them from future searches (even low score ones)
+        all_seen_ids = set()
+
         # Initial history is just the user query
         query_history = [query]
 
-        # 0. Initial Filtering & Accumulation
-        for r in initial_results:
-            score = r.get("_rankingScore")
-            if score is not None and score >= DEFAULT_SIMILARITY_THRESHOLD:
-                collected_results[r.get("id")] = r
+        # 0. Execute Initial Search
+        yield {
+            "status": "success",
+            "stage": "searching",
+            "message": "正在執行初始搜尋...",
+        }
 
-        # 1. Initial Check
-        yield {"status": "checking", "message": "正在檢查初始搜尋結果的關聯性..."}
-
-        current_check_target = (
-            list(collected_results.values()) if collected_results else initial_results
+        search_response = self.tool.search(
+            query=query,
+            limit=limit,
+            semantic_ratio=semantic_ratio,
+            enable_llm=enable_llm,
+            manual_semantic_ratio=manual_semantic_ratio,
+            enable_keyword_weight_rerank=enable_keyword_weight_rerank,
         )
-        is_relevant, relevant_ids = self._check_relevance(query, current_check_target)
 
-        if is_relevant and collected_results:
+        if search_response.get("status") == "failed":
             yield {
-                "status": "summarizing",
-                "message": "搜尋結果高度相關，正在為您生成公告總結...",
-            }
-            summary = self.tool.summarize(query, list(collected_results.values()))
-            yield {
-                "status": "complete",
-                "summary": summary,
-                "results": list(collected_results.values()),
+                "status": "failed",
+                "stage": "initial_search",
+                "error": search_response.get("error"),
+                "error_stage": search_response.get("stage"),
             }
             return
 
+        initial_results = search_response.get("results", [])
+
+        # 0.1. Initial Filtering & Accumulation
+        for r in initial_results:
+            rid = r.get("id")
+            if rid:
+                all_seen_ids.add(rid)
+                score = r.get("_rankingScore")
+                r["score_pass"] = score is not None and score >= SCORE_PASS_THRESHOLD
+                collected_results[rid] = r
+
+        print(f"[DEBUG] After initial search: collected_results={len(collected_results)}, all_seen_ids={len(all_seen_ids)}")
+
+        # 1. Initial Check
+        yield {
+            "status": "success",
+            "stage": "checking",
+            "message": "正在檢查初始搜尋結果的關聯性...",
+        }
+
+        # Only check relevance if we have high-quality results.
+        # If nothing met the threshold, we automatically consider it 'bad' and need retry.
+        if collected_results:
+            is_relevant, relevant_ids = self._check_relevance(
+                query, list(collected_results.values())
+            )
+
+            if is_relevant:
+                yield {
+                    "status": "success",
+                    "stage": "summarizing",
+                    "message": "搜尋結果高度相關，正在為您生成公告總結...",
+                }
+
+                # Sort by score descending and limit to top-k
+                final_results = sorted(
+                    list(collected_results.values()),
+                    key=lambda x: x.get("_rankingScore", 0),
+                    reverse=True,
+                )[:limit]
+
+                summary = self.tool.summarize(query, final_results)
+                yield {
+                    "status": "success",
+                    "stage": "complete",
+                    "summary": summary,
+                    "results": final_results,
+                }
+                return
+        else:
+            # No results met the threshold
+            yield {
+                "status": "success",
+                "stage": "checking",
+                "message": "初始結果未達關聯度門檻...",
+            }
+
         # 2. If valid results not found or insufficient, start loop
         yield {
-            "status": "rewriting",
+            "status": "success",
+            "stage": "rewriting",
             "message": "初始結果關聯度不足，AI 正在嘗試重寫查詢語句...",
             "original_query": query,
         }
@@ -183,22 +232,23 @@ class SrhSumAgent:
         retry_count = 0
 
         while retry_count < self.max_retries:
-            # We don't manually rewrite here anymore.
-            # We let SearchService logic (via tool.search passing history) handle the "rewrite" implicitly
-            # by generating NEW intents based on history.
-
             # Start search with history
-            # Visual indication of "rewriting" is slightly different now, as it happens INSIDE search steps (intent parsing).
-            # But for UI continuity, we can say "Planning new search strategy..."
-
             yield {
-                "status": "searching",
+                "status": "success",
+                "stage": "searching",
                 "message": f"AI 正在參考歷史紀錄 ({len(query_history)} 筆) 規劃新的搜尋策略...",
             }
 
-            # Search - exclude IDs we already have
+            # Search - exclude ALL IDs we have seen (both good and bad)
             search_response = self.tool.search(
-                query, exclude_ids=list(collected_results.keys()), history=query_history
+                query=query,
+                limit=limit,
+                semantic_ratio=semantic_ratio,
+                enable_llm=enable_llm,
+                manual_semantic_ratio=manual_semantic_ratio,
+                enable_keyword_weight_rerank=enable_keyword_weight_rerank,
+                exclude_ids=list(all_seen_ids),
+                history=query_history,
             )
 
             # Extract actual used queries from response to update history
@@ -216,10 +266,11 @@ class SrhSumAgent:
 
                 new_results = search_response.get("results", [])
 
-                # UI Update: Show what we actually searched for (maybe just the keyword query for brevity)
+                # UI Update
                 if kw:
                     yield {
-                        "status": "searching",
+                        "status": "success",
+                        "stage": "searching",
                         "message": f"正在嘗試新策略搜尋：'{kw}'...",
                         "new_query": kw,
                     }
@@ -231,38 +282,60 @@ class SrhSumAgent:
                 retry_count += 1
                 if retry_count < self.max_retries:
                     yield {
-                        "status": "retrying",
+                        "status": "success",
+                        "stage": "retrying",
                         "message": "未找到結果，嘗試再次調整...",
                     }
                 continue
 
-            # Accumulate new high-score results
+            # Accumulate new high-score results AND update seen_ids
             for r in new_results:
-                score = r.get("_rankingScore")
-                if score is not None and score >= DEFAULT_SIMILARITY_THRESHOLD:
-                    if r.get("id") not in collected_results:
-                        collected_results[r.get("id")] = r
+                rid = r.get("id")
+                if rid:
+                    all_seen_ids.add(rid)
+                    if rid not in collected_results:
+                        score = r.get("_rankingScore")
+                        r["score_pass"] = score is not None and score >= SCORE_PASS_THRESHOLD
+                        collected_results[rid] = r
+
+            print(f"[DEBUG] After retry search: collected_results={len(collected_results)}, all_seen_ids={len(all_seen_ids)}")
 
             # Check relevance on the *updated* collection
-            yield {"status": "checking", "message": "正在評估重新搜尋結果的關聯性..."}
+            yield {
+                "status": "success",
+                "stage": "checking",
+                "message": "正在評估重新搜尋結果的關聯性...",
+            }
 
             if not collected_results:
                 is_relevant = False
+                print(f"[DEBUG] No collected_results, is_relevant=False")
             else:
                 is_relevant, relevant_ids = self._check_relevance(
                     query, list(collected_results.values())
                 )
+                print(f"[DEBUG] Relevance check result: is_relevant={is_relevant}, relevant_ids_count={len(relevant_ids)}")
 
             if is_relevant:
                 yield {
-                    "status": "summarizing",
+                    "status": "success",
+                    "stage": "summarizing",
                     "message": "找到相關資訊，正在為您生成總結內容...",
                 }
-                summary = self.tool.summarize(query, list(collected_results.values()))
+
+                # Sort by score descending and limit to top-k
+                final_results = sorted(
+                    list(collected_results.values()),
+                    key=lambda x: x.get("_rankingScore", 0),
+                    reverse=True,
+                )[:limit]
+
+                summary = self.tool.summarize(query, final_results)
                 yield {
-                    "status": "complete",
+                    "status": "success",
+                    "stage": "complete",
                     "summary": summary,
-                    "results": list(collected_results.values()),
+                    "results": final_results,
                 }
                 return
 
@@ -270,18 +343,36 @@ class SrhSumAgent:
             retry_count += 1
             if retry_count < self.max_retries:
                 yield {
-                    "status": "rewriting",
+                    "status": "success",
+                    "stage": "rewriting",
                     "message": "結果仍未達標，正在進行最後一次嘗試...",
                 }
 
         # Fallback
-        final_list = list(collected_results.values())
-        if final_list:
-            summary = self.tool.summarize(query, final_list)
-            yield {"status": "complete", "summary": summary, "results": final_list}
+        print(f"[DEBUG] Entering fallback: collected_results={len(collected_results)}, all_seen_ids={len(all_seen_ids)}")
+        # Sort by score descending and limit to top-k
+        final_results = sorted(
+            list(collected_results.values()),
+            key=lambda x: x.get("_rankingScore", 0),
+            reverse=True,
+        )[:limit]
+
+        print(f"[DEBUG] Fallback final_results length: {len(final_results)}")
+        if final_results:
+            print(f"[DEBUG] Fallback final_results sample: {[(r.get('id')[:16], r.get('_rankingScore')) for r in final_results[:3]]}")
+
+        if final_results:
+            summary = self.tool.summarize(query, final_results)
+            yield {
+                "status": "success",
+                "stage": "complete",
+                "summary": summary,
+                "results": final_results,
+            }
         else:
             yield {
-                "status": "complete",
+                "status": "success",
+                "stage": "complete",
                 "summary": "抱歉，經由多次搜尋仍未找到足夠相關的資訊以生成摘要。",
                 "results": [],
             }

@@ -41,3 +41,9 @@
 ### 2025-12-30 重構與邏輯整合 (Refactoring & Logic Integration)
 - **SearchService 整合重試邏輯**：將原 `SrhSumAgent` 的重試查詢改寫邏輯移入 `SearchService`。透過 `SEARCH_INTENT_PROMPT` 新增 `history` 參數，讓 LLM 在解析意圖時能參考過往失敗的查詢紀錄，直接生成具備差異化的新查詢策略，取代了原本獨立的 `retry_query_rewrite.py`。
 - **架構簡化**：`SrhSumAgent` 不再負責調用改寫 Prompt，而是維護 `query_history` 並傳遞給 `SearchTool.search()`，实现了更 clean 的職責分離。單元測試已驗證此新流程的正確性。
+
+### 2025-12-30 API 架構重構 - Agent 主導搜尋流程 (API Architecture Refactor)
+將搜尋邏輯完全整合至 `SrhSumAgent`，移除獨立的 `/api/collection_search` 端點，改名 `/api/summary` 為 `/api/search`。Agent 內部自行執行首次搜尋（不再由前端傳入 `initial_results`），實現「搜尋 → 結果生成 → 判定 → 優化搜索 → 生成摘要」的完整流程。修正串流格式，將 `status` 欄位改為僅表示成功/失敗（`success`/`failed`），新增 `stage` 欄位表示執行階段（`searching`, `checking`, `summarizing`, `complete`）。`SearchTool.search()` 新增完整參數支援（`limit`, `semantic_ratio`, `enable_llm` 等），所有配置由前端透過 `/api/search` 傳遞給 Agent。
+
+### 2025-12-30 搜尋過濾與閾值邏輯修正 (Search Filter & Threshold Logic Fix)
+修正 `search_service.py` 中 Meilisearch exclude filter 語法錯誤（`NOT id IN` → `id NOT IN`），解決二次搜索無法正確排除已見文檔的問題。重構 `SrhSumAgent.generate_summary()` 的結果收集邏輯，移除基於 `DEFAULT_SIMILARITY_THRESHOLD` 的硬過濾條件，改為收集所有搜索結果並添加 `score_pass` 欄位標記品質，確保最終返回 `min(limit, len(collected_results))` 篇結果。將 `DEFAULT_SIMILARITY_THRESHOLD` 重命名為 `SCORE_PASS_THRESHOLD` 以明確其語意為「品質標記門檻」而非「過濾閾值」，避免開發與 AI 理解誤導。增強 `test_search.py` debug 功能，添加詳細的搜索調用追蹤、exclude_ids 顯示、filter 字符串檢查與結果詳情輸出。

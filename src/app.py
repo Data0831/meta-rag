@@ -27,13 +27,12 @@ from typing import Dict, Any
 
 from src.database.db_adapter_meili import MeiliAdapter
 from src.agents.srhSumAgent import SrhSumAgent
-from src.services.search_service import SearchService
 from src.config import (
     MEILISEARCH_HOST,
     MEILISEARCH_API_KEY,
     MEILISEARCH_INDEX,
     DEFAULT_SEARCH_LIMIT,
-    DEFAULT_SIMILARITY_THRESHOLD,
+    SCORE_PASS_THRESHOLD,
     DEFAULT_SEMANTIC_RATIO,
     ENABLE_LLM,
     MANUAL_SEMANTIC_RATIO,
@@ -85,111 +84,13 @@ def get_config():
     return jsonify(
         {
             "default_limit": DEFAULT_SEARCH_LIMIT,
-            "default_similarity_threshold": DEFAULT_SIMILARITY_THRESHOLD,
+            "default_similarity_threshold": SCORE_PASS_THRESHOLD,
             "default_semantic_ratio": DEFAULT_SEMANTIC_RATIO,
             "enable_llm": ENABLE_LLM,
             "manual_semantic_ratio": MANUAL_SEMANTIC_RATIO,
             "enable_rerank": ENABLE_KEYWORD_WEIGHT_RERANK,
         }
     )
-
-
-@app.route("/api/collection_search", methods=["POST"])
-def search():
-    try:
-        print("\n" + "=" * 60)
-        print("/api/collection_search called")
-
-        data = request.get_json()
-        print(f"Request data: {data}")
-
-        if not data or "query" not in data:
-            print_red("Missing 'query' field")
-            return jsonify({"error": "Missing 'query' field in request body"}), 400
-
-        query = data["query"]
-        limit = data.get("limit", 20)
-        semantic_ratio = data.get("semantic_ratio", 0.5)
-        enable_llm = data.get("enable_llm", True)
-        manual_semantic_ratio = data.get("manual_semantic_ratio", False)
-        enable_keyword_weight_rerank = data.get("enable_keyword_weight_rerank", True)
-        history = data.get("history", None)
-
-        print(f"  Query: {query}")
-        print(f"  Limit: {limit}")
-        print(f"  Semantic Ratio: {semantic_ratio}")
-        print(f"  Enable LLM: {enable_llm}")
-        print(f"  Manual Semantic Ratio: {manual_semantic_ratio}")
-        print(f"  Enable Rerank: {enable_keyword_weight_rerank}")
-        print(f"  History: {history}")
-
-        # Validate parameters
-        if not isinstance(limit, int) or limit < 1 or limit > 100:
-            return (
-                jsonify(
-                    {
-                        "error": "Invalid 'limit' value. Must be integer between 1 and 100."
-                    }
-                ),
-                400,
-            )
-
-        if (
-            not isinstance(semantic_ratio, (int, float))
-            or semantic_ratio < 0
-            or semantic_ratio > 1
-        ):
-            return (
-                jsonify(
-                    {
-                        "error": "Invalid 'semantic_ratio' value. Must be float between 0.0 and 1.0."
-                    }
-                ),
-                400,
-            )
-
-        # Perform search
-        print("Initializing SearchService...")
-        search_service = SearchService()
-
-        print("Calling search_service.search()...")
-        results = search_service.search(
-            user_query=query,
-            limit=limit,
-            semantic_ratio=semantic_ratio,
-            enable_llm=enable_llm,
-            manual_semantic_ratio=manual_semantic_ratio,
-            enable_keyword_weight_rerank=enable_keyword_weight_rerank,
-            history=history,
-        )
-
-        # Check if search failed
-        if results.get("status") == "failed":
-            error_msg = results.get("error", "Unknown error")
-            stage = results.get("stage", "unknown")
-            print_red(f"Search failed at stage '{stage}': {error_msg}")
-            print("=" * 60 + "\n")
-
-            # Return different HTTP status codes based on stage
-            if stage in ["meilisearch", "embedding", "llm"]:
-                status_code = 503  # Service Unavailable
-            else:
-                status_code = 500  # Internal Server Error
-
-            return jsonify(results), status_code
-
-        print(f"Search completed. Results count: {len(results.get('results', []))}")
-        print("=" * 60 + "\n")
-        return jsonify(results)
-
-    except Exception as e:
-        print_red(f"ERROR in /api/collection_search: {e}")
-        print_red(f"   Error type: {type(e).__name__}")
-        import traceback
-
-        print(f"   Traceback:\n{traceback.format_exc()}")
-        print("=" * 60 + "\n")
-        return jsonify({"error": str(e)}), 500
 
 
 @app.route("/api/chat", methods=["POST"])
@@ -245,31 +146,74 @@ def chat_endpoint():
         return jsonify({"error": str(e)}), 500
 
 
-@app.route("/api/summary", methods=["POST"])
-def generate_summary():
+@app.route("/api/search", methods=["POST"])
+def search_endpoint():
     """
-    API Route: Generate summary for search results (Streaming)
-    處理前端傳來的摘要請求，並串流回傳執行狀態
+    API Route: Search and generate summary (Streaming)
+    處理前端傳來的搜尋請求，Agent 內部執行搜尋、檢查相關性、優化與摘要生成
     """
     try:
         print("\n" + "=" * 60)
-        print("/api/summary (Streaming) called")
+        print("/api/search (Streaming) called")
 
         data = request.get_json()
         if not data:
             return jsonify({"error": "Invalid JSON"}), 400
 
-        user_query = data.get("query", "")
-        search_results = data.get("results", [])
+        query = data.get("query", "")
+        limit = data.get("limit", DEFAULT_SEARCH_LIMIT)
+        semantic_ratio = data.get("semantic_ratio", DEFAULT_SEMANTIC_RATIO)
+        enable_llm = data.get("enable_llm", ENABLE_LLM)
+        manual_semantic_ratio = data.get("manual_semantic_ratio", MANUAL_SEMANTIC_RATIO)
+        enable_keyword_weight_rerank = data.get(
+            "enable_keyword_weight_rerank", ENABLE_KEYWORD_WEIGHT_RERANK
+        )
 
-        if not user_query:
+        if not query:
             return jsonify({"error": "Query is required"}), 400
+
+        print(f"  Query: {query}")
+        print(f"  Limit: {limit}")
+        print(f"  Semantic Ratio: {semantic_ratio}")
+        print(f"  Enable LLM: {enable_llm}")
+        print(f"  Manual Semantic Ratio: {manual_semantic_ratio}")
+        print(f"  Enable Rerank: {enable_keyword_weight_rerank}")
+
+        # Validate parameters
+        if not isinstance(limit, int) or limit < 1 or limit > 100:
+            return (
+                jsonify(
+                    {
+                        "error": "Invalid 'limit' value. Must be integer between 1 and 100."
+                    }
+                ),
+                400,
+            )
+
+        if (
+            not isinstance(semantic_ratio, (int, float))
+            or semantic_ratio < 0
+            or semantic_ratio > 1
+        ):
+            return (
+                jsonify(
+                    {
+                        "error": "Invalid 'semantic_ratio' value. Must be float between 0.0 and 1.0."
+                    }
+                ),
+                400,
+            )
 
         def generate():
             agent = SrhSumAgent()
-            # 呼叫產生器
-            for step in agent.generate_summary(user_query, search_results):
-                # 每個步驟都以 JSON 字串加換行符號回傳
+            for step in agent.generate_summary(
+                query=query,
+                limit=limit,
+                semantic_ratio=semantic_ratio,
+                enable_llm=enable_llm,
+                manual_semantic_ratio=manual_semantic_ratio,
+                enable_keyword_weight_rerank=enable_keyword_weight_rerank,
+            ):
                 yield json.dumps(step, ensure_ascii=False) + "\n"
 
         return Response(
@@ -277,7 +221,7 @@ def generate_summary():
         )
 
     except Exception as e:
-        print_red(f"Summary Endpoint Error: {e}")
+        print_red(f"Search Endpoint Error: {e}")
         import traceback
 
         traceback.print_exc()
