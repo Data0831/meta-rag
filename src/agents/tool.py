@@ -60,5 +60,5 @@ class SearchTool:
             summary = self.llm_client.call_gemini(messages=messages, temperature=0.3)
             return summary
         except Exception as e:
-            print(f"❌ Summary Generation Error: {e}")
+            print(f"Summary Generation Error: {e}")
             return ""

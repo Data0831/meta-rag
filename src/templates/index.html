@@ -134,11 +134,13 @@
             <label class="text-xs font-medium text-slate-600 dark:text-slate-300">語意搜尋權重</label>
             <div class="flex items-center space-x-2">
               <span id="semanticRatioValue" class="text-primary font-bold text-sm">Auto</span>
-              <input type="checkbox" id="manualRatioCheckbox" class="w-3 h-3 text-primary bg-white dark:bg-slate-700 border-slate-300 dark:border-slate-500 rounded focus:ring-primary" title="手動調整權重">
+              <input type="checkbox" id="manualRatioCheckbox"
+                class="w-3 h-3 text-primary bg-white dark:bg-slate-700 border-slate-300 dark:border-slate-500 rounded focus:ring-primary"
+                title="手動調整權重">
             </div>
           </div>
           <div class="relative">
-             <input id="semanticRatioSlider"
+            <input id="semanticRatioSlider"
               class="range-slider w-full h-2 bg-white dark:bg-slate-600 rounded-lg appearance-none cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
               max="100" min="0" step="1" type="range" value="50" disabled />
           </div>
@@ -162,7 +164,8 @@
           <input
             class="w-4 h-4 text-primary bg-white dark:bg-slate-700 border-slate-300 dark:border-slate-500 rounded focus:ring-primary"
             id="enableKeywordWeightRerankCheckbox" type="checkbox" checked />
-          <label class="text-sm text-slate-700 dark:text-slate-300 cursor-pointer" for="enableKeywordWeightRerankCheckbox">啟用重排序 (Rerank)</label>
+          <label class="text-sm text-slate-700 dark:text-slate-300 cursor-pointer"
+            for="enableKeywordWeightRerankCheckbox">啟用重排序 (Rerank)</label>
         </div>
       </div>
       <div class="bg-card-light dark:bg-card-dark rounded-xl p-5 shadow-sm transition-colors duration-300 space-y-4">
@@ -246,7 +249,7 @@
       <div id="intentContainer"
         class="hidden bg-card-light dark:bg-slate-800 rounded-xl p-4 mb-5 shadow-sm border border-slate-100 dark:border-slate-700">
         <div
-          class="flex flex-col md:flex-row justify-between items-start md:items-center border-b border-slate-200 dark:border-slate-700 pb-4 gap-2">
+          class="flex flex-col md:flex-row justify-between items-start md:items-center border-b border-slate-200 dark:border-slate-700 gap-2">
           <div class="flex items-center gap-2">
             <button id="toggleIntentBtn" onclick="toggleIntentDetails()"
               class="hidden p-1 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-full transition-all duration-200 mr-1 flex items-center justify-center">
@@ -393,8 +396,10 @@
               <span class="material-icons-round">smart_toy</span>
               <h3 class="font-bold text-lg">AI 知識助手</h3>
             </div>
-            <button id="clearChatBtn" class="hover:bg-white/20 rounded-full p-2 transition-colors flex items-center justify-center" title="清除對話紀錄">
-                <span class="material-icons-round text-sm">delete_sweep</span>
+            <button id="clearChatBtn"
+              class="hover:bg-white/20 rounded-full p-2 transition-colors flex items-center justify-center"
+              title="清除對話紀錄">
+              <span class="material-icons-round text-sm">delete_sweep</span>
             </button>
           </div>
 

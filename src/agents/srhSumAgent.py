@@ -13,30 +13,85 @@ class SrhSumAgent:
         self.llm_client = LLMClient()
         self.max_retries = 1
 
-    def _check_relevance(self, query: str, results: List[Dict]) -> (bool, List[str]):
-        """
-        Uses LLM to check if results are relevant.
-        Returns (is_relevant, list_of_relevant_ids)
-        """
+    def _check_relevance(self, query: str, results: List[Dict]) -> Dict[str, Any]:
+        from src.config import (
+            SCORE_PASS_THRESHOLD,
+            SCORE_MIN_THRESHOLD,
+            FALLBACK_RESULT_COUNT,
+        )
+
         if not results:
-            return False, []
+            return {
+                "is_relevant": False,
+                "relevant_ids": [],
+                "filtered_count": 0,
+                "score_range": None,
+                "titles": [],
+            }
+
+        filtered_results = []
+        for doc in results:
+            score = doc.get("_rankingScore")
+            if score is not None and score >= SCORE_PASS_THRESHOLD:
+                filtered_results.append(doc)
+
+        if len(filtered_results) < 1:
+            sorted_results = sorted(
+                [r for r in results if r.get("_rankingScore") is not None],
+                key=lambda x: x.get("_rankingScore", 0),
+                reverse=True,
+            )
+            filtered_results = [
+                r
+                for r in sorted_results[:FALLBACK_RESULT_COUNT]
+                if r.get("_rankingScore", 0) >= SCORE_MIN_THRESHOLD
+            ]
+
+        if not filtered_results:
+            return {
+                "is_relevant": False,
+                "relevant_ids": [],
+                "filtered_count": 0,
+                "score_range": None,
+                "titles": [],
+            }
+
         context_preview = ""
-        for doc in results[:5]:  # Check top 5
+        for doc in filtered_results[:5]:
             context_preview += f"ID: {doc.get('id')}\nTitle: {doc.get('title')}\nContent: {str(doc.get('content'))[:200]}...\n\n"
+
         prompt = CHECK_RELEVANCE_PROMPT.format(query=query, documents=context_preview)
         try:
             response = self.llm_client.call_gemini(
                 messages=[{"role": "user", "content": prompt}], temperature=0.0
             )
-            # Parse JSON
             cleaned = response.strip().replace("```json", "").replace("```", "")
             data = json.loads(cleaned)
-            return data.get("relevant", False), data.get("relevant_ids", [])
+
+            scores = [r.get("_rankingScore", 0) for r in filtered_results]
+            score_range = (min(scores), max(scores)) if scores else None
+            titles = [r.get("title", "") for r in filtered_results]
+
+            return {
+                "is_relevant": data.get("relevant", False),
+                "relevant_ids": data.get("relevant_ids", []),
+                "filtered_count": len(filtered_results),
+                "score_range": score_range,
+                "titles": titles,
+            }
         except Exception as e:
             print_red(f"Relevance check failed: {e}")
-            return True, [
-                r.get("id") for r in results
-            ]  # Default to true on error to avoid blocking
+            scores = [r.get("_rankingScore", 0) for r in filtered_results]
+            score_range = (min(scores), max(scores)) if scores else None
+            titles = [r.get("title", "") for r in filtered_results]
+
+            return {
+                "is_relevant": True,
+                "relevant_ids": [r.get("id") for r in filtered_results],
+                "filtered_count": len(filtered_results),
+                "score_range": score_range,
+                "titles": titles,
+            }
 
     def run(
         self,
@@ -75,12 +130,14 @@ class SrhSumAgent:
             return
         initial_results = search_response.get("results", [])
 
+        final_intent = search_response.get("intent", {})
+
         # Yield detailed search results
         yield {
             "status": "success",
             "stage": "search_result",
             "results": initial_results,
-            "intent": search_response.get("intent", {}),
+            "intent": final_intent,
             "meili_filter": search_response.get("meili_filter"),
         }
 
@@ -98,10 +155,28 @@ class SrhSumAgent:
             "message": "正在檢查初始搜尋結果的關聯性...",
         }
         if collected_results:
-            is_relevant, relevant_ids = self._check_relevance(
+            relevance_result = self._check_relevance(
                 query, list(collected_results.values())
             )
-            if is_relevant:
+
+            if relevance_result["filtered_count"] > 0:
+                score_range = relevance_result["score_range"]
+                score_str = (
+                    f"{score_range[0]:.2f}-{score_range[1]:.2f}"
+                    if score_range
+                    else "N/A"
+                )
+                titles_str = "\n".join(
+                    [f"  - {title}" for title in relevance_result["titles"][:3]]
+                )
+
+                yield {
+                    "status": "success",
+                    "stage": "filtered",
+                    "message": f"找到 {relevance_result['filtered_count']} 筆相關資料（分數：{score_str}）\n{titles_str}",
+                }
+
+            if relevance_result["is_relevant"]:
                 yield {
                     "status": "success",
                     "stage": "summarizing",
@@ -118,6 +193,7 @@ class SrhSumAgent:
                     "stage": "complete",
                     "summary": summary,
                     "results": final_results,
+                    "intent": final_intent,
                 }
                 return
         else:
@@ -135,11 +211,6 @@ class SrhSumAgent:
         }
         retry_count = 0
         while retry_count < self.max_retries:
-            yield {
-                "status": "success",
-                "stage": "searching",
-                "message": f"AI 正在參考歷史紀錄 ({len(query_history)} 筆) 規劃新的搜尋策略...",
-            }
             search_response = self.tool.search(
                 query=query,
                 limit=limit,
@@ -162,6 +233,7 @@ class SrhSumAgent:
 
             if search_response.get("status") == "success":
                 intent = search_response.get("intent", {})
+                final_intent = intent
                 kw = intent.get("keyword_query")
                 sq = intent.get("sub_queries", [])
                 if kw and kw not in query_history:
@@ -205,12 +277,30 @@ class SrhSumAgent:
                 "message": "正在評估重新搜尋結果的關聯性...",
             }
             if not collected_results:
-                is_relevant = False
+                relevance_result = {"is_relevant": False, "filtered_count": 0}
             else:
-                is_relevant, relevant_ids = self._check_relevance(
+                relevance_result = self._check_relevance(
                     query, list(collected_results.values())
                 )
-            if is_relevant:
+
+            if relevance_result["filtered_count"] > 0:
+                score_range = relevance_result["score_range"]
+                score_str = (
+                    f"{score_range[0]:.2f}-{score_range[1]:.2f}"
+                    if score_range
+                    else "N/A"
+                )
+                titles_str = "\n".join(
+                    [f"  - {title}" for title in relevance_result["titles"][:3]]
+                )
+
+                yield {
+                    "status": "success",
+                    "stage": "filtered",
+                    "message": f"找到 {relevance_result['filtered_count']} 筆相關資料（分數：{score_str}）\n{titles_str}",
+                }
+
+            if relevance_result["is_relevant"]:
                 yield {
                     "status": "success",
                     "stage": "summarizing",
@@ -227,6 +317,7 @@ class SrhSumAgent:
                     "stage": "complete",
                     "summary": summary,
                     "results": final_results,
+                    "intent": final_intent,
                 }
                 return
             retry_count += 1
@@ -249,6 +340,7 @@ class SrhSumAgent:
                 "stage": "complete",
                 "summary": summary,
                 "results": final_results,
+                "intent": final_intent,
             }
         else:
             yield {

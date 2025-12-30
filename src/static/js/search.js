@@ -233,10 +233,7 @@ async function performSearch() {
                          if (data.results && data.results.length > 0) {
                              const renderData = {
                                  results: data.results,
-                                 intent: null, // Intent might be lost in stream unless passed? Agent doesn't pass it in 'complete' yet.
-                                 // If we want intent, we should modify Agent to pass it. 
-                                 // For now, assume null is okay or Agent passes it in 'complete' payload (not currently in spec).
-                                 // Actually srhSumAgent.py yields 'results' and 'summary'.
+                                 intent: data.intent || null,
                              };
                              
                              // Calculate duration for display (using total time)
