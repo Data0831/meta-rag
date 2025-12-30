@@ -20,9 +20,14 @@ class RAGService:
         history: List[Dict] = None,
     ) -> Dict[str, Any]:
         """
-        RAG 聊天主邏輯
+        RAG 聊天主邏輯 (最終完整版)
+        包含：
+        1. Context 組裝
+        2. XML 建議問題解析 (<suggestions><question>...</question></suggestions>)
+        3. JSON 格式備援
+        4. 黑名單與品質過濾
+        5. 移除「以下是建議問題」等開場白
         """
-
         print(f"RAGService: Processing query '{user_query}'")
 
         # --- 步驟 1: 決定 Context (資料來源) ---
@@ -30,12 +35,11 @@ class RAGService:
         source_type = "search"
 
         if provided_context and len(provided_context) > 0:
-            print(f"  Using {len(provided_context)} documents provided by frontend.")
             results = provided_context
             source_type = "provided"
         else:
-            print(f"  No context provided, searching DB...")
             try:
+                # 這裡假設你有 search_service
                 search_data = self.search_service.search(
                     user_query=user_query, limit=3, semantic_ratio=0.5, enable_llm=True
                 )
@@ -49,31 +53,26 @@ class RAGService:
         if results:
             for idx, doc in enumerate(results, 1):
                 title = doc.get("title", "No Title")
-
-                # ★★★ 修復重點 1: 強制轉字串，防止 None 導致 crash ★★★
+                # 處理內容可能為 None 的情況
                 raw_content = doc.get("content") or doc.get("cleaned_content") or ""
                 content = str(raw_content)
-
                 date = doc.get("year_month", "N/A")
-
+                
+                # 截斷過長內容以節省 Token
                 if len(content) > 800:
                     content = content[:800] + "..."
-
                 context_text += f"Document {idx}:\nTitle: {title}\nDate: {date}\nContent: {content}\n\n"
         else:
-            # 若無資料，回傳提示與引導按鈕
+            # 若無搜尋結果，直接回傳，不浪費 LLM 資源
             return {
-                "answer": "抱歉，目前沒有相關的搜尋結果可供參考，請嘗試先在左側搜尋欄輸入關鍵字。",
-                "suggestions": [
-                    "如何使用搜尋？",
-                    "最近有什麼公告？",
-                    "Copilot 價格查詢",
-                ],
+                "answer": "抱歉，目前沒有相關的搜尋結果可供參考。",
+                "suggestions": ["如何使用搜尋？", "最近有什麼公告？", "Copilot 價格查詢"],
                 "references": [],
             }
 
-        # --- 步驟 3: 組裝 LLM 的 Messages ---
+        # --- 步驟 3: 組裝 Messages ---
         messages = []
+        # 注意：請確認你的 RAG_SYSTEM_PROMPT 已經更新為要求 XML 格式
         full_system_prompt = RAG_SYSTEM_PROMPT.format(context=context_text)
         messages.append({"role": "system", "content": full_system_prompt})
 
@@ -86,84 +85,114 @@ class RAGService:
 
         messages.append({"role": "user", "content": user_query})
 
-        # --- 步驟 4: 呼叫 LLM 生成回答 ---
-        print("  Asking LLM...")
+        # --- 步驟 4: 呼叫 LLM ---
+        print("   Asking LLM...")
         answer_text = ""
         suggestions = []
 
         try:
-            # ★★★ 修復重點 2: 降低 Temperature 減少幻覺 ★★★
-            full_response = self.llm_client.call_gemini(
-                messages=messages, temperature=0.1
-            )
+            # 這裡呼叫你的 LLM Client
+            full_response = self.llm_client.call_gemini(messages=messages, temperature=0.1)
             answer_text = full_response
+            
+            # --- 🔥🔥🔥【解析與清洗核心邏輯】🔥🔥🔥 ---
 
-            # 嘗試解析建議問題
-            suggestion_match = re.search(
-                r"<suggestions>(.*?)</suggestions>", full_response, re.DOTALL
-            )
+            # A. 優先處理 XML <suggestions> 
+            # 使用 re.DOTALL 讓 . 可以匹配換行符號
+            suggestion_match = re.search(r"<suggestions>(.*?)</suggestions>", full_response, re.DOTALL)
+            
             if suggestion_match:
-                try:
-                    json_str = suggestion_match.group(1).strip()
-                    # 清理 Markdown 語法 (```json ... ```)
-                    json_str = re.sub(r"```json\s*", "", json_str)
-                    json_str = re.sub(r"```\s*", "", json_str)
+                xml_content = suggestion_match.group(1).strip()
+                
+                # 優化 Regex：
+                # 1. 允許標籤前後有空白 (\s*)
+                # 2. 忽略大小寫 (re.IGNORECASE)，抓取 <Question> 或 <question>
+                xml_questions = re.findall(r'<\s*question\s*>(.*?)<\s*/\s*question\s*>', xml_content, re.DOTALL | re.IGNORECASE)
+                
+                if xml_questions:
+                    suggestions = [q.strip() for q in xml_questions]
+                
+                # 切割：將整個 <suggestions> 區塊從回答中移除
+                answer_text = answer_text.replace(suggestion_match.group(0), "")
 
-                    parsed = json.loads(json_str)
-                    if isinstance(parsed, list) and len(parsed) > 0:
-                        suggestions = parsed
-                        # 從回答中移除建議區塊
-                        answer_text = full_response.replace(
-                            suggestion_match.group(0), ""
-                        ).strip()
-                except Exception as e:
-                    print(f"❌ JSON Parse Error: {e}")
+            # B. 備援處理 JSON List (以防 LLM 偶爾還是吐 JSON)
+            # 如果上面 XML 沒抓到東西，才跑這段
+            if not suggestions:
+                json_array_pattern = r"\[\s*\"(?:\\.|[^\"\\])*\"(?:,\s*\"(?:\\.|[^\"\\])*\")*\s*\]"
+                matches = list(re.finditer(json_array_pattern, full_response, re.DOTALL))
+                
+                for match in reversed(matches):
+                    json_str = match.group(0)
+                    try:
+                        parsed = json.loads(json_str)
+                        if isinstance(parsed, list):
+                            suggestions = parsed
+                            # 使用索引切割 (Slicing) 移除 JSON 及其後的所有內容
+                            cutoff_index = match.start()
+                            answer_text = full_response[:cutoff_index]
+                            break 
+                    except:
+                        continue
 
-            # ★★★ 修復重點 3: 負面回答檢測與強制保底 ★★★
-            negative_keywords = [
-                "找不到",
-                "未提及",
-                "沒有提到",
-                "無法回答",
-                "抱歉",
-                "資訊不足",
-            ]
-            is_negative_answer = any(
-                keyword in answer_text for keyword in negative_keywords
-            )
+            # C. 殘骸掃除 (移除 Markdown 標記)
+            # 移除結尾可能的 ```xml, ```json, ```
+            answer_text = re.sub(r"```\w*\s*$", "", answer_text.strip(), flags=re.IGNORECASE)
+            answer_text = answer_text.replace("```", "").strip()
 
-            # 情境 A: AI 說找不到 -> 強制換成摘要/通用引導
-            if is_negative_answer:
-                print("  ⚠️ Detected negative answer. Forcing fallback suggestions.")
-                if results:
-                    suggestions = [
-                        "摘要這幾篇公告",
-                        "列出發布日期",
-                        "這幾篇的重點是什麼",
-                    ]
+            # D. 🔥 強力清洗與過濾 🔥
+            if suggestions:
+                final_clean_suggestions = []
+                # 黑名單：過濾掉系統關鍵字或無意義的詞
+                block_list = ["xml", "json", "question", "suggestions", "item", "none", "null", "nan", "[]", "list"]
+                
+                for s in suggestions:
+                    # 1. 移除可能殘留的 HTML/XML 標籤
+                    s = re.sub(r'<[^>]+>', '', str(s)).strip()
+                    
+                    # 2. 過濾條件：
+                    # - 不是空字串
+                    # - 長度 > 4 (避免過短的無意義字串)
+                    # - 不在黑名單內
+                    if (s and len(s) > 4 and s.lower() not in block_list):
+                        final_clean_suggestions.append(s)
+                
+                suggestions = final_clean_suggestions
+
+                # E. 🔥 移除回答尾部的「開場白」 🔥
+                # 避免機器人說完「以下是建議問題：」結果後面是一片空白(因為被我們切掉了)
+                removals = [
+                    "以下是根據搜尋結果，您可能感興趣的後續問題：",
+                    "您可能感興趣的後續問題：",
+                    "相關建議問題：",
+                    "後續問題建議：",
+                    "Suggested questions:",
+                    "Follow-up questions:"
+                ]
+                
+                for pattern in removals:
+                    answer_text = answer_text.replace(pattern, "")
+                
+                # 再次修剪尾部的冒號或空白
+                answer_text = answer_text.strip().rstrip("：:").strip()
+
+            # F. 保底邏輯 (若回答被切光光，給個預設值)
+            if not answer_text.strip():
+                if suggestions:
+                    answer_text = "我已根據搜尋結果整理出回答，請參考下方的建議問題："
                 else:
-                    suggestions = ["重新搜尋", "使用不同關鍵字", "最新公告"]
-
-            # 情境 B: AI 沒給建議 (解析失敗或忘了給) -> 強制補上
-            elif not suggestions:
-                print("  ⚠️ No suggestions found. Using fallback.")
-                suggestions = ["摘要搜尋結果", "列出關鍵重點", "還有其他相關資訊嗎？"]
-
-            if not answer_text:
-                answer_text = "抱歉，系統暫時無法生成回應。"
+                    answer_text = "抱歉，系統暫時無法生成完整回應。"
 
         except Exception as e:
             print(f"❌ LLM Error: {e}")
             answer_text = "抱歉，AI 服務連線發生錯誤。"
-            # 出錯時也要給按鈕，讓使用者可以重試
             suggestions = ["重新整理", "檢查網路", "重試"]
 
         return {
             "answer": answer_text,
-            "suggestions": suggestions,  # 這裡保證永遠會有 list
+            "suggestions": suggestions,
             "references": results if source_type == "search" else [],
         }
-
+    
     def summarize(self, user_query: str, search_results: List[Dict]) -> str:
         """
         針對搜尋結果生成摘要

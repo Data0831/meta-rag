@@ -22,7 +22,7 @@ DATA_JSON = os.path.join(DATA_DIR, "data.json")
 # Meilisearch Settings
 MEILISEARCH_HOST = os.getenv("MEILISEARCH_HOST", "http://localhost:7700")
 MEILISEARCH_API_KEY = os.getenv("MEILISEARCH_API_KEY", "masterKey")
-MEILISEARCH_INDEX = "announcements_v2"
+MEILISEARCH_INDEX = "announcements_v3"
 ## search.js init config
 DEFAULT_SEARCH_LIMIT = 5
 DEFAULT_SIMILARITY_THRESHOLD = 0.81
