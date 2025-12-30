@@ -122,6 +122,7 @@ class SearchService:
         manual_semantic_ratio: bool = False,
         enable_keyword_weight_rerank: bool = True,
         fall_back: bool = False,
+        exclude_ids: List[str] = None,
     ) -> Dict[str, Any]:
 
         # --- Stage 1: Check Meilisearch Connection ---
@@ -160,10 +161,14 @@ class SearchService:
                     # Fix: If LLM returns empty query strings (e.g. for nonsense input), fallback to user_query
                     if not intent.keyword_query or not intent.keyword_query.strip():
                         intent.keyword_query = user_query
-                        traces.append("Warning: LLM returned empty keyword_query, fallback to origin user_query")
+                        traces.append(
+                            "Warning: LLM returned empty keyword_query, fallback to origin user_query"
+                        )
                     if not intent.semantic_query or not intent.semantic_query.strip():
                         intent.semantic_query = user_query
-                        traces.append("Warning: LLM returned empty semantic_query, fallback to origin user_query")
+                        traces.append(
+                            "Warning: LLM returned empty semantic_query, fallback to origin user_query"
+                        )
 
             # Fallback intent if LLM failed or disabled
             if not intent:
@@ -197,6 +202,28 @@ class SearchService:
 
             # 4.3 Prepare Batch Request
             meili_filter = build_meili_filter(intent)
+
+            # Append exclude_ids filter if present
+            if exclude_ids:
+                exclude_filter = (
+                    f"NOT id IN [{', '.join([f'{eid}' for eid in exclude_ids])}]"
+                )
+                # Note: Meilisearch expects strings to be quoted in filter?
+                # Our IDs are usually strings like "34c9..." so quotes might be needed if they contain special chars.
+                # Assuming simple alphanumeric hashes for now, but adding quotes is safer.
+                exclude_filter_safe = (
+                    f"NOT id IN [{', '.join([f'\"{eid}\"' for eid in exclude_ids])}]"
+                )
+
+                if meili_filter:
+                    meili_filter = f"({meili_filter}) AND ({exclude_filter_safe})"
+                else:
+                    meili_filter = exclude_filter_safe
+                traces.append(
+                    f"Applied ID exclusion filter for {len(exclude_ids)} items."
+                )
+
+            # Boost keywords logic
 
             # Boost keywords logic
             boosted_suffix = ""
@@ -289,7 +316,8 @@ class SearchService:
 
             reranker = ResultReranker(all_hits, intent.must_have_keywords)
             reranked_results = reranker.rerank(
-                top_k=pre_merge_limit, enable_keyword_weight_rerank=enable_keyword_weight_rerank
+                top_k=pre_merge_limit,
+                enable_keyword_weight_rerank=enable_keyword_weight_rerank,
             )
 
             if reranked_results and "_rerank_score" in reranked_results[0]:

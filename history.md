@@ -22,3 +22,8 @@
 
 ### 2025-12-29 前端錯誤處理完整化 (Frontend Error Handling)
 建立完整的錯誤處理流程，使前端能正確顯示後端返回的錯誤信息。**後端 (app.py)**：在 /api/collection_search 檢查 search_service.search() 返回的 status 欄位，根據 stage 返回對應 HTTP status code（meilisearch/embedding/llm → 503 Service Unavailable，其他 → 500 Internal Server Error）並使用 print_red() 輸出錯誤日誌。**前端 API (api.js)**：解析錯誤 JSON 中的 stage 欄位，映射為友好的中文標籤（資料庫連線/向量服務/AI 服務/查詢解析/系統錯誤），格式化為「階段標籤 + 詳細訊息」的多行顯示。**前端渲染 (render.js)**：修正 llm_error → llm_warning 欄位名稱，與後端 search_service.py 保持一致。**UI 優化 (index.html)**：重構錯誤顯示區塊，添加錯誤圖示、支援多行顯示（whitespace-pre-line），改為左對齊 flexbox 排版，提升可讀性。此變更確保錯誤信息清晰傳遞給使用者，並區分不同錯誤階段。
+
+### 2025-12-30 代理式與摘要迭代檢索 (Agentic RAG & Iterative Summarization)
+實作 `SrhSumAgent` 專門負責摘要生成的迭代檢索流程。**架構解耦**：將 `summarize` 功能從 `RAGService` 剝離，改由 `app.py` 直接呼叫 Agent，原 `chat` 流程維持調用 `SearchService`。**迭代檢索迴圈 (Iterative Search Loop)**：Agent 執行「搜尋 -> LLM 相關性檢查 -> 查詢重寫」的循環；若初次搜尋結果無效，系統自動排除已知無效 IDs 並重寫查詢再次嘗試 (Max 2 Retries)，提升摘要的準確度。**底層支援**：`SearchService` 新增 `exclude_ids` 參數並建構 `NOT id IN [...]` 過濾器，防止無效文檔重複出現。
+- **Meilisearch 配置修正 (Config Fix)**：為支援代理式搜尋的「排除已讀文檔」功能，修正 `meilisearch_config.py` 將 `id` 加入 `FILTERABLE_ATTRIBUTES`，並執行線上更新指令，解決 `invalid_search_filter` 錯誤。
+- **測試工具增強 (Testing)**：在 `test_search.py` 新增 `test_agent_sum` 函式，並透過 monkey patch 攔截 `_rewrite_query` 實現互動式暫停 (Enter to continue)，便於開發者觀察 Agent 在迭代檢索過程中的決策邏輯。

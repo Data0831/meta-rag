@@ -16,8 +16,9 @@ from dotenv import load_dotenv
 from typing import Dict, Any
 
 from src.database.db_adapter_meili import MeiliAdapter
-from src.services.search_service import SearchService
-from src.services.rag_service import RAGService
+from src.agents.srhSumAgent import SrhSumAgent
+
+
 from src.config import (
     MEILISEARCH_HOST,
     MEILISEARCH_API_KEY,
@@ -233,12 +234,12 @@ def chat_endpoint():
             history=chat_history,
         )
 
-        print("✅ Chat response generated")
+        print("Chat response generated")
         print("=" * 60 + "\n")
         return jsonify(response)
 
     except Exception as e:
-        print_red(f"❌ RAG Endpoint Error: {e}")
+        print_red(f"RAG Endpoint Error: {e}")
         import traceback
 
         traceback.print_exc()
@@ -257,7 +258,7 @@ def generate_summary():
     """
     try:
         print("\n" + "=" * 60)
-        print("📝 /api/summary called")
+        print("/api/summary called")
 
         data = request.get_json()
         if not data:
@@ -273,19 +274,19 @@ def generate_summary():
         print(f"  Query: {user_query}")
         print(f"  Results to summarize: {len(search_results)}")
 
-        # 初始化 RAG Service
-        rag_service = RAGService()
+        # 初始化 Agent
+        agent = SrhSumAgent()
 
-        # 呼叫摘要方法
-        summary_text = rag_service.summarize(user_query, search_results)
+        # 呼叫 Agent 生成摘要
+        summary_text = agent.generate_summary(user_query, search_results)
 
-        print("✅ Summary generated")
+        print("Summary generated")
         print("=" * 60 + "\n")
 
         return jsonify({"summary": summary_text})
 
     except Exception as e:
-        print_red(f"❌ Summary Endpoint Error: {e}")
+        print_red(f"Summary Endpoint Error: {e}")
         import traceback
 
         traceback.print_exc()

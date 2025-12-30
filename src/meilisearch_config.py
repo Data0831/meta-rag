@@ -26,6 +26,7 @@ RANKING_RULES = [
 # Filterable Attributes
 # Attributes that can be used in the 'filter' parameter
 FILTERABLE_ATTRIBUTES = [
+    "id",
     "year_month",  # YYYY-MM format e.g., 2025-12 (Note: hyphen not underscore)
     "year",
     "link",

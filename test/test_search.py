@@ -90,21 +90,66 @@ def test_search(query: str):
         return None
 
 
+from src.agents.srhSumAgent import SrhSumAgent
+
+
+def test_agent_sum(query: str):
+    print("\n" + "=" * 80)
+    print(f"Testing Agentic Summary: {query}")
+    print("=" * 80 + "\n")
+
+    agent = SrhSumAgent()
+
+    # Monkey patch _rewrite_query to pause and print
+    original_rewrite = agent._rewrite_query
+
+    def mocked_rewrite(original, current, bad_results):
+        print(f"\n[DEBUG] Relevance Check Failed. Preparing to rewrite query...")
+        print(f"  Current Query: '{current}'")
+        print(f"  Result Count: {len(bad_results)}")
+        print(f"  Action: Rewriting query to find better results.")
+
+        input("\n>>> Press Enter to start query rewrite and retry search...")
+
+        new_q = original_rewrite(original, current, bad_results)
+        print(f"  Rewritten Query: '{new_q}'")
+        return new_q
+
+    agent._rewrite_query = mocked_rewrite
+
+    # Run agent summary
+    # Note: generate_summary starts with a search using provided results?
+    # Wait, generate_summary(query, initial_results).
+    # So we need to do an initial search first to pass to it, OR
+    # Just call agent.run(query) but user specifically asked for "Agentic RAG & Iterative Summarization".
+    # In app.py /api/summary, we receive results from frontend.
+    # Here in test, we should simulate that.
+
+    print("[1] Performing Initial Search (Simulation)...")
+    service = SearchService()
+    initial_search = service.search(query, limit=3, semantic_ratio=SEMANTIC_RATIO)
+    initial_results = initial_search.get("results", [])
+    print(f"  Initial Results: {len(initial_results)}")
+
+    print("[2] clearCalling Agent.generate_summary...")
+    summary = agent.generate_summary(query, initial_results)
+
+    print("\n" + "=" * 80)
+    print("[Final Summary]")
+    print(summary)
+    print("=" * 80)
+
+
 def main():
     test_queries = [
-        # "2025 年 4 月份價格相關公告",
-        "與競爭對手 gemini 相關資料"
-        # "windows 11 相關公告"
-        # "windows 11 server 漏洞"
-        # "powerbi 近三個月更新"
-        # "powerbi 近期更新"
-        # "與 Gemini 相關資"
-        # "123"
-        # "KB12453115"
-        # "與 gemini 競爭對手相關公告"
+        "與競爭對手 gemini 相關資料",
     ]
+
+    # Switch to test_agent_sum for now as requested
     for query in test_queries:
-        test_search(query)
+        # test_search(query)
+        test_agent_sum(query)
+
     print("\n" + "=" * 80)
     print("Test Suite Completed")
     print("=" * 80)
@@ -113,6 +158,7 @@ def main():
 if __name__ == "__main__":
     if len(sys.argv) > 1:
         custom_query = " ".join(sys.argv[1:])
-        test_search(custom_query)
+        test_agent_sum(custom_query)
+        # test_search(custom_query)
     else:
         main()
