@@ -54,10 +54,13 @@ Construct a concise string of key terms suitable for BM25/keyword matching (`key
   - **Requirement**: Output BOTH the English and Traditional Chinese versions of the entity to maximize recall. (e.g., "雲合作夥伴計劃 Cloud Partner Program").
   - Do NOT duplicate words if they are identical in both languages.
 - **Critical Keywords (Must Have)**:
-  - Identify proper nouns or technical terms that are **absolutely essential** for the query relevance (e.g., "GEMINI", "GPT-4").
-  - **Requirement**: Output BOTH the English and Traditional Chinese versions of the critical term to ensure matching in localized documents (e.g., ["Copilot", "Copilot 助手"]).
+  - Identify truly unique and essential terms: Product codes, specific years, or highly specific entities (e.g., "KB5044284", "Azure OpenAI", "GEMINI").
+  - **Constraints**: 
+    - **Length**: MUST NOT exceed 3 words (English) or 6 characters (Chinese). 
+    - **Core Only**: If a term is too long (e.g. "AI Cloud Partner Program"), extract only the CORE entity (e.g. "AI Cloud").
+  - **Requirement**: Output BOTH English and Traditional Chinese versions only if localized matching is critical. Otherwise, use the most specific form.
   - Add these to the `must_have_keywords` list.
-  - These will be enforced as exact matches (via boosting).
+  - These will be enforced as exact matches (via boosting). Avoid generic terms here.
 - **Noise Reduction**:
   - **REMOVE** generic stop words that dilute search precision on the Microsoft site: "Microsoft", "Announcement" (公告), "Article" (文章), "Data" (資料), "Details" (細節), "Query" (查詢).
   - **KEEP** high-discrimination intent words if they modify the entity: "Pricing" (價格), "Security" (安全性/資安), "Compliance" (合規), "Error" (錯誤).
@@ -146,7 +149,7 @@ Query: "三個月內「AI 雲合作夥伴計劃」相關公告"
     "year": [],
     "links": [],
     "keyword_query": "AI 雲合作夥伴計劃 AI Cloud Partner Program",
-    "must_have_keywords": ["AI Cloud Partner Program"],
+    "must_have_keywords": ["AI Cloud"],
     "semantic_query": "過去三個月 AI 雲合作夥伴計劃的相關公告",
     "sub_queries": [
         "AI Cloud Partner Program announcements past 3 months",

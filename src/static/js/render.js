@@ -164,7 +164,7 @@ function updateIntentDisplay(data) {
     // Update Boosted Keywords
     const boostedContainer = document.getElementById('intentBoostedContainer');
     const boostedKeywordsEl = document.getElementById('intentBoostedKeywords');
-    
+
     if (boostedKeywordsEl) {
         boostedKeywordsEl.innerHTML = '';
         if (intent.must_have_keywords && intent.must_have_keywords.length > 0) {
@@ -234,7 +234,7 @@ function renderResultCard(result, rank, searchConfig, finalSemanticRatio) {
     const displayScore = Math.floor(rawScore * 100) + '%';
 
     // Map fields
-    const title = result.title || '無標題';
+    const title = result.main_title || '無標題';
     const workspace = result.workspace || 'N/A';
     const date = result.year_month || 'N/A';
     const link = result.link || '#';
@@ -409,7 +409,7 @@ export function applyThresholdToResults() {
 export function toggleIntentDetails() {
     const details = DOM.llmDetails;
     const icon = document.getElementById('toggleIntentIcon');
-    
+
     if (!details || !icon) return;
 
     const isHidden = details.classList.contains('hidden');

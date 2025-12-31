@@ -148,18 +148,16 @@ function renderStructuredSummary(summary, linkMapping) {
 
     let html = '';
 
-    // Part 1: Brief Answer (置顶，突出显示)
+    // Part 1: Brief Answer (置頂，極簡漸層風格)
     if (brief_answer) {
-        const icon = isNoResults ? 'warning' : 'check_circle';
-        const iconColor = isNoResults ? 'text-amber-500' : 'text-green-500';
-        const bgColor = isNoResults ? 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800' : 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800';
+        const icon = isNoResults ? 'warning' : 'auto_awesome';
+        const iconColor = isNoResults ? 'text-amber-500' : 'text-primary';
+        const statusClass = isNoResults ? 'warning' : '';
 
         html += `
-            <div class="mb-6 p-4 rounded-lg border ${bgColor}">
-                <div class="flex items-center gap-2">
-                    <span class="material-icons-round ${iconColor}">${icon}</span>
-                    <span class="text-lg font-bold text-slate-800 dark:text-slate-100">${brief_answer}</span>
-                </div>
+            <div class="brief-answer-gradient-bar ${statusClass}">
+                <span class="material-icons-round ${iconColor} text-2xl">${icon}</span>
+                <span class="brief-answer-text text-slate-800 dark:text-slate-100">${brief_answer}</span>
             </div>
         `;
     }
@@ -231,7 +229,7 @@ async function performSearch() {
 
     // Reset UI states
     hideAllStates();
-    
+
     // Use summary container for status updates instead of generic loading dots
     const summaryContainer = document.getElementById('summaryContainer');
     const summaryContent = document.getElementById('summaryContent');
@@ -241,7 +239,7 @@ async function performSearch() {
     if (summaryContainer) {
         summaryContainer.classList.remove('hidden');
         summaryTitle.innerHTML = `<span class="material-icons-round animate-pulse mr-2 align-middle text-primary">manage_search</span>正在初始化搜尋...`;
-        
+
         // Show Skeleton in content area while working
         summaryContent.innerHTML = `
             <div class="animate-pulse space-y-3">
@@ -262,7 +260,7 @@ async function performSearch() {
     try {
         // Initiate Stream
         const response = await performSearchStream(query);
-        
+
         if (!response.body) throw new Error("ReadableStream not supported");
 
         const reader = response.body.getReader();
@@ -286,62 +284,97 @@ async function performSearch() {
 
                     // Handle Status Updates
                     if (data.status === "failed") {
-                         throw new Error(data.error || "Unknown error during search");
+                        // Display error in summary container based on error stage
+                        let errorTitle = "搜尋失敗";
+                        const errorStage = data.error_stage || data.stage || "unknown";
+
+                        switch (errorStage) {
+                            case "meilisearch":
+                                errorTitle = "資料庫連線失敗";
+                                break;
+                            case "embedding":
+                                errorTitle = "向量服務失敗";
+                                break;
+                            case "llm":
+                                errorTitle = "語言模型服務失敗";
+                                break;
+                            case "intent_parsing":
+                                errorTitle = "意圖解析失敗";
+                                break;
+                            case "initial_search":
+                                errorTitle = "初始搜尋失敗";
+                                break;
+                            case "summarizing":
+                                errorTitle = "摘要生成失敗";
+                                break;
+                            default:
+                                errorTitle = "搜尋過程發生錯誤";
+                        }
+
+                        if (summaryContainer) {
+                            summaryTitle.innerHTML = `<span class="material-icons-round mr-2 align-middle text-red-500">error</span>${errorTitle}`;
+                            summaryContent.innerHTML = `
+                                <div class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
+                                    <div class="text-red-800 dark:text-red-200 font-mono text-sm whitespace-pre-wrap break-words">${data.error || "Unknown error"}</div>
+                                </div>
+                            `;
+                        }
+                        return; // Stop processing stream
                     }
 
                     if (data.stage === "searching") {
-                         summaryTitle.innerHTML = `<span class="material-icons-round animate-spin mr-2 align-middle text-primary">sync</span>${data.message}`;
-                         // Blur time if needed
-                         if (searchTimeValue) {
+                        summaryTitle.innerHTML = `<span class="material-icons-round animate-spin mr-2 align-middle text-primary">sync</span>${data.message}`;
+                        // Blur time if needed
+                        if (searchTimeValue) {
                             searchTimeValue.style.filter = 'blur(3px)';
                             searchTimeValue.style.opacity = '0.5';
-                         }
+                        }
                     } else if (data.stage === "checking") {
-                         summaryTitle.innerHTML = `<span class="material-icons-round animate-pulse mr-2 align-middle text-secondary">fact_check</span>${data.message}`;
+                        summaryTitle.innerHTML = `<span class="material-icons-round animate-pulse mr-2 align-middle text-secondary">fact_check</span>${data.message}`;
                     } else if (data.stage === "rewriting") {
-                         summaryTitle.innerHTML = `<span class="material-icons-round animate-pulse mr-2 align-middle text-amber-500">edit_note</span>${data.message}`;
+                        summaryTitle.innerHTML = `<span class="material-icons-round animate-pulse mr-2 align-middle text-amber-500">edit_note</span>${data.message}`;
                     } else if (data.stage === "retrying") {
-                         summaryTitle.innerHTML = `<span class="material-icons-round animate-spin mr-2 align-middle text-amber-500">sync_problem</span>${data.message}`;
+                        summaryTitle.innerHTML = `<span class="material-icons-round animate-spin mr-2 align-middle text-amber-500">sync_problem</span>${data.message}`;
                     } else if (data.stage === "summarizing") {
-                         summaryTitle.innerHTML = `<span class="material-icons-round animate-pulse mr-2 align-middle text-primary">auto_awesome</span>${data.message}`;
+                        summaryTitle.innerHTML = `<span class="material-icons-round animate-pulse mr-2 align-middle text-primary">auto_awesome</span>${data.message}`;
                     } else if (data.stage === "complete") {
-                         // Finalize
-                         const totalEndTime = performance.now();
-                         const totalDuration = Math.round(totalEndTime - totalStartTime);
+                        // Finalize
+                        const totalEndTime = performance.now();
+                        const totalDuration = Math.round(totalEndTime - totalStartTime);
 
-                         if (searchTimeValue) {
+                        if (searchTimeValue) {
                             searchTimeValue.textContent = totalDuration;
                             searchTimeValue.style.filter = 'none';
                             searchTimeValue.style.opacity = '1';
-                         }
+                        }
 
-                         // Update Title
-                         summaryTitle.innerHTML = `以下為「<span class="text-primary">${query}</span>」的相關公告總結：`;
+                        // Update Title
+                        summaryTitle.innerHTML = `以下為「<span class="text-primary">${query}</span>」的相關公告總結：`;
 
-                         // Render Structured Summary
-                         if (data.summary) {
+                        // Render Structured Summary
+                        if (data.summary) {
                             summaryContent.innerHTML = renderStructuredSummary(data.summary, data.link_mapping || {});
-                         } else {
+                        } else {
                             summaryContent.innerHTML = "<p>無相關總結。</p>";
-                         }
+                        }
 
-                         // Render Results
-                         if (data.results && data.results.length > 0) {
-                             const renderData = {
-                                 results: data.results,
-                                 intent: data.intent || null,
-                             };
-                             
-                             // Calculate duration for display (using total time)
-                             renderResults(renderData, totalDuration, query);
-                         } else {
-                             // No results found
-                             if (DOM.resultsContainer) DOM.resultsContainer.classList.add('hidden');
-                             // Maybe show empty state if summary is also empty?
-                             if (!data.summary) {
-                                 showError("未找到相關結果");
-                             }
-                         }
+                        // Render Results
+                        if (data.results && data.results.length > 0) {
+                            const renderData = {
+                                results: data.results,
+                                intent: data.intent || null,
+                            };
+
+                            // Calculate duration for display (using total time)
+                            renderResults(renderData, totalDuration, query);
+                        } else {
+                            // No results found
+                            if (DOM.resultsContainer) DOM.resultsContainer.classList.add('hidden');
+                            // Maybe show empty state if summary is also empty?
+                            if (!data.summary) {
+                                showError("未找到相關結果");
+                            }
+                        }
                     }
 
                     // Handle intermediate results if available (optional, dependent on agent implementation)

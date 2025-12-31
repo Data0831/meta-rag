@@ -5,4 +5,5 @@
 與競爭對手 GEMINI  相關的公告
 powerBI 慶祝
 Windows 用戶端
-計價方式
+powerbi 計價方式
+windows 11 server 漏洞

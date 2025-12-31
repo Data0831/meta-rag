@@ -29,8 +29,8 @@ ENABLE_KEYWORD_WEIGHT_RERANK = True
 # Backend-only Configuration (not exposed to frontend)
 # ============================================================================
 PRE_SEARCH_LIMIT = 50
-NO_HIT_PENALTY_FACTOR = 0.25
-KEYWORD_HIT_BOOST_FACTOR = 0.55
+NO_HIT_PENALTY_FACTOR = 0.15
+KEYWORD_HIT_BOOST_FACTOR = 0.60
 
 
 def get_score_min_threshold():
