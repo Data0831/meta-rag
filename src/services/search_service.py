@@ -187,43 +187,31 @@ class SearchService:
                     keyword_query=user_query, semantic_query=user_query, sub_queries=[]
                 )
 
-        # Override limit if specified in intent
-        if intent.limit is not None:
-            limit = intent.limit
-
-        
-        # 如果前端有傳來 website_filters，強制覆蓋 intent 裡的設定
-        if website_filters and len(website_filters) > 0:
-            print(f"UI Override: Applying website filters: {website_filters}")
-            intent.websites = website_filters
-        else:
-            # 如果前端沒傳 (例如全選或沒選)，確保它是空的，避免 None 導致錯誤
-            if not hasattr(intent, 'websites') or intent.websites is None:
-                intent.websites = []
-
-        # Use LLM-recommended semantic_ratio logic:
-        # If manual_semantic_ratio is True, we respect the user's provided ratio.
-        # If manual_semantic_ratio is False (Auto Mode), we use LLM's recommendation if available.
-        if not manual_semantic_ratio and intent.recommended_semantic_ratio is not None:
-            semantic_ratio = intent.recommended_semantic_ratio
-            print(f"Auto Mode: Using LLM-recommended semantic_ratio: {semantic_ratio:.2f}")
-        else:
-            print(f"Manual Mode (or no LLM rec): Using provided semantic_ratio: {semantic_ratio:.2f}")
-
-        # 2. Build Meilisearch filter expression
-        # 這裡會呼叫 db_adapter_meili.py 的 build_meili_filter
-        # 因為上面已經把 intent.websites 更新了，所以這裡會自動產生 website IN [...] 的語法
-        meili_filter = build_meili_filter(intent)
+            # Override limit if specified in intent
             if intent.limit is not None:
                 limit = intent.limit
-            if (
-                not manual_semantic_ratio
-                and intent.recommended_semantic_ratio is not None
-            ):
+
+            # 如果前端有傳來 website_filters，強制覆蓋 intent 裡的設定
+            if website_filters and len(website_filters) > 0:
+                print(f"UI Override: Applying website filters: {website_filters}")
+                intent.websites = website_filters
+            else:
+                # 如果前端沒傳 (例如全選或沒選)，確保它是空的，避免 None 導致錯誤
+                if not hasattr(intent, 'websites') or intent.websites is None:
+                    intent.websites = []
+
+            # Use LLM-recommended semantic_ratio logic:
+            if not manual_semantic_ratio and intent.recommended_semantic_ratio is not None:
                 semantic_ratio = intent.recommended_semantic_ratio
+                print(f"Auto Mode: Using LLM-recommended semantic_ratio: {semantic_ratio:.2f}")
+            else:
+                print(f"Manual Mode (or no LLM rec): Using provided semantic_ratio: {semantic_ratio:.2f}")
 
+            # 2. Build Meilisearch filter expression
+            meili_filter = build_meili_filter(intent)
+
+            # 修正處：直接接著建立 Query Candidates，刪除了原程式碼中重複且縮排錯誤的 limit/semantic_ratio 設定區塊
             query_candidates = []
-
             query_candidates.append(intent.keyword_query)
             traces.append(f"Primary Query: {intent.keyword_query}")
 
@@ -232,7 +220,6 @@ class SearchService:
                     if sq and sq not in query_candidates:
                         query_candidates.append(sq)
                         traces.append(f"Sub-Query: {sq}")
-            meili_filter = build_meili_filter(intent)
 
             ai_has_date_constraint = intent.year_month and len(intent.year_month) > 0
 
@@ -242,11 +229,9 @@ class SearchService:
                 )
             else:
                 date_filters = []
-
                 if start_date:
                     ym_start = start_date[:7]
                     date_filters.append(f'year_month >= "{ym_start}"')
-
                 if end_date:
                     ym_end = end_date[:7]
                     date_filters.append(f'year_month <= "{ym_end}"')
@@ -264,7 +249,6 @@ class SearchService:
                 exclude_filter_safe = (
                     f"id NOT IN [{', '.join([f'\"{eid}\"' for eid in exclude_ids])}]"
                 )
-
                 if meili_filter:
                     meili_filter = f"({meili_filter}) AND ({exclude_filter_safe})"
                 else:

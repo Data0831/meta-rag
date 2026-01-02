@@ -137,12 +137,22 @@ export function setupChatbot() {
             const finalResults = validResults;
             console.log(`Chatbot Context: 使用了 ${finalResults.length} 筆資料 (門檻: ${thresholdPercent}%)`);
 
-            const currentContext = finalResults.map(item => ({
-                title: item.title,
-                content: item.content || item.cleaned_content,
-                link: item.link,
-                year_month: item.year_month
-            }));
+            const currentContext = finalResults.map(item => {
+                // 1. 先做運算邏輯
+                const originalIndex = currentResults.indexOf(item);
+                const rank = originalIndex + 1;
+
+                // 2. 再明確 return 物件
+                return {
+                    // 把編號直接寫進 title 裡
+                    title: `[No.${rank}] ${item.title}`, 
+                    
+                    // 確保內容不為空
+                    content: item.content || item.cleaned_content || item.body || item.text || "", 
+                    link: item.link,
+                    year_month: item.year_month
+                };
+            });
 
             const response = await fetch('/api/chat', {
                 method: 'POST',
