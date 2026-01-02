@@ -9,7 +9,7 @@ class AnnouncementDoc(BaseModel):
 
     id: str = Field(..., description="Unique document ID")
     link: str = Field(..., description="Source URL")
-    year: str = Field(..., description="Year e.g. 2025")
+    year: Optional[str] = Field(None, description="Year e.g. 2025")
     year_month: str = Field(
         ..., alias="year_month", description="Year and month e.g. 2025-12"
     )
@@ -43,6 +43,10 @@ class SearchIntent(BaseModel):
     links: List[str] = Field(
         default_factory=list,
         description="List of source URLs to filter by.",
+    )
+    websites: List[str] = Field(
+        default_factory=list,
+        description="List of website source descriptions to filter by.",
     )
     keyword_query: str = Field(..., description="Optimized keyword query for FTS")
     semantic_query: str = Field(

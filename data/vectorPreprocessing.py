@@ -16,7 +16,11 @@ from src.config import (
     MEILISEARCH_INDEX,
 )
 from src.schema.schemas import AnnouncementDoc
-from src.database.db_adapter_meili import MeiliAdapter, transform_doc_for_meilisearch
+from src.database.db_adapter_meili import (
+    MeiliAdapter,
+    transform_doc_for_meilisearch,
+    transform_doc_metadata_only,
+)
 from src.database.vector_utils import get_embedding
 from src.tool.ANSI import print_red, print_green, print_yellow
 
@@ -24,6 +28,8 @@ load_dotenv()
 
 REMOVE_JSON = os.path.join(os.path.dirname(__file__), "remove.json")
 BATCH_SIZE = 100
+
+MEILISEARCH_INDEX = "announcements_v4"
 
 
 def load_processed_data() -> List[AnnouncementDoc]:
@@ -242,6 +248,39 @@ def auto_sync():
     print("\n✓ Auto sync completed.")
 
 
+def update_metadata_by_id():
+    print("\n--- Updating Document Metadata by IDs (No Embedding change) ---")
+    docs = load_processed_data()
+    if not docs:
+        print_yellow("No documents to process.")
+        return
+    print(f"Loaded {len(docs)} documents from data.json")
+    adapter = MeiliAdapter(
+        host=MEILISEARCH_HOST,
+        api_key=MEILISEARCH_API_KEY,
+        collection_name=MEILISEARCH_INDEX,
+    )
+    meili_docs = []
+    for i, doc in enumerate(docs):
+        meili_doc = transform_doc_metadata_only(doc)
+        meili_docs.append(meili_doc)
+
+        if i == 0:
+            print_yellow("\n[DEBUG] First document to be updated:")
+            print_yellow(json.dumps(meili_doc, indent=2, ensure_ascii=False))
+
+        if len(meili_docs) >= BATCH_SIZE:
+            print(f"  Updating batch of {len(meili_docs)} documents...")
+            adapter.update_documents(meili_docs)
+            meili_docs = []
+
+    if meili_docs:
+        print(f"  Updating final batch of {len(meili_docs)} documents...")
+        adapter.update_documents(meili_docs)
+
+    print_green("\n✓ Metadata update completed.")
+
+
 def main():
     """
     Main entry point for vector preprocessing.
@@ -256,9 +295,10 @@ def main():
         1. Clear Meilisearch index
         2. Process and Write (Load parocessed.json -> Embed -> Write to Meilisearch)
         3. Auto Sync (Delete from remove.json -> Add new from data.json)
+        4. Update Metadata by ID (Load data.json -> Partial Update -> No Embed)
         Q. Quit
 
-        Enter your choice (1, 2, 3, or Q): """
+        Enter your choice (1, 2, 3, 4, or Q): """
                 )
             )
             .strip()
@@ -270,6 +310,8 @@ def main():
             process_and_write()
         elif choice == "3":
             auto_sync()
+        elif choice == "4":
+            update_metadata_by_id()
         elif choice == "Q":
             print("Exiting...")
             return

@@ -7,3 +7,4 @@ powerBI 慶祝
 Windows 用戶端
 powerbi 計價方式
 windows 11 server 漏洞
+KB5065789

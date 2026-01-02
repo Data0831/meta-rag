@@ -30,6 +30,7 @@ FILTERABLE_ATTRIBUTES = [
     "year_month",  # YYYY-MM format e.g., 2025-12 (Note: hyphen not underscore)
     "year",
     "link",
+    "website",
     # "workspace",  # e.g., General, Security
 ]
 

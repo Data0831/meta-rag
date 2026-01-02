@@ -102,6 +102,22 @@ class MeiliAdapter:
                 "stage": "meilisearch_multi_search",
             }
 
+    def update_documents(self, documents: List[Dict[str, Any]]) -> None:
+        """
+        Partially update documents in Meilisearch.
+        Existing fields not present in the payload will be preserved.
+        """
+        if not documents:
+            print("No documents to update.")
+            return
+        try:
+            task_info = self.index.update_documents(documents, primary_key="id")
+            print(f"✓ Updated {len(documents)} documents in Meilisearch.")
+            print(f"  Task UID: {task_info.task_uid}")
+        except Exception as e:
+            print_red(f"Error updating documents in Meilisearch: {e}")
+            raise
+
     def reset_index(self) -> None:
         try:
             task_info = self.index.delete_all_documents()
@@ -166,12 +182,21 @@ def build_meili_filter(intent) -> Optional[str]:
     if intent.links:
         links_str = ", ".join([f"'{l}'" for l in intent.links])
         conditions.append(f"link IN [{links_str}]")
+    if hasattr(intent, "websites") and intent.websites:
+        websites_str = ", ".join([f"'{w}'" for w in intent.websites])
+        conditions.append(f"website IN [{websites_str}]")
     return " AND ".join(conditions) if conditions else None
 
 
 def transform_doc_for_meilisearch(
     doc: AnnouncementDoc, embedding_vector: List[float]
 ) -> Dict[str, Any]:
+    doc_dict = transform_doc_metadata_only(doc)
+    doc_dict["_vectors"] = {"default": embedding_vector}
+    return doc_dict
+
+
+def transform_doc_metadata_only(doc: AnnouncementDoc) -> Dict[str, Any]:
     return {
         "id": doc.id,
         "link": doc.link,
@@ -183,5 +208,5 @@ def transform_doc_for_meilisearch(
         "heading_link": doc.heading_link,
         "content": doc.content,
         "cleaned_content": doc.cleaned_content,
-        "_vectors": {"default": embedding_vector},
+        "website": doc.website,
     }
