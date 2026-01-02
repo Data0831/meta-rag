@@ -5,13 +5,13 @@
 
 import { searchConfig, loadBackendConfig } from './config.js';
 import * as DOM from './dom.js';
-import { performCollectionSearch } from './api.js';
-import { showLoading, showError } from './ui.js';
+import { performSearchStream } from './api.js';
+import { showLoading, showError, hideAllStates } from './ui.js';
 import { renderResults, applyThresholdToResults, toggleResult, toggleIntentDetails, currentResults } from './render.js';
 
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
-    console.log('🚀 Collection Search initialized');
+    console.log('Collection Search initialized');
 
     // Load backend configuration
     loadBackendConfig();
@@ -19,6 +19,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Setup event listeners
     setupEventListeners();
     setupSearchConfig();
+    setupChatbot();
 });
 
 /**
@@ -96,6 +97,14 @@ function setupSearchConfig() {
         });
     }
 
+    // Enable Rerank Checkbox
+    const enableKeywordWeightRerankCheckbox = document.getElementById('enableKeywordWeightRerankCheckbox');
+    if (enableKeywordWeightRerankCheckbox) {
+        enableKeywordWeightRerankCheckbox.addEventListener('change', (e) => {
+            searchConfig.enableKeywordWeightRerank = e.target.checked;
+        });
+    }
+
     const startDateInput = document.getElementById('startDateInput');
     if (startDateInput) {
         startDateInput.addEventListener('change', (e) => {
@@ -130,7 +139,104 @@ function setupEventListeners() {
 }
 
 /**
- * Perform search operation
+ * Convert citation markers [1], [2] etc. to hyperlinks
+ */
+function convertCitationsToLinks(text, linkMapping) {
+    if (!text || !linkMapping) return text;
+
+    return text.replace(/\[(\d+)\]/g, (match, num) => {
+        const link = linkMapping[num];
+        if (link) {
+            return `<a href="${link}" target="_blank" class="citation-link" style="color: #3b82f6; text-decoration: none; font-weight: 600; vertical-align: super; font-size: 0.85em;">${match}</a>`;
+        }
+        return match;
+    });
+}
+
+/**
+ * Render structured summary with three parts
+ */
+function renderStructuredSummary(summary, linkMapping) {
+    if (typeof summary === 'string') {
+        return marked.parse(summary);
+    }
+
+    const { brief_answer, detailed_answer, general_summary } = summary;
+
+    const isNoResults = brief_answer === '沒有參考資料' || brief_answer === '從內容 search 不到';
+
+    let html = '';
+
+    // Part 1: Brief Answer (置頂，極簡漸層風格)
+    if (brief_answer) {
+        const icon = isNoResults ? 'warning' : 'auto_awesome';
+        const iconColor = isNoResults ? 'text-amber-500' : 'text-primary';
+        const statusClass = isNoResults ? 'warning' : '';
+
+        html += `
+            <div class="brief-answer-gradient-bar ${statusClass}">
+                <span class="material-icons-round ${iconColor} text-2xl">${icon}</span>
+                <span class="brief-answer-text text-slate-800 dark:text-slate-100">${brief_answer}</span>
+            </div>
+        `;
+    }
+
+    // Part 2: Detailed Answer
+    if (detailed_answer && detailed_answer.trim()) {
+        const detailedParsed = marked.parse(detailed_answer);
+        const detailedWithLinks = convertCitationsToLinks(detailedParsed, linkMapping);
+
+        html += `
+            <div class="mb-6">
+                <h4 class="font-bold text-slate-700 dark:text-slate-300 mb-2">詳細說明</h4>
+                <div class="text-slate-600 dark:text-slate-300 leading-relaxed prose prose-sm dark:prose-invert max-w-none">
+                    ${detailedWithLinks}
+                </div>
+            </div>
+        `;
+    } else if (detailed_answer === '') {
+        html += `
+            <div class="mb-6">
+                <h4 class="font-bold text-slate-700 dark:text-slate-300 mb-2">詳細說明</h4>
+                <p class="text-slate-400 dark:text-slate-500 text-sm italic">無詳細內容</p>
+            </div>
+        `;
+    }
+
+    // Part 3: General Summary
+    if (general_summary && general_summary.trim()) {
+        const summaryParsed = marked.parse(general_summary);
+        const summaryWithLinks = convertCitationsToLinks(summaryParsed, linkMapping);
+
+        html += `
+            <div class="mb-4">
+                <h4 class="font-bold text-slate-700 dark:text-slate-300 mb-2">內容總結</h4>
+                <div class="text-slate-600 dark:text-slate-300 leading-relaxed prose prose-sm dark:prose-invert max-w-none">
+                    ${summaryWithLinks}
+                </div>
+            </div>
+        `;
+
+        // Add list styling
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = html;
+        const ul = tempDiv.querySelector('ul');
+        if (ul) ul.classList.add('list-disc', 'pl-5', 'space-y-1');
+        html = tempDiv.innerHTML;
+    } else if (general_summary === '') {
+        html += `
+            <div class="mb-4">
+                <h4 class="font-bold text-slate-700 dark:text-slate-300 mb-2">內容總結</h4>
+                <p class="text-slate-400 dark:text-slate-500 text-sm italic">無總結內容</p>
+            </div>
+        `;
+    }
+
+    return html;
+}
+
+/**
+ * Perform search operation with streaming handling
  */
 async function performSearch() {
     const query = DOM.searchInput.value.trim();
@@ -141,47 +247,10 @@ async function performSearch() {
         return;
     }
 
-    showLoading();
+    // Reset UI states
+    hideAllStates();
 
-    // 每次新搜尋前，先隱藏摘要區塊 (避免看到上次的殘留)
-    hideSummary();
-
-    try {
-        // 發送搜尋請求
-        const { data, duration } = await performCollectionSearch(query);
-
-        // Log filters if LLM rewrite is enabled
-        if (searchConfig.enableLlm) {
-            console.group('LLM Query Rewrite');
-            console.log('Filters (JSON):', data.intent?.filters);
-            if (data.meili_filter) {
-                console.log('Meilisearch Expression:', data.meili_filter);
-            }
-            console.groupEnd();
-        }
-
-        // 1. 渲染搜尋列表 (只要成功拿到資料就渲染)
-        renderResults(data, duration, query, searchConfig);
-
-        // 2. ★★★ 觸發摘要生成 (移到這裡，確保 data 讀取得到) ★★★
-        if (data.results && data.results.length > 0) {
-            // 有搜尋結果才做摘要
-            generateSearchSummary(query, data.results);
-        } else {
-            // 沒結果就隱藏摘要區塊
-            hideSummary();
-        }
-
-    } catch (error) {
-        console.error('Search failed:', error);
-        console.error('  Error message:', error.message);
-        showError(error.message);
-        // 發生錯誤時也要隱藏摘要
-        hideSummary();
-    }
-}
-
-async function generateSearchSummary(query, results) {
+    // Use summary container for status updates instead of generic loading dots
     const summaryContainer = document.getElementById('summaryContainer');
     const summaryContent = document.getElementById('summaryContent');
     const summaryTitle = document.getElementById('summaryTitle');
@@ -201,9 +270,9 @@ async function generateSearchSummary(query, results) {
         return;
     }
 
-    // 初始化 UI：顯示容器，並顯示 Loading 狀態
-    summaryContainer.classList.remove('hidden');
-    summaryTitle.innerHTML = `正在為您總結「<span class="text-primary">${query}</span>」的相關公告...`;
+    if (summaryContainer) {
+        summaryContainer.classList.remove('hidden');
+        summaryTitle.innerHTML = `<span class="material-icons-round animate-pulse mr-2 align-middle text-primary">manage_search</span>正在初始化搜尋...`;
 
     // 顯示 Loading 動畫 (Skeleton)
     summaryContent.innerHTML = `
@@ -286,16 +355,12 @@ function hideSummary() {
 window.toggleResult = toggleResult;
 window.toggleIntentDetails = toggleIntentDetails;
 
-// --- Chatbot Logic (Add to end of search.js) ---
-
-document.addEventListener('DOMContentLoaded', () => {
-    setupChatbot();
-});
+// --- Chatbot Logic ---
 
 function setupChatbot() {
     const container = document.getElementById('chatbotContainer');
     const triggerBtn = document.getElementById('chatTriggerBtn');
-    const clearBtn = document.getElementById('clearChatBtn'); // ★ 新增
+    const clearBtn = document.getElementById('clearChatBtn');
     const iconArrow = document.getElementById('chatIconArrow');
     const chatInput = document.getElementById('chatInput');
     const sendBtn = document.getElementById('sendChatBtn');
@@ -357,7 +422,6 @@ function setupChatbot() {
         });
     }
 
-    // ★ 清除紀錄邏輯
     if (clearBtn) {
         clearBtn.addEventListener('click', () => {
             chatHistory = []; // 清空記憶

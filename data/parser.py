@@ -4,10 +4,10 @@ from pathlib import Path
 import re
 
 FILES_NEED_TO_BE_PROCESSED = [
-    "fetch_result/partner_center.json",
-    # "windows-message.json",
-    # "m365_roadmap_flat.json",
-    # "fetch_result/PowerBI_dataset.json"
+    "fetch_result/partner_center_announcements.json",
+    "fetch_result/windows_message_center.json",
+    "fetch_result/m365_roadmap.json",
+    "fetch_result/powerbi_blog.json",
 ]
 
 OUTPUT_FILE = "data.json"
@@ -115,8 +115,6 @@ def process_files():
             item["year"] = year
             item["content"] = raw_content
             item["cleaned_content"] = cleaned_content
-            if "Workspace" not in item:
-                item["Workspace"] = "General"
 
             aggregated_data.append(item)
 

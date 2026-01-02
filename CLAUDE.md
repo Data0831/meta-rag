@@ -21,32 +21,57 @@
 ```text
 project_root/
 ├── data/
+│   ├── backup/                 # 備份資料與舊版工具
+│   ├── fetch_result/           # 爬蟲抓取的原始資料
+│   ├── test/                   # 資料處理測試
 │   ├── data.json               # 原始資料來源
 │   ├── parser.py               # 資料解析 ETL 工具
-│   ├── vectorPreprocessing.py  # 向量計算與 Index Reset 工具
-│   └── fetch_result/           # 爬蟲抓取的原始資料
+│   ├── remove.json             # 待移除資料清單
+│   └── vectorPreprocessing.py  # 向量計算與 Index Reset 工具
+├── docs/                       # 專案架構與操作文件
+│   ├── archtect/               # 架構設計文件
+│   ├── 向量資料庫操作.md
+│   └── 改變關鍵字權重.md
 ├── src/
 │   ├── app.py                  # Flask 應用程式入口
 │   ├── config.py               # 全域環境設定
 │   ├── meilisearch_config.py   # Meilisearch 索引與過濾欄位設定
+│   ├── agents/
+│   │   ├── srhSumAgent.py      # 搜尋摘要代理
+│   │   └── tool.py             # 代理工具函式
 │   ├── database/
 │   │   ├── db_adapter_meili.py # [核心] Meilisearch 資料庫轉接器
 │   │   └── vector_utils.py     # 向量處理工具
 │   ├── llm/
 │   │   ├── client.py           # LLM 客戶端
 │   │   ├── search_prompts.py   # 搜尋意圖識別 Prompt
-│   │   └── rag_prompts.py      # RAG 回答生成 Prompt
+│   │   └── prompts/
+│   │       ├── check_relevance.py  # 相關性檢查 Prompt
+│   │       ├── query_rewrite.py    # 查詢改寫 Prompt
+│   │       ├── rag.py              # RAG 生成 Prompt
+│   │       └── summary.py          # 摘要生成 Prompt
 │   ├── schema/
-│   │   └── schemas.py          # Pydantic 資料模型 (AnnouncementDoc, SearchIntent)
+│   │   └── schemas.py          # Pydantic 資料模型
 │   ├── services/
+│   │   ├── keyword_alg.py      # 關鍵字權重演算法
 │   │   ├── search_service.py   # 搜尋業務邏輯 (Intent Parsing -> Search)
 │   │   └── rag_service.py      # RAG 業務邏輯
-│   ├── static/                 # 前端靜態資源 (CSS, JS)
-│   └── templates/              # 前端 HTML 模板
+│   ├── static/
+│   │   ├── css/                # 樣式表
+│   │   └── js/                 # 前端腳本 (API, 渲染, 搜尋邏輯)
+│   ├── templates/
+│   │   └── index.html          # 主頁面模板
+│   ├── tool/
+│   │   └── ANSI.py             # ANSI 顏色輸出工具
+│   └── logs/                   # 系統日誌檔
 ├── task/
-│   └── task.md                 # 任務進度追蹤
+│   ├── task.md                 # 任務進度追蹤
+│   └── log.md                  # 任務執行細節紀錄
+├── test/                       # 系統整合與功能測試
+├── tmp/                        # 臨時除錯腳本
 ├── history.md                  # 專案變更歷史記錄
-├── GEMINI.md                   # 本專案規格書
+├── GEMINI.md                   # 專案規格書 (與本檔同步)
+├── CLAUDE.md                   # [本檔案] 專案規格書
 └── requirements.txt
 ```
 
@@ -62,6 +87,8 @@ project_root/
 *   **Pydantic**: 資料交換與寫入 DB 前必須通過 Pydantic Model 驗證。
 *   **Imports**: 使用絕對路徑 (e.g., `from src.database import ...`)。
 *   **Imports**: 不要使用任何註解，包括 docstring。
+*   **錯誤處理**: 底層函數統一返回 dict 格式。成功時：`{"status": "success", "result": ...}`；失敗時：`{"status": "failed", "error": ..., "stage": ...}`。調用方必須檢查 `status` 欄位。
+*   **錯誤顯示**: 輸出錯誤資訊或失敗的 `dict` 時，必須使用 `src.tool.ANSI.print_red` 以紅色標示。
 
 ### 4.3 資料庫設計 (Meilisearch)
 *   **ID 生成**: 使用 link+title 的 MD5 hash 作為唯一 ID。
@@ -96,15 +123,17 @@ project_root/
 - **禁止自作主張添加**:
     - 即使你認為「為了程式完整性/穩定性」,也不可擅自添加 `try...catch`、驗證邏輯、防禦性程式碼。
     - 若你認為需要,必須**先以問題形式詢問使用者**,獲得明確同意後才執行。
+- **禁止添加或使用 EMOJI**:
+    - 任何情況下，請避免使用 EMOJI。
 
 ### 行為範例
 
-#### ❌ 錯誤示例
+#### 錯誤示例
 **用戶要求**: 「在登入頁面添加一個按鈕」  
 **AI 錯誤回應**: 「我已添加按鈕,並且為了確保程式穩定性添加了 try...catch 和防抖函數」  
 **問題**: 添加了未要求的功能
 
-#### ✅ 正確示例
+#### 正確示例
 **用戶要求**: 「在登入頁面添加一個按鈕」  
 **AI 正確回應**: 
 ```

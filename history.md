@@ -1,50 +1,58 @@
 # Project History
 
-## 2025-12-15
-- **初期建置**：完成專案基礎架構 (Phase 1-2)，包含 ETL Pipeline、資料攝取與 Pydantic Schema。
-- **優化**：實作自動化 ETL，整合 Gemini LLM 進行 Metadata 提取，並優化配置管理與 API 穩定性，建立 `metadata.json` 聚合輸出。
+## 2025-12-15 ~ 12-26 系統奠基與檢索升級
+- **架構與部署**：遷移至 Meilisearch (30ms 延遲)，完成 Azure App Service 部署與 OpenAI Structured Outputs 兼容性修復。
+- **檢索優化**：Link 去重合併技術，實作關鍵字精確加權重排 (Reranking) 與雙語擴展，並優化 Schema (年份/主標題) 適配新資料源。
+- **UI/UX 重構**：前端模組化設計，採用 Tailwind CSS 與 Markdown 渲染，實作動態配置同步與 LLM 異常回退機制。
+- **日誌開發**：全面導入 ANSI 彩色日誌，提升後端解析與 API 異常除錯的可辨識度。
+  
 
-## 2025-12-16
-- **架構遷移 (Phase 3-5)**：完成向量攝取與 Hybrid Search 核心後，執行重大決策遷移至 **Meilisearch** 單一引擎，移除 SQLite/Qdrant 雙資料庫架構，搜尋延遲降至 ~30ms。
-- **中文優化**：實作 `jieba` 分詞方案 (`meta_summary_segmented`)，並在 ETL 中整合分詞處理，大幅提升中文關鍵字匹配準確度。
-- **系統重構**：統一資料庫適配器為 `db_adapter_meili.py`，簡化 `SearchService` 邏輯，建立 `MIGRATION.md`。
+## 2025-12-29
+- **系統架構優化與功能增強**：統一全域錯誤處理機制與配置管理系統，實作 ID-based 文檔異動與分批預處理以提升效能，優化非對稱關鍵字加權演算法與意圖匹配邏輯，並重構前端 UI 與錯誤處理流程。
 
-## 2025-12-17
-- **前端整合**：發布 Collection Search 介面，支援動態相似度閾值、語意權重調整 (Semantic Ratio) 與 LLM 意圖重寫開關。
-- **搜尋調優**：建立 `meilisearch_config.py` 集中管理排序規則，修復混合搜尋結果排序問題 (Ranking Score Fix)，並實作 LLM 動態推薦語意權重。
-- **路由修復**：修正 Flask 路由與前端導航，確保 Collection 與 Vector Search 頁面連結正常。
+### 2025-12-30 代理式與摘要迭代檢索 (Agentic RAG & Iterative Summarization)
+實作 `SrhSumAgent` 專門負責摘要生成的迭代檢索流程。**架構解耦**：將 `summarize` 功能從 `RAGService` 剝離，改由 `app.py` 直接呼叫 Agent，原 `chat` 流程維持調用 `SearchService`。**迭代檢索迴圈 (Iterative Search Loop)**：Agent 執行「搜尋 -> LLM 相關性檢查 -> 查詢重寫」的循環；若初次搜尋結果無效，系統自動排除已知無效 IDs 並重寫查詢再次嘗試 (Max 2 Retries)，提升摘要的準確度。**底層支援**：`SearchService` 新增 `exclude_ids` 參數並建構 `NOT id IN [...]` 過濾器，防止無效文檔重複出現。
+- **Meilisearch 配置修正 (Config Fix)**：為支援代理式搜尋的「排除已讀文檔」功能，修正 `meilisearch_config.py` 將 `id` 加入 `FILTERABLE_ATTRIBUTES`，並執行線上更新指令，解決 `invalid_search_filter` 錯誤。
+- **測試工具增強 (Testing)**：在 `test_search.py` 新增 `test_agent_sum` 函式，並透過 monkey patch 攔截 `_rewrite_query` 實現互動式暫停 (Enter to continue)，便於開發者觀察 Agent 在迭代檢索過程中的決策邏輯。
 
-## 2025-12-18
-- **搜尋策略優化**：實作「軟性強制關鍵字」(Soft Keyword Enforcement) 與「雙語關鍵字擴展」(Bilingual Expansion)，利用重複關鍵字加權 (Boosting) 解決向量搜尋發散與中英匹配問題。
-- **架構輕量化 (Phase 6)**：徹底移除 Metadata 與 Enriched Text 複雜結構，改採 parse.json 扁平化格式，大幅簡化 ETL 流程與 Schema。
-- **代碼清理**：修復 Meilisearch 過濾器語法 (`IN` operator)，並刪除約 165 行廢棄代碼 (Legacy Code Removal)，系統進入穩定期。
+### 2025-12-30 分數顯示與閾值判斷統一 (Score Display & Threshold Unification)
+修正前端 `render.js` 的分數來源不一致問題。統一 Match 分數顯示與相似度閾值判斷皆使用 `_rerank_score`（優先），不存在時 fallback 至 `_rankingScore`。Match 分數改為無條件捨去小數的整數百分比格式（例如：85%），確保右上角顯示分數與 dimmed-result 閾值判斷邏輯完全一致，提升使用者體驗的直觀性與準確性。
 
-## 2025-12-19
-- **前端重構 (Modularization)**：將龐大的 `search.js` 拆分為 6 個 ES6 模組 (Config/DOM/API/UI/Render/Main)，大幅提升代碼可維護性。
-- **UI/UX 全面更新**：將介面升級為 Tailwind CSS 設計，引入 `marked.js` 支援 Markdown 渲染，並優化搜尋結果展示 (預設展開第一筆、改進卡片佈局)。
-- **配置整合**：建立後端配置 API (`/api/config`) 與前端動態同步機制，統一管理相似度閾值與語意權重 (Slider 調整為 0-100 整數範圍)。
-- **系統優化**：修正 `/collection_search` 路由重定向問題，並修復 LLM 過濾條件 (Year/Workspace/Links) 在前端的視覺化標籤顯示。
+### 2025-12-30 檢索耗時計算優化 (Search Duration Calculation Enhancement)
+修改前端 `search.js` 將 Summary Agent retry 時間納入總檢索耗時。在 `performSearch()` 記錄總開始時間 `totalStartTime`，傳遞給 `generateSearchSummary()`。當 Agent 進入 `searching` 或 `retrying` 狀態時，時間顯示添加模糊效果（`blur(3px)`, `opacity: 0.5`）作為視覺提示。`complete` 狀態時計算總耗時（`performance.now() - totalStartTime`），更新 `searchTimeValue` 並移除模糊效果。所有時間計算在前端執行，涵蓋從用戶點擊搜尋到最終答案呈現的完整時間（包含網路傳輸、初始搜尋、Agent 處理與 retry）。
 
-## 2025-12-23 11:14:13
-- **Link 去重合併功能**：在 `config.py` 新增 `PRE_SEARCH_LIMIT=24` 配置（附 TODO 建議未來可改為動態倍數）。修改 `search_service.py` 實作 `_merge_duplicate_links()` 方法，先向 Meilisearch 請求 24 筆結果，按 `_rankingScore` 排序後合併相同 link 的文檔（content 用 `
----
-` 拼接，保留最高 score 的 metadata），最後取前 `limit` 筆返回。更新 `docs/archtect/search-flow.md` 流程圖與文字說明，記錄去重邏輯以避免切塊後同一網頁重複出現。
+### 2025-12-30 Agentic Search 邏輯優化 (Accumulated Search & History-Aware Rewrite)
+- **結果合併去重 (Result Accumulation)**：修改 `SrhSumAgent` 的 `generate_summary` 邏輯。在重試搜尋時，不再丟棄舊結果，而是將 `_rankingScore` 高於閥值 (`DEFAULT_SIMILARITY_THRESHOLD`) 的高分結果保留並合併 (Deduplicated by ID)。確保 LLM 在生成摘要時能獲得跨多次搜尋的最佳資訊集合。
+- **具備歷史意識的重寫 (History-Aware Query Rewrite)**：新增 Prompt `retry_query_rewrite.py` 並傳入 `history` (過去使用過的查詢列表)。要求 LLM 在重寫查詢時必須參考歷史紀錄，避免生成重複或相似的關鍵字策略，從而提高重試搜尋的覆蓋率與成功率。
 
-## 2025-12-23 13:50:37
-- **搜尋結果 UI 優化**：修改 `render.js` 與 `search_service.py`，在後端返回 `final_semantic_ratio` 欄位，前端根據此值在搜尋結果卡片的 match score 旁顯示搜尋類型標籤（Keyword/Semantic/Hybrid，分別使用藍/綠/紫配色）。卡片標題限制為 15 字，超過加上 "..."，展開後顯示完整標題。
-- **LLM 錯誤處理**：在 `search_service.py` 中檢測 LLM 調用失敗（`parse_intent` 返回 `None`），設置 `llm_error` 欄位並使用 fallback 基本搜尋。前端在 `intentContainer` 頂部（查詢資訊後）顯示琥珀色警告橫幅「LLM 服務暫時無法使用，使用基本搜尋模式」。同步修復摘要生成失敗時的錯誤顯示，改為友好提示而非隱藏區塊。
+### 2025-12-30 重構與邏輯整合 (Refactoring & Logic Integration)
+- **SearchService 整合重試邏輯**：將原 `SrhSumAgent` 的重試查詢改寫邏輯移入 `SearchService`。透過 `SEARCH_INTENT_PROMPT` 新增 `history` 參數，讓 LLM 在解析意圖時能參考過往失敗的查詢紀錄，直接生成具備差異化的新查詢策略，取代了原本獨立的 `retry_query_rewrite.py`。
+- **架構簡化**：`SrhSumAgent` 不再負責調用改寫 Prompt，而是維護 `query_history` 並傳遞給 `SearchTool.search()`，实现了更 clean 的職責分離。單元測試已驗證此新流程的正確性。
 
-## 2025-12-23 15:00:00
-- **搜尋模式邏輯修復**：修正 `SearchService` 與 UI 在切換純關鍵字/語意模式時的不一致問題。
-  - 將 Schema 中 `recommended_semantic_ratio` 預設值改為 `None` 以區分 LLM 建議。
-  - 更新後端邏輯：當用戶手動設定極端值 (0.0 或 1.0) 時優先採納，忽略 LLM 建議。
-  - 優化前端標籤：將 `render.js` 中的標籤判定改為容許浮點數誤差範圍 (<=0.01, >=0.99)，解決切換 Hybrid 顯示錯誤。
+### 2025-12-30 API 架構重構 - Agent 主導搜尋流程 (API Architecture Refactor)
+將搜尋邏輯完全整合至 `SrhSumAgent`，移除獨立的 `/api/collection_search` 端點，改名 `/api/summary` 為 `/api/search`。Agent 內部自行執行首次搜尋（不再由前端傳入 `initial_results`），實現「搜尋 → 結果生成 → 判定 → 優化搜索 → 生成摘要」的完整流程。修正串流格式，將 `status` 欄位改為僅表示成功/失敗（`success`/`failed`），新增 `stage` 欄位表示執行階段（`searching`, `checking`, `summarizing`, `complete`）。`SearchTool.search()` 新增完整參數支援（`limit`, `semantic_ratio`, `enable_llm` 等），所有配置由前端透過 `/api/search` 傳遞給 Agent。
 
-## 2025-12-24 09:09:16
-- **Azure OpenAI Structured Outputs 兼容性修復**：解決 LLM Schema 驗證 400 錯誤。
-  - 展平 Schema 結構：刪除 `SearchFilters` 類別，將 `year_month/links/workspaces` 直接整合至 `SearchIntent`，消除 `$ref` 引用。
-  - 嚴格模式處理：在 `client.py` 新增 `_add_additional_properties()` 方法，遞迴為所有 object 添加 `"additionalProperties": false` 並強制所有 properties 加入 `required` 數組。
-  - 級聯更新：修改 `db_adapter_meili.py` 的 `build_meili_filter()` 與 `search_service.py` 的調用邏輯，適配新的扁平化 Schema 結構。
+### 2025-12-30 搜尋過濾與閾值邏輯修正 (Search Filter & Threshold Logic Fix)
+修正 `search_service.py` 中 Meilisearch exclude filter 語法錯誤（`NOT id IN` → `id NOT IN`），解決二次搜索無法正確排除已見文檔的問題。重構 `SrhSumAgent.generate_summary()` 的結果收集邏輯，移除基於 `DEFAULT_SIMILARITY_THRESHOLD` 的硬過濾條件，改為收集所有搜索結果並添加 `score_pass` 欄位標記品質，確保最終返回 `min(limit, len(collected_results))` 篇結果。將 `DEFAULT_SIMILARITY_THRESHOLD` 重命名為 `SCORE_PASS_THRESHOLD` 以明確其語意為「品質標記門檻」而非「過濾閾值」，避免開發與 AI 理解誤導。增強 `test_search.py` debug 功能，添加詳細的搜索調用追蹤、exclude_ids 顯示、filter 字符串檢查與結果詳情輸出。
 
-## 2025-12-24 15:30:00
-- **前端 LLM 意圖顯示修復**：修正 `render.js` 中 `updateIntentDisplay()` 函數的數據讀取邏輯，從錯誤的 `intent.filters.year_month` 改為直接讀取 `intent.year_month` 等頂層欄位。新增 `must_have_keywords` 紅色標籤渲染（格式：`[必含: xxx]`）。在 `index.html` 的 `llmDetails` 區塊新增「LLM 建議權重」顯示元素（`intentRecommendedRatio`），動態顯示 `recommended_semantic_ratio` 百分比值（例如：40%）。修復後前端可正確顯示所有 LLM 解析的篩選條件（year_month 藍色標籤、must_have_keywords 紅色標籤、workspaces 綠色標籤、links 紫色標籤、limit 灰色標籤）。
+### 2025-12-30 檢索反饋透明化增強 (Search Feedback Transparency)
+針對 Agentic Search 流程進行透明化回傳改造。**重構 Agent 回傳邏輯**：將 `SrhSumAgent` 核心方法更名為 `run` 並移除舊有代碼，全面轉向生成器模式 (`yield`)；新增 `search_result` 階段事件，在每次執行搜尋（包含初始與重試）後即時回傳該次搜尋的結果清單、解析意圖與過濾器內容，讓前端能即時掌握 Agent 的中間思考過程與檢索細節。**測試工具升級**：`test_search.py` 改寫為 API Client 模式，支援 NDJSON 串流解析，並新增 `search_result` 階段的視覺化輸出，包含結果計數、意圖與前三筆文檔預覽，便於開發驗證。同時執行程式碼清理，移除冗餘註解以符合 coding style。
+
+### 2025-12-30 相關性篩選與反饋優化 (Relevance Filtering & Feedback Enhancement)
+重構 `_check_relevance` 方法實作智慧分數篩選邏輯：優先選擇 `score >= SCORE_PASS_THRESHOLD` 的高分資料，若不足 1 筆則取最高分的 `FALLBACK_RESULT_COUNT` 筆（須 >= `SCORE_MIN_THRESHOLD = max(0, SCORE_PASS_THRESHOLD - 0.2)`），對篩選結果再用 LLM 做二次驗證。新增 `filtered` 階段 yield 事件，即時顯示篩選資料數量、分數範圍與前三筆標題。移除冗餘的「參考歷史紀錄」訊息。在 `config.py` 新增 `SCORE_MIN_THRESHOLD` 與 `FALLBACK_RESULT_COUNT` 配置，提升篩選邏輯的可維護性與透明度。
+### 2025-12-30 Agent 排序與測試顯示優化 (Sorting & Display Optimization)
+- **排序邏輯一致化**：修正 `SrhSumAgent.run` 中的排序 key，優先使用 `_rerank_score` (關鍵字加權分數) 並以 `_rankingScore` 為 fallback。確保 Agent 最終選擇的摘要參考文件與搜尋引擎的加權邏輯完全一致。
+- **測試工具詳細化**：恢復 `test_search.py` 的詳細文件顯示格式，並優化分數呈現：優先顯示 `Rerank Score` 隨後顯示 `Ranking Score`。保留 `main_title`、`link` 等關鍵欄位，便於開發者精準評估檢索品質與 Agent 決策依據。
+
+### 2025-12-30 搜尋方向引導與重試 Refactor (Search Direction & Retry Refactoring)
+- **結構重命名與職責優化**：將 `_check_relevance` 重構為 `_check_retry_search`，不再負責物理過濾文檔 ID，而是專注於評估現有內容對查詢的覆蓋品質。同步重命名 `RelevanceCheckResult` Schema 為 `RetrySearchDecision`。
+- **搜尋方向引導 (Search Direction)**：在 `SearchIntent` 與搜尋流程中新增 `direction` 參數。當 Agent 判定現有結果不足時，LLM 會產出明確的「搜尋方向」（例如：著重特定產品或具體技術細節），並作為下次搜尋重寫的強制指引 (`SEARCH_INTENT_PROMPT` 新增 direction 約束）。
+- **重試流程強健化**：優化 `SrhSumAgent` 循環邏輯，確保在所有搜尋路徑（初次搜尋成功、判定後重試、判定失敗回退）中皆能正確傳遞搜尋方向。即使達到最大重試次數，系統仍會根據已收集到的最佳資訊進行總結，取代原本的直接報錯，提升系統可用性。
+- **Prompt 大修與同步**：將 `check_relevance.py` 遷徙至 `check_retry_search.py` 並更新 Prompt，使其專注於判斷內容足夠性與生成重試建議（而非過濾 ID），實現更精細的代理式決策。
+
+### 2025-12-30 Schema 增強與驗證規範 (Schema Enhancement & Validation)
+- **AnnouncementDoc 欄位擴充**：於 `src/schema/schemas.py` 為 `AnnouncementDoc` 新增 `website: str` 欄位。
+- **嚴格驗證實作**：利用 Pydantic 的 `Field(..., min_length=1)` 強制執行「非空字串」檢查，確保入庫資料具備明確的來源標記。
+
+### 2025-12-30 結構化摘要與前端適配 (Structured Summary & Frontend Adaptation)
+實作三段式結構化摘要系統。新增 `StructuredSummary` Schema 包含 `brief_answer`（簡答20字）、`detailed_answer`（詳答含引用）、`general_summary`（內容總結500字）。重構 `tool.py` 的 `summarize` 函數返回結構化物件與 `link_mapping`（index→超連結映射）。更新 `summary.py` Prompt 使用 XML 標籤包覆 context，要求 LLM 生成三部分內容並使用 `[index]` 標註引用。修改 `srhSumAgent.py` 三處調用點以適配新返回格式。前端 `search.js` 新增 `renderStructuredSummary` 與 `convertCitationsToLinks` 函數，實現簡答置頂（特殊情況顯示警告色）、詳答與總結分段展示、引用標記轉換為藍色上標超連結（新標籤頁打開），並修正處理順序（先 Markdown 渲染再轉連結）以確保連結可點擊。

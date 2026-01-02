@@ -34,17 +34,17 @@ export function renderResults(data, duration, query) {
     DOM.displayQuery.textContent = query;
 
     // Check if LLM failed
-    const llmError = data.llm_error;
+    const llmWarning = data.llm_warning;
     const llmWarningBanner = document.getElementById('llmWarningBanner');
 
-    if (llmError) {
-        // Show LLM error banner
-        console.log('LLM Error detected:', llmError);
+    if (llmWarning) {
+        // Show LLM warning banner
+        console.log('LLM Warning detected:', llmWarning);
         if (llmWarningBanner) {
             llmWarningBanner.classList.remove('hidden');
         }
     } else {
-        // Hide LLM error banner
+        // Hide LLM warning banner
         if (llmWarningBanner) {
             llmWarningBanner.classList.add('hidden');
         }
@@ -54,9 +54,10 @@ export function renderResults(data, duration, query) {
     const toggleBtn = document.getElementById('toggleIntentBtn');
     const toggleIcon = document.getElementById('toggleIntentIcon');
 
-    if (intent && searchConfig.enableLlm && !llmError) {
+    // Always allow expanding details if intent exists, regardless of LLM setting
+    if (intent && !llmWarning) {
         console.log('Updating intent display');
-        updateIntentDisplay(intent);
+        updateIntentDisplay(data);
 
         // Default: Collapse details
         DOM.llmDetails.classList.add('hidden');
@@ -89,8 +90,8 @@ export function renderResults(data, duration, query) {
         return renderResultCard(result, index + 1, searchConfig, finalSemanticRatio);
     }).join('');
 
-    // Show summary container with mock data
-    renderSummary(query);
+    // Show summary container with mock data - REMOVED to prevent overwriting real summary
+    // renderSummary(query);
 
     // Apply current threshold to results immediately after rendering
     applyThresholdToResults();
@@ -121,9 +122,10 @@ function renderSummary(query) {
 
 /**
  * Update intent display section
- * @param {Object} intent - Intent object from search response
+ * @param {Object} data - Search response data (containing intent, results, etc.)
  */
-function updateIntentDisplay(intent) {
+function updateIntentDisplay(data) {
+    const intent = data.intent;
     if (!intent) return;
 
     DOM.intentContainer.classList.remove('hidden');
@@ -132,15 +134,47 @@ function updateIntentDisplay(intent) {
     DOM.intentKeywordQuery.textContent = intent.keyword_query || 'N/A';
     DOM.intentSemanticQuery.textContent = intent.semantic_query || 'N/A';
 
-    // Update Recommended Semantic Ratio
-    const recommendedRatioEl = document.getElementById('intentRecommendedRatio');
-    if (recommendedRatioEl) {
-        if (intent.recommended_semantic_ratio !== null && intent.recommended_semantic_ratio !== undefined) {
-            const ratioPercent = Math.round(intent.recommended_semantic_ratio * 100);
-            recommendedRatioEl.textContent = `${ratioPercent}%`;
-            recommendedRatioEl.parentElement.classList.remove('hidden');
+    // Update Sub Queries
+    const subQueriesContainer = document.getElementById('intentSubQueriesContainer');
+    const subQueriesEl = document.getElementById('intentSubQueries');
+
+    if (subQueriesEl) {
+        subQueriesEl.innerHTML = '';
+        if (intent.sub_queries && intent.sub_queries.length > 0) {
+            const subQueryItems = intent.sub_queries.map(sq =>
+                `<span class="intent-badge" style="background: linear-gradient(135deg, #818cf8 0%, #6366f1 100%);">${sq}</span>`
+            ).join('');
+            subQueriesEl.innerHTML = subQueryItems;
+            if (subQueriesContainer) subQueriesContainer.classList.remove('hidden');
         } else {
-            recommendedRatioEl.parentElement.classList.add('hidden');
+            if (subQueriesContainer) subQueriesContainer.classList.add('hidden');
+        }
+    }
+
+    // Update Hybrid Weight Display
+    const weightSemanticLabel = document.getElementById('weightSemanticLabel');
+    const weightKeywordLabel = document.getElementById('weightKeywordLabel');
+
+    if (weightSemanticLabel && weightKeywordLabel) {
+        const finalRatio = data.final_semantic_ratio !== undefined ? data.final_semantic_ratio : searchConfig.semanticRatio;
+        weightSemanticLabel.textContent = finalRatio.toFixed(2);
+        weightKeywordLabel.textContent = (1 - finalRatio).toFixed(2);
+    }
+
+    // Update Boosted Keywords
+    const boostedContainer = document.getElementById('intentBoostedContainer');
+    const boostedKeywordsEl = document.getElementById('intentBoostedKeywords');
+
+    if (boostedKeywordsEl) {
+        boostedKeywordsEl.innerHTML = '';
+        if (intent.must_have_keywords && intent.must_have_keywords.length > 0) {
+            const boostedItems = intent.must_have_keywords.map(kw =>
+                `<span class="intent-badge" style="background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);">${kw}</span>`
+            ).join('');
+            boostedKeywordsEl.innerHTML = boostedItems;
+            if (boostedContainer) boostedContainer.classList.remove('hidden');
+        } else {
+            if (boostedContainer) boostedContainer.classList.add('hidden');
         }
     }
 
@@ -163,42 +197,34 @@ function updateIntentDisplay(intent) {
     // 1. Year Month
     if (intent.year_month && intent.year_month.length > 0) {
         const yearMonthItems = intent.year_month.map(ym =>
-            `<span class="px-2 py-0.5 rounded border text-xs bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-300 border-blue-200 dark:border-blue-700">${ym}</span>`
+            `<span class="intent-badge" style="background: linear-gradient(135deg, #60a5fa 0%, #3b82f6 100%); font-size: 0.75rem;">${ym}</span>`
         ).join('');
         DOM.intentFilters.innerHTML += yearMonthItems;
     }
 
-    // 2. Must Have Keywords
-    if (intent.must_have_keywords && intent.must_have_keywords.length > 0) {
-        const mustHaveItems = intent.must_have_keywords.map(kw =>
-            `<span class="px-2 py-0.5 rounded border text-xs bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-300 border-red-200 dark:border-red-700">必含: ${kw}</span>`
-        ).join('');
-        DOM.intentFilters.innerHTML += mustHaveItems;
-    }
-
-    // 3. Workspaces
+    // 2. Workspaces
     if (intent.workspaces && intent.workspaces.length > 0) {
         const workspaceItems = intent.workspaces.map(ws =>
-            `<span class="px-2 py-0.5 rounded border text-xs bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-300 border-green-200 dark:border-green-700">${ws}</span>`
+            `<span class="intent-badge" style="background: linear-gradient(135deg, #34d399 0%, #10b981 100%); font-size: 0.75rem;">${ws}</span>`
         ).join('');
         DOM.intentFilters.innerHTML += workspaceItems;
     }
 
-    // 4. Links
+    // 3. Links
     if (intent.links && intent.links.length > 0) {
         const linkItems = intent.links.map(link =>
-            `<span class="px-2 py-0.5 rounded border text-xs bg-purple-100 dark:bg-purple-900 text-purple-800 dark:text-purple-300 border-purple-200 dark:border-purple-700">${link}</span>`
+            `<span class="intent-badge" style="background: linear-gradient(135deg, #a78bfa 0%, #8b5cf6 100%); font-size: 0.75rem;">${link}</span>`
         ).join('');
         DOM.intentFilters.innerHTML += linkItems;
     }
 
-    // 5. Limit (Always show)
+    // 4. Limit (Always show)
     const limitVal = intent.limit !== null && intent.limit !== undefined ? intent.limit : 'Null';
-    const limitClass = (intent.limit !== null && intent.limit !== undefined) ?
-        "bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-300 border-gray-200 dark:border-gray-600" :
-        "bg-transparent text-gray-400 border-gray-200 dark:border-gray-700 border-dashed";
+    const limitStyle = (intent.limit !== null && intent.limit !== undefined) ?
+        "background: linear-gradient(135deg, #94a3b8 0%, #64748b 100%);" :
+        "background: transparent; border: 1px dashed #cbd5e1; color: #94a3b8;";
 
-    DOM.intentFilters.innerHTML += `<span class="px-2 py-0.5 rounded border text-xs ${limitClass}">Limit: ${limitVal}</span>`;
+    DOM.intentFilters.innerHTML += `<span class="intent-badge" style="${limitStyle} font-size: 0.75rem;">Limit: ${limitVal}</span>`;
 }
 
 /**
@@ -210,13 +236,18 @@ function updateIntentDisplay(intent) {
  * @returns {string} HTML string
  */
 function renderResultCard(result, rank, searchConfig, finalSemanticRatio) {
-    const score = result._rankingScore || 0;
-    const scorePercent = Math.round(score * 100);
     const id = rank - 1; // 0-based index for IDs
     const isFirst = rank === 1;
 
+    // Use _rerank_score if available, fallback to _rankingScore
+    const rawScore = result._rerank_score !== undefined ? result._rerank_score : (result._rankingScore || 0);
+    const scorePercent = Math.round(rawScore * 100);
+
+    // Display score as percentage (floor, no decimals)
+    const displayScore = Math.floor(rawScore * 100) + '%';
+
     // Map fields
-    const title = result.title || '無標題';
+    const title = result.main_title || '無標題';
     const workspace = result.workspace || 'N/A';
     const date = result.year_month || 'N/A';
     const link = result.link || '#';
@@ -271,8 +302,9 @@ function renderResultCard(result, rank, searchConfig, finalSemanticRatio) {
                 <h4 class="font-bold text-lg text-slate-800 dark:text-white">${truncatedTitle}</h4>
             </div>
             <div class="flex items-center gap-2">
+                ${(result.has_keyword && result.has_keyword !== '0/0' && result.has_keyword !== 'disabled' && result.has_keyword !== 'unknown') ? `<span class="px-2 py-1 rounded border text-xs font-bold bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-300 border-green-200 dark:border-green-700">Keyword Hit: ${result.has_keyword}</span>` : ''}
                 <span class="px-2 py-1 rounded border text-xs font-medium ${searchTypeClass}">${searchTypeLabel}</span>
-                <span id="result-badge-${id}" class="${badgeClass}">${scorePercent}% Match</span>
+                <span id="result-badge-${id}" class="${badgeClass}">Match: ${displayScore}</span>
             </div>
         </div>
 
@@ -289,7 +321,7 @@ function renderResultCard(result, rank, searchConfig, finalSemanticRatio) {
                 </div>
                 <div class="flex items-start gap-2">
                     <span class="font-bold min-w-[150px] text-slate-900 dark:text-white">• 原始連結 (Link) :</span>
-                    <a class="text-blue-600 dark:text-blue-400 hover:underline font-medium" href="${link}" target="_blank">點此查看</a>
+                    <a class="text-blue-600 dark:text-blue-400 hover:underline font-medium" href="${result.heading_link || link}" target="_blank">點此查看段落</a>
                 </div>
                  <div class="mt-4 pt-4 border-t border-slate-100 dark:border-slate-700">
                     <div class="prose dark:prose-invert max-w-none text-slate-700 dark:text-slate-300">
@@ -368,9 +400,11 @@ export function applyThresholdToResults() {
     resultCards.forEach((card, index) => {
         if (index < currentResults.length) {
             const result = currentResults[index];
-            const score = Math.round((result._rankingScore || 0) * 100);
+            // Use _rerank_score if available, fallback to _rankingScore
+            const rawScore = result._rerank_score !== undefined ? result._rerank_score : (result._rankingScore || 0);
+            const scorePercent = Math.round(rawScore * 100);
 
-            if (score < searchConfig.similarityThreshold) {
+            if (scorePercent < searchConfig.similarityThreshold) {
                 card.classList.add('dimmed-result');
                 dimmedCount++;
             } else {
@@ -388,7 +422,7 @@ export function applyThresholdToResults() {
 export function toggleIntentDetails() {
     const details = DOM.llmDetails;
     const icon = document.getElementById('toggleIntentIcon');
-    
+
     if (!details || !icon) return;
 
     const isHidden = details.classList.contains('hidden');

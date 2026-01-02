@@ -4,5 +4,9 @@
 *.tmp
 data/backup/*
 data/*.json
-src/logs/*.*
+src/src/logs/*
+.deployment
+*.json
+task/*
+docs/vault
 .venv

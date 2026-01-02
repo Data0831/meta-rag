@@ -1,112 +1,112 @@
-"""
-Search Service - Simplified with Meilisearch Hybrid Search
-
-This service uses Meilisearch for unified hybrid search that combines:
-- Keyword search (with fuzzy matching and typo tolerance)
-- Semantic vector search
-
-No more RRF fusion needed - Meilisearch handles it internally!
-"""
-
 from typing import Dict, Any, Optional, List
 from src.llm.client import LLMClient
 from src.llm.search_prompts import SEARCH_INTENT_PROMPT
 from src.schema.schemas import SearchIntent
 from src.database.db_adapter_meili import MeiliAdapter, build_meili_filter
 from src.database import vector_utils
-from src.config import MEILISEARCH_HOST, MEILISEARCH_API_KEY, MEILISEARCH_INDEX, PRE_SEARCH_LIMIT
+from src.config import (
+    MEILISEARCH_HOST,
+    MEILISEARCH_API_KEY,
+    MEILISEARCH_INDEX,
+    PRE_SEARCH_LIMIT,
+)
 from meilisearch_config import DEFAULT_SEMANTIC_RATIO
 from datetime import datetime
+from src.tool.ANSI import print_red
+from src.services.keyword_alg import ResultReranker
+import traceback
 
 
 class SearchService:
-    """
-    Simplified Search Service using Meilisearch.
+    def __init__(self, enable_debug: bool = False):
+        self.enable_debug = enable_debug
+        self.meili_adapter = None
+        self.llm_client = None
 
-    Architecture:
-    1. Parse user query into SearchIntent (LLM)
-    2. Convert filters to Meilisearch syntax
-    3. Generate query embedding (if using semantic search)
-    4. Single API call to Meilisearch (hybrid search)
-    5. Return results with ranking scores
-    """
-
-    def __init__(self, show_init_messages: bool = False):
-
-        if show_init_messages:
+        if self.enable_debug:
             print(" SearchService.__init__() called")
             print(f"  MEILISEARCH_HOST: {MEILISEARCH_HOST}")
             print(f"  MEILISEARCH_INDEX: {MEILISEARCH_INDEX}")
 
+    def _init_meilisearch(self) -> str | None:
         try:
-            print("  Initializing LLMClient...")
-            self.llm_client = LLMClient()
-            print("  LLMClient initialized")
+            if not self.meili_adapter:
+                self.meili_adapter = MeiliAdapter(
+                    host=MEILISEARCH_HOST,
+                    api_key=MEILISEARCH_API_KEY,
+                    collection_name=MEILISEARCH_INDEX,
+                )
+            self.meili_adapter.client.health()
+            return None
         except Exception as e:
-            print(f"  LLMClient initialization failed: {e}")
-            raise
+            msg = f"MeiliAdapter initialization failed: {str(e)}"
+            print_red(msg)
+            return msg
 
+    def _check_embedding_service(self, test_text: str = "test") -> str | None:
         try:
-            print("  Initializing MeiliAdapter...")
-            self.meili_adapter = MeiliAdapter(
-                host=MEILISEARCH_HOST,
-                api_key=MEILISEARCH_API_KEY,
-                collection_name=MEILISEARCH_INDEX,
+            result = vector_utils.get_embedding(test_text)
+            if result.get("status") == "failed":
+                return result.get("error")
+            if not result.get("result"):
+                return "Embedding service returned empty vector"
+            return None
+        except Exception as e:
+            msg = f"Embedding service check failed: {str(e)}"
+            print_red(msg)
+            return msg
+
+    def _init_llm(self) -> str | None:
+        try:
+            if not self.llm_client:
+                self.llm_client = LLMClient()
+            return None
+        except Exception as e:
+            msg = f"LLMClient initialization failed: {str(e)}"
+            print_red(msg)
+            return msg
+
+    def parse_intent(
+        self, user_query: str, history: List[str] = None, direction: str = ""
+    ) -> Dict[str, Any]:
+        try:
+            previous_queries_str = str(history) if history else "None"
+
+            system_prompt = SEARCH_INTENT_PROMPT.format(
+                current_date=datetime.now().strftime("%Y-%m-%d"),
+                previous_queries=previous_queries_str,
+                direction=direction or "",
             )
-            print("  MeiliAdapter initialized")
+            messages = [
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_query},
+            ]
+            result = self.llm_client.call_with_schema(
+                messages=messages,
+                response_model=SearchIntent,
+                temperature=0.7 if history else 0.0,
+            )
+            return result
         except Exception as e:
-            print(f"  MeiliAdapter initialization failed: {e}")
-            raise
+            print_red(f"System prompt formatting or LLM call failed: {e}")
+            return {
+                "status": "failed",
+                "error": f"System prompt formatting or LLM call failed: {str(e)}",
+                "stage": "intent_parsing",
+            }
 
-    def parse_intent(self, user_query: str) -> Optional[SearchIntent]:
-        """
-        Convert user query into structured search intent using LLM.
-
-        Args:
-            user_query: Natural language query from user
-
-        Returns:
-            SearchIntent object with filters, keyword_query, and semantic_query
-        """
-        # Construct prompt with current date context
-        system_prompt = SEARCH_INTENT_PROMPT.format(
-            current_date=datetime.now().strftime("%Y-%m-%d")
-        )
-
-        messages = [
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": user_query},
-        ]
-
-        # Use LLM with schema validation
-        intent = self.llm_client.call_with_schema(
-            messages=messages, response_model=SearchIntent, temperature=0.0
-        )
-        return intent
-
-    def _merge_duplicate_links(self, results: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-        """
-        Merge documents with the same link by concatenating their content.
-        Results should already be sorted by _rankingScore (highest first).
-
-        Args:
-            results: List of search results sorted by score
-
-        Returns:
-            List of deduplicated results with merged content
-        """
+    def _merge_duplicate_links(
+        self, results: List[Dict[str, Any]]
+    ) -> List[Dict[str, Any]]:
         if not results:
             return []
-
         link_to_doc = {}
         merged_results = []
-
         for doc in results:
             link = doc.get("link")
             if not link:
                 merged_results.append(doc)
                 continue
-
             if link not in link_to_doc:
                 link_to_doc[link] = doc
                 merged_results.append(doc)
@@ -114,8 +114,10 @@ class SearchService:
                 existing_doc = link_to_doc[link]
                 existing_content = existing_doc.get("content", "")
                 new_content = doc.get("content", "")
-                existing_doc["content"] = f"{existing_content}\n---\n{new_content}"
-
+                if new_content not in existing_content:
+                    existing_doc["content"] = (
+                        f"{existing_content}\n\n --- \n\n{new_content}"
+                    )
         return merged_results
 
     def search(
@@ -125,195 +127,236 @@ class SearchService:
         semantic_ratio: float = DEFAULT_SEMANTIC_RATIO,
         enable_llm: bool = True,
         manual_semantic_ratio: bool = False,
-        start_date: Optional[str] = None, 
+        enable_keyword_weight_rerank: bool = True,
+        fall_back: bool = False,
+        exclude_ids: List[str] = None,
+        history: List[str] = None,
+        direction: str = None,
+        start_date: Optional[str] = None,
         end_date: Optional[str] = None,
     ) -> Dict[str, Any]:
-        """
-        Perform unified hybrid search using Meilisearch.
 
-        Workflow:
-        1. Parse Intent (LLM) -> Extract filters, keyword_query, semantic_query, recommended_semantic_ratio
-           (If enable_llm=False, skips LLM and uses raw query)
-        2. Build Meilisearch filter expression
-        3. Generate query embedding for semantic search
-        4. Single Meilisearch API call (combines keyword + semantic + filters)
-        5. Return ranked results
+        # --- Stage 1: Check Meilisearch Connection ---
+        if err := self._init_meilisearch():
+            return {"error": err, "status": "failed", "stage": "meilisearch"}
 
-        Args:
-            user_query: Natural language query
-            limit: Maximum number of results to return
-            semantic_ratio: Initial weight for semantic search (0.0 = pure keyword, 1.0 = pure semantic)
-                            Default 0.5 - Will be overridden by LLM's recommended_semantic_ratio if available
-            enable_llm: Whether to use LLM for intent parsing (default: True)
-            manual_semantic_ratio: If True, strictly use provided semantic_ratio. If False, use LLM recommendation if available.
+        # --- Stage 2: Check Embedding Service ---
+        if semantic_ratio > 0 or not manual_semantic_ratio:
+            if err := self._check_embedding_service():
+                return {"error": err, "status": "failed", "stage": "embedding"}
 
-        Returns:
-            Dictionary with:
-            - intent: Parsed search intent (includes recommended_semantic_ratio)
-            - results: List of ranked documents from Meilisearch
-            - llm_error: (optional) Error message if LLM failed
-        """
-        # 1. Parse Intent
-        intent = None
-        llm_error = None
-
+        # --- Stage 3: Check/Init LLM Service ---
         if enable_llm:
-            try:
-                intent = self.parse_intent(user_query)
-            except Exception as e:
-                print(f"LLM Intent parsing failed: {e}")
-                llm_error = str(e)
+            if err := self._init_llm():
+                return {"error": err, "status": "failed", "stage": "llm"}
 
-        if not intent:
+        # --- Stage 4: Execution (Run) ---
+        try:
+            intent = None
+            llm_error = None
+            traces = []
+
             if enable_llm:
-                print("Intent parsing failed. Using fallback basic search.")
+                intent_result = self.parse_intent(
+                    user_query, history=history, direction=direction
+                )
+                if intent_result.get("status") == "failed":
+                    llm_error = intent_result.get("error")
+                    print_red(f"LLM Intent parsing failed: {llm_error}")
+                    if not fall_back:
+                        return intent_result
+                else:
+                    intent = intent_result.get("result")
+                    if not intent.keyword_query or not intent.keyword_query.strip():
+                        intent.keyword_query = user_query
+                        traces.append(
+                            "Warning: LLM returned empty keyword_query, fallback to origin user_query"
+                        )
+                    if not intent.semantic_query or not intent.semantic_query.strip():
+                        intent.semantic_query = user_query
+                        traces.append(
+                            "Warning: LLM returned empty semantic_query, fallback to origin user_query"
+                        )
 
-            intent = SearchIntent(
-                keyword_query=user_query,
-                semantic_query=user_query,
-            )
+            if not intent:
+                intent = SearchIntent(
+                    keyword_query=user_query, semantic_query=user_query, sub_queries=[]
+                )
 
-        # Override limit if specified in intent
-        if intent.limit is not None:
-            limit = intent.limit
+            if intent.limit is not None:
+                limit = intent.limit
+            if (
+                not manual_semantic_ratio
+                and intent.recommended_semantic_ratio is not None
+            ):
+                semantic_ratio = intent.recommended_semantic_ratio
 
-        # Use LLM-recommended semantic_ratio logic:
-        # If manual_semantic_ratio is True, we respect the user's provided ratio.
-        # If manual_semantic_ratio is False (Auto Mode), we use LLM's recommendation if available.
-        if not manual_semantic_ratio and intent.recommended_semantic_ratio is not None:
-            semantic_ratio = intent.recommended_semantic_ratio
-            print(f"Auto Mode: Using LLM-recommended semantic_ratio: {semantic_ratio:.2f}")
-        else:
-            print(f"Manual Mode (or no LLM rec): Using provided semantic_ratio: {semantic_ratio:.2f}")
+            query_candidates = []
 
-        # 2. Build Meilisearch filter expression
-        # 2. Build Meilisearch filter expression
-        meili_filter = build_meili_filter(intent)
+            query_candidates.append(intent.keyword_query)
+            traces.append(f"Primary Query: {intent.keyword_query}")
 
-        # -------------------------------------------------------
-        # ★★★ 修改邏輯：AI 優先權判定 ★★★
-        # -------------------------------------------------------
-        
-        # 檢查 AI 是否已經偵測到日期意圖 (year_month)
-        # 如果 AI 覺得使用者在問特定年份，我們就「忽略」手動設定的日期，以免發生衝突
-        ai_has_date_constraint = intent.year_month and len(intent.year_month) > 0
+            if intent.sub_queries:
+                for sq in intent.sub_queries:
+                    if sq and sq not in query_candidates:
+                        query_candidates.append(sq)
+                        traces.append(f"Sub-Query: {sq}")
+            meili_filter = build_meili_filter(intent)
 
-        if ai_has_date_constraint:
-            print(f"  [優先權判定] AI 已指定日期 {intent.year_month}，忽略手動日期篩選。")
-        else:
-            # 只有在 AI 「沒有」指定日期時，才套用手動過濾
-            date_filters = []
+            ai_has_date_constraint = intent.year_month and len(intent.year_month) > 0
 
-            if start_date:
-                ym_start = start_date[:7]
-                date_filters.append(f'year_month >= "{ym_start}"')
-            
-            if end_date:
-                ym_end = end_date[:7]
-                date_filters.append(f'year_month <= "{ym_end}"')
+            if ai_has_date_constraint:
+                print(
+                    f"  [優先權判定] AI 已指定日期 {intent.year_month}，忽略手動日期篩選。"
+                )
+            else:
+                date_filters = []
 
-            if date_filters:
-                manual_date_filter = " AND ".join(date_filters)
-                print(f"  [手動過濾] 年月範圍: {manual_date_filter}")
+                if start_date:
+                    ym_start = start_date[:7]
+                    date_filters.append(f'year_month >= "{ym_start}"')
+
+                if end_date:
+                    ym_end = end_date[:7]
+                    date_filters.append(f'year_month <= "{ym_end}"')
+
+                if date_filters:
+                    manual_date_filter = " AND ".join(date_filters)
+                    print(f"  [手動過濾] 年月範圍: {manual_date_filter}")
+
+                    if meili_filter:
+                        meili_filter = f"({meili_filter}) AND ({manual_date_filter})"
+                    else:
+                        meili_filter = manual_date_filter
+
+            if exclude_ids:
+                exclude_filter_safe = (
+                    f"id NOT IN [{', '.join([f'\"{eid}\"' for eid in exclude_ids])}]"
+                )
 
                 if meili_filter:
-                    meili_filter = f"({meili_filter}) AND ({manual_date_filter})"
+                    meili_filter = f"({meili_filter}) AND ({exclude_filter_safe})"
                 else:
-                    meili_filter = manual_date_filter
-        # 2.1 Enforce "Must Have" keywords via Soft Boosting
-        # We append critical keywords multiple times (e.g., 3x) to the query string.
-        # Mechanics:
-        # - No quotes: Preserves Meilisearch's typo tolerance (GEMNI -> GEMINI works).
-        # - Repetition: Heavily boosts the BM25/keyword score contribution for these terms.
-        #   If a doc is missing these terms, its keyword score will near-zero, dragging down the final hybrid score
-        #   even if the vector score is high.
-        if intent.must_have_keywords:
-            # Repeat 2 times for strong boosting (3x might be too aggressive)
-            boosted_keywords = []
-            for kw in intent.must_have_keywords:
-                boosted_keywords.extend([kw] * 2)
-
-            intent.keyword_query = (
-                f"{intent.keyword_query} {' '.join(boosted_keywords)}"
-            )
-            # print(f"Boosting critical keywords (2x): {intent.must_have_keywords}")
-
-        # 3. Generate query embedding for semantic search
-        query_vector = None
-        if semantic_ratio > 0:
-            # Only generate embedding if we're using semantic search
-            print(f"Generating embedding for: '{intent.semantic_query}'")
-            try:
-                query_vector = vector_utils.get_embedding(intent.semantic_query)
-                if query_vector:
-                    print(f"  Embedding generated (dim: {len(query_vector)})")
-                else:
-                    print("  Embedding generation returned empty vector")
-            except Exception as e:
-                print(f"  Embedding generation failed: {e}")
-                import traceback
-
-                traceback.print_exc()
-                query_vector = None
-
-            if not query_vector:
-                print(
-                    "Embedding generation failed. Falling back to keyword-only search."
+                    meili_filter = exclude_filter_safe
+                traces.append(
+                    f"Applied ID exclusion filter for {len(exclude_ids)} items."
                 )
-                semantic_ratio = 0
 
-        # 4. Single Meilisearch API call (Hybrid Search)
-        print(f"Calling Meilisearch...")
-        print(f"  Keyword query: '{intent.keyword_query}'")
-        print(f"  Has vector: {query_vector is not None}")
-        print(f"  Filter: {meili_filter}")
-        print(f"  Pre-search limit: {PRE_SEARCH_LIMIT}")
-        print(f"  Semantic ratio: {semantic_ratio}")
+            boosted_suffix = ""
+            if intent.must_have_keywords:
+                boosted_keywords = []
+                for kw in intent.must_have_keywords:
+                    boosted_keywords.extend([kw] * 2)
+                boosted_suffix = f" {' '.join(boosted_keywords)}"
 
-        try:
-            results = self.meili_adapter.search(
-                query=intent.keyword_query,
-                vector=query_vector,
-                filters=meili_filter,
-                limit=PRE_SEARCH_LIMIT,
-                semantic_ratio=semantic_ratio,
+            multi_search_queries = []
+
+            for q_text in query_candidates:
+                final_kw_query = f"{q_text}{boosted_suffix}"
+
+                vector = None
+                if semantic_ratio > 0:
+                    text_for_embedding = q_text
+                    if q_text == intent.keyword_query and intent.semantic_query:
+                        text_for_embedding = intent.semantic_query
+
+                    embedding_result = vector_utils.get_embedding(text_for_embedding)
+                    if embedding_result.get("status") == "success":
+                        vector = embedding_result.get("result")
+                    else:
+                        print_red(
+                            f"Embedding failed for '{q_text}': {embedding_result.get('error')}"
+                        )
+
+                search_params = {
+                    "indexUid": MEILISEARCH_INDEX,
+                    "q": final_kw_query,
+                    "limit": PRE_SEARCH_LIMIT,
+                    "attributesToRetrieve": ["*"],
+                    "showRankingScore": True,
+                    "showRankingScoreDetails": True,
+                }
+
+                if meili_filter:
+                    search_params["filter"] = meili_filter
+
+                if vector:
+                    search_params["hybrid"] = {
+                        "semanticRatio": semantic_ratio,
+                        "embedder": "default",
+                    }
+                    search_params["vector"] = vector
+
+                multi_search_queries.append(search_params)
+
+            if not multi_search_queries:
+                return {
+                    "status": "success",
+                    "results": [],
+                    "traces": traces,
+                    "intent": (
+                        intent.model_dump()
+                        if hasattr(intent, "model_dump")
+                        else intent.dict()
+                    ),
+                }
+
+            batch_result = self.meili_adapter.multi_search(multi_search_queries)
+            if batch_result.get("status") == "failed":
+                return batch_result
+
+            raw_hits_batch = batch_result.get("result", {}).get("results", [])
+
+            all_hits = []
+            seen_ids = set()
+
+            for i, result_set in enumerate(raw_hits_batch):
+                hits = result_set.get("hits", [])
+
+                for hit in hits:
+                    doc_id = hit.get("id")
+                    if doc_id and doc_id not in seen_ids:
+                        seen_ids.add(doc_id)
+                        all_hits.append(hit)
+
+            pre_merge_limit = round(limit * 2.5)
+
+            reranker = ResultReranker(all_hits, intent.must_have_keywords)
+            reranked_results = reranker.rerank(
+                top_k=pre_merge_limit,
+                enable_keyword_weight_rerank=enable_keyword_weight_rerank,
             )
-            print(f"  Meilisearch returned {len(results)} results")
+
+            if reranked_results and "_rerank_score" in reranked_results[0]:
+                reranked_results.sort(
+                    key=lambda x: x.get("_rerank_score", 0), reverse=True
+                )
+
+            merged_results = self._merge_duplicate_links(reranked_results)
+            final_results = merged_results[:limit]
+
+            response = {
+                "status": "success",
+                "intent": (
+                    intent.model_dump()
+                    if hasattr(intent, "model_dump")
+                    else intent.dict()
+                ),
+                "meili_filter": meili_filter,
+                "results": final_results,
+                "final_semantic_ratio": semantic_ratio,
+                "mode": "semantic" if semantic_ratio > 0 else "keyword",
+                "traces": traces,
+            }
+            if llm_error:
+                response["llm_warning"] = llm_error
+
+            return response
+
         except Exception as e:
-            print(f"  Meilisearch search failed: {e}")
-            import traceback
-
             traceback.print_exc()
-            raise
-
-        # 4.1 Merge documents with same link
-        merged_results = self._merge_duplicate_links(results)
-        print(f"  After merging duplicates: {len(merged_results)} results")
-
-        # 4.2 Take top limit results
-        final_results = merged_results[:limit]
-        print(f"  Final results (top {limit}): {len(final_results)} results")
-
-        # 5. Return results with intent
-        print(f"DEBUG - Before serialization:")
-        print(f"  intent.year_month: {intent.year_month}")
-        print(f"  intent.workspaces: {intent.workspaces}")
-
-        serialized_intent = (
-            intent.model_dump() if hasattr(intent, "model_dump") else intent.dict()
-        )
-        print(f"DEBUG - After serialization:")
-        print(f"  serialized year_month: {serialized_intent.get('year_month')}")
-        print(f"  serialized workspaces: {serialized_intent.get('workspaces')}")
-
-        response = {
-            "intent": serialized_intent,
-            "meili_filter": meili_filter,
-            "results": final_results,
-            "final_semantic_ratio": semantic_ratio,
-        }
-
-        if llm_error:
-            response["llm_error"] = llm_error
-
-        return response
+            return {
+                "error": f"Unexpected error: {str(e)}",
+                "status": "failed",
+                "stage": "unknown",
+            }

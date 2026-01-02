@@ -181,11 +181,13 @@
             <label class="text-xs font-medium text-slate-600 dark:text-slate-300">語意搜尋權重</label>
             <div class="flex items-center space-x-2">
               <span id="semanticRatioValue" class="text-primary font-bold text-sm">Auto</span>
-              <input type="checkbox" id="manualRatioCheckbox" class="w-3 h-3 text-primary bg-white dark:bg-slate-700 border-slate-300 dark:border-slate-500 rounded focus:ring-primary" title="手動調整權重">
+              <input type="checkbox" id="manualRatioCheckbox"
+                class="w-3 h-3 text-primary bg-white dark:bg-slate-700 border-slate-300 dark:border-slate-500 rounded focus:ring-primary"
+                title="手動調整權重">
             </div>
           </div>
           <div class="relative">
-             <input id="semanticRatioSlider"
+            <input id="semanticRatioSlider"
               class="range-slider w-full h-2 bg-white dark:bg-slate-600 rounded-lg appearance-none cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
               max="100" min="0" step="1" type="range" value="50" disabled />
           </div>
@@ -204,6 +206,13 @@
             id="llmRewriteCheckbox" type="checkbox" checked />
           <label class="text-sm text-slate-700 dark:text-slate-300 cursor-pointer" for="llmRewriteCheckbox">啟用
             LLM 查詢重寫</label>
+        </div>
+        <div class="flex items-center space-x-2 pt-1">
+          <input
+            class="w-4 h-4 text-primary bg-white dark:bg-slate-700 border-slate-300 dark:border-slate-500 rounded focus:ring-primary"
+            id="enableKeywordWeightRerankCheckbox" type="checkbox" checked />
+          <label class="text-sm text-slate-700 dark:text-slate-300 cursor-pointer"
+            for="enableKeywordWeightRerankCheckbox">啟用重排序 (Rerank)</label>
         </div>
       </div>
       <div class="bg-card-light dark:bg-card-dark rounded-xl p-5 shadow-sm transition-colors duration-300 space-y-4">
@@ -271,8 +280,13 @@
 
       <!-- Error State -->
       <div id="errorState"
-        class="hidden bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-6 mb-10 text-center">
-        <p id="errorMessage" class="text-red-600 dark:text-red-400 font-medium"></p>
+        class="hidden bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-6 mb-10">
+        <div class="flex items-start gap-3">
+          <span class="material-icons-round text-red-600 dark:text-red-400 text-2xl flex-shrink-0">error</span>
+          <div class="flex-1">
+            <p id="errorMessage" class="text-red-600 dark:text-red-400 font-medium whitespace-pre-line"></p>
+          </div>
+        </div>
       </div>
 
       <!-- Empty State -->
@@ -286,7 +300,7 @@
       <div id="intentContainer"
         class="hidden bg-card-light dark:bg-slate-800 rounded-xl p-4 mb-5 shadow-sm border border-slate-100 dark:border-slate-700">
         <div
-          class="flex flex-col md:flex-row justify-between items-start md:items-center border-b border-slate-200 dark:border-slate-700 pb-4 gap-2">
+          class="flex flex-col md:flex-row justify-between items-start md:items-center border-b border-slate-200 dark:border-slate-700 gap-2">
           <div class="flex items-center gap-2">
             <button id="toggleIntentBtn" onclick="toggleIntentDetails()"
               class="hidden p-1 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-full transition-all duration-200 mr-1 flex items-center justify-center">
@@ -305,44 +319,84 @@
         </div>
 
         <!-- LLM Warning Banner -->
-        <div id="llmWarningBanner" class="hidden mt-3 mb-2 flex items-center gap-2 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-3">
-          <span class="material-icons-round text-amber-600 dark:text-amber-400 text-lg">warning</span>
-          <p class="text-sm text-amber-800 dark:text-amber-300">LLM 服務暫時無法使用，使用基本搜尋模式</p>
+        <div id="llmWarningBanner" class="llm-warning-banner hidden">
+          <span class="material-icons-round">warning</span>
+          <p>LLM 服務暫時無法使用，使用基本搜尋模式</p>
         </div>
 
-        <div id="llmDetails" class="hidden">
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-2 pt-2">
-            <div class="space-y-3">
-              <div class="flex items-start gap-3">
-                <span class="text-sm font-bold text-slate-700 dark:text-slate-300 min-w-[80px]">關鍵字查詢 :</span>
-                <div class="flex flex-wrap gap-2">
-                  <span id="intentKeywordQuery"
-                    class="px-2 py-1 bg-white dark:bg-slate-700 rounded text-xs text-slate-600 dark:text-slate-200 border border-slate-200 dark:border-slate-600"></span>
+        <div id="llmDetails" class="hidden mt-2">
+          <div class="intent-details-grid">
+
+            <!-- Left Column: Query Analysis -->
+            <div class="intent-card">
+              <h4 class="intent-section-title">
+                <span class="material-icons-round text-primary">search</span>
+                查詢分析
+              </h4>
+
+              <!-- Keywords -->
+              <div class="intent-field">
+                <label class="intent-label">關鍵字</label>
+                <div class="intent-badge-container">
+                  <span id="intentKeywordQuery" class="intent-badge"></span>
                 </div>
               </div>
-              <div class="flex items-start gap-3">
-                <span class="text-sm font-bold text-slate-700 dark:text-slate-300 min-w-[80px]">語意查詢 :</span>
-                <div class="flex flex-wrap gap-2">
-                  <span id="intentSemanticQuery"
-                    class="px-2 py-1 bg-white dark:bg-slate-700 rounded text-xs text-slate-600 dark:text-slate-200 border border-slate-200 dark:border-slate-600"></span>
+
+              <!-- Semantic -->
+              <div class="intent-field">
+                <label class="intent-label">語意理解</label>
+                <div class="intent-badge-container">
+                  <span id="intentSemanticQuery" class="intent-badge"></span>
                 </div>
               </div>
-              <div class="flex items-start gap-3 hidden">
-                <span class="text-sm font-bold text-slate-700 dark:text-slate-300 min-w-[80px]">LLM 建議權重 :</span>
-                <div class="flex flex-wrap gap-2">
-                  <span id="intentRecommendedRatio"
-                    class="px-2 py-1 bg-primary/20 dark:bg-primary/30 text-primary dark:text-primary-light rounded text-xs font-bold border border-primary/30 dark:border-primary/40"></span>
+
+              <!-- Sub Queries -->
+              <div id="intentSubQueriesContainer" class="intent-field hidden">
+                <label class="intent-label">延伸查詢</label>
+                <div id="intentSubQueries" class="intent-badge-container"></div>
+              </div>
+            </div>
+
+            <!-- Right Column: Weights & Filters -->
+            <div class="intent-card">
+              <h4 class="intent-section-title">
+                <span class="material-icons-round text-primary">tune</span>
+                權重與過濾
+              </h4>
+
+              <!-- Weight Display -->
+              <div class="intent-field">
+                <label class="intent-label">混合搜尋權重</label>
+                <div class="weight-display">
+                  <div class="weight-item">
+                    <span class="weight-icon material-icons-round">psychology</span>
+                    <span class="weight-text">語意：</span>
+                    <span id="weightSemanticLabel" class="weight-value">0.50</span>
+                  </div>
+                  <div class="weight-divider"></div>
+                  <div class="weight-item">
+                    <span class="weight-icon material-icons-round">key</span>
+                    <span class="weight-text">關鍵字：</span>
+                    <span id="weightKeywordLabel" class="weight-value">0.50</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Boosted Keywords -->
+              <div id="intentBoostedContainer" class="intent-field hidden">
+                <label class="intent-label">關鍵字加權</label>
+                <div id="intentBoostedKeywords" class="intent-badge-container"></div>
+              </div>
+
+              <!-- Filters -->
+              <div class="intent-field">
+                <label class="intent-label">過濾條件</label>
+                <div id="intentFilters" class="intent-badge-container">
+                  <!-- Filters injected here -->
                 </div>
               </div>
             </div>
-            <div class="space-y-3 md:mt-10">
-              <div class="flex items-start gap-3">
-                <span class="text-sm font-bold text-slate-700 dark:text-slate-300 min-w-[90px]">篩選條件 (Filter) :</span>
-                <div id="intentFilters" class="flex flex-wrap gap-2">
-                  <!-- Filters will be injected here -->
-                </div>
-              </div>
-            </div>
+
           </div>
         </div>
       </div>
@@ -393,8 +447,10 @@
               <span class="material-icons-round">smart_toy</span>
               <h3 class="font-bold text-lg">AI 知識助手</h3>
             </div>
-            <button id="clearChatBtn" class="hover:bg-white/20 rounded-full p-2 transition-colors flex items-center justify-center" title="清除對話紀錄">
-                <span class="material-icons-round text-sm">delete_sweep</span>
+            <button id="clearChatBtn"
+              class="hover:bg-white/20 rounded-full p-2 transition-colors flex items-center justify-center"
+              title="清除對話紀錄">
+              <span class="material-icons-round text-sm">delete_sweep</span>
             </button>
           </div>
 

@@ -1,5 +1,5 @@
 import os
-from typing import List
+from typing import List, Dict, Any, Union
 import ollama
 from dotenv import load_dotenv
 
@@ -10,24 +10,25 @@ OLLAMA_HOST = os.getenv("OLLAMA_HOST", "http://localhost:11434")
 ollama_client = ollama.Client(host=OLLAMA_HOST)
 
 
-def get_embedding(text: str, model: str = "bge-m3") -> List[float]:
-    """
-    Generates embedding for the given text using Ollama API.
-    Uses OLLAMA_HOST environment variable for remote Ollama servers.
-    """
+def get_embedding(text: str, model: str = "bge-m3") -> Dict[str, Any]:
     try:
-        # Replacing newlines for consistency with common practices.
         text = text.replace("\n", " ")
 
         response = ollama_client.embeddings(
             model=model,
             prompt=text,
-            options={"num_ctx": 8192},  # Enforce num_ctx as specified
+            options={"num_ctx": 8192},
         )
-        return response["embedding"]
+        return {
+            "status": "success",
+            "result": response["embedding"]
+        }
     except Exception as e:
-        print(f"Error generating embedding from {OLLAMA_HOST}: {e}")
-        return []
+        return {
+            "status": "failed",
+            "error": f"Error generating embedding from {OLLAMA_HOST}: {str(e)}",
+            "stage": "embedding_generation"
+        }
 
 
 if __name__ == "__main__":
