@@ -118,7 +118,9 @@ class SearchService:
                 new_content = doc.get("content", "")
                 # Avoid appending if content is identical (optional optimization)
                 if new_content not in existing_content:
-                    existing_doc["content"] = f"{existing_content}\n---\n{new_content}"
+                    existing_doc["content"] = (
+                        f"{existing_content}\n\n --- \n\n{new_content}"
+                    )
         return merged_results
 
     def search(
