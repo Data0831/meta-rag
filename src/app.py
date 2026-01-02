@@ -281,7 +281,7 @@ if __name__ == "__main__":
     print("=" * 60)
     print(f"Meilisearch Host: {MEILISEARCH_HOST}")
     print(f"Index Name: {MEILISEARCH_INDEX}")
-    port = int(os.environ.get("PORT", 5000))
+    port = int(os.environ.get("PORT", 5050))
     print(f"Server will run on: http://0.0.0.0:{port}")
     print("=" * 60)
     app.run(threaded=True, debug=True, host="0.0.0.0", port=port)

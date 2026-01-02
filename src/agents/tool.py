@@ -20,6 +20,8 @@ class SearchTool:
         exclude_ids: List[str] = None,
         history: List[str] = None,
         direction: str = None,
+        start_date: str = None,
+        end_date: str = None,
     ) -> Dict[str, Any]:
         """
         Executes a search using the SearchService.
@@ -34,6 +36,8 @@ class SearchTool:
             exclude_ids=exclude_ids,
             history=history,
             direction=direction,
+            start_date=start_date,
+            end_date=end_date,
         )
 
     def summarize(self, user_query: str, search_results: List[Dict]) -> Dict[str, Any]:

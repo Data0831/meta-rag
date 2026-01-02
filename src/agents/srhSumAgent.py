@@ -59,6 +59,8 @@ class SrhSumAgent:
         enable_llm: bool = True,
         manual_semantic_ratio: bool = False,
         enable_keyword_weight_rerank: bool = True,
+        start_date: str = None,
+        end_date: str = None,
     ):
         from src.config import (
             SCORE_PASS_THRESHOLD,
@@ -84,6 +86,8 @@ class SrhSumAgent:
             enable_llm=enable_llm,
             manual_semantic_ratio=manual_semantic_ratio,
             enable_keyword_weight_rerank=enable_keyword_weight_rerank,
+            start_date=start_date,
+            end_date=end_date,
         )
         if search_response.get("status") == "failed":
             yield {
@@ -216,6 +220,8 @@ class SrhSumAgent:
                 exclude_ids=list(all_seen_ids),
                 history=query_history,
                 direction=search_direction,
+                start_date=start_date,
+                end_date=end_date,
             )
 
             yield {
