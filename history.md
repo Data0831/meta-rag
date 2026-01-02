@@ -21,3 +21,9 @@
 
 ### 2026-01-02 引用連結轉換修復 (Citation Link Conversion Fix)
 - **修復內容總結引用連結 (Fix General Summary Citations)**：修正 `src/static/js/search.js` 的 `renderStructuredSummary` 函數，在處理「內容總結」(general_summary) 時補上遺漏的 `convertCitationsToLinks()` 調用。現在三段式摘要中的「詳細說明」與「內容總結」區塊都能正確將引用標記 `[1]`, `[2]` 等轉換為藍色上標超連結，點擊後於新標籤頁開啟來源文件，提升使用者體驗一致性與資訊可信度。
+
+### 2026-01-02 前端模組化重構 (Frontend Modularization)
+- **JavaScript 模組化架構**：將 `src/static/js/search.js` (778 行) 重構為模組化架構，拆分為 5 個獨立模組：`alert.js` (通知功能)、`citation.js` (引用轉換與摘要渲染)、`search-config.js` (搜尋配置 UI)、`search-logic.js` (搜尋執行邏輯)、`chatbot.js` (聊天機器人)。主檔案精簡為 18 行作為入口點，採用 ES6 import/export 模組系統，提升程式碼可維護性與可讀性。所有原有功能保持不變，同步更新 `CLAUDE.md` 專案文件以反映新架構。
+
+### 2026-01-02 搜尋服務模組化重構 (Search Service Modularization)
+- **搜尋服務層重構**：將 `src/services/search_service.py` 的 `search()` 方法（234 行）重構為模組化架構，拆分為 8 個職責單一的內部方法：服務初始化檢查、意圖解析、查詢候選構建、過濾器表達式構建、單查詢參數構建、結果去重、重排與合併、響應構建。主方法精簡至 72 行，採用異常拋出策略由主函數統一處理，對外 API 契約完全不變。提升程式碼可讀性、可測試性與可維護性，向後兼容現有測試。
