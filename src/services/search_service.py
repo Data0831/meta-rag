@@ -20,7 +20,6 @@ import traceback
 class SearchService:
     def __init__(self, enable_debug: bool = False):
         self.enable_debug = enable_debug
-        # 這裡只做輕量初始化，真正的連線檢查放在 search 或獨立的 check 方法中
         self.meili_adapter = None
         self.llm_client = None
 
@@ -58,7 +57,6 @@ class SearchService:
             return msg
 
     def _init_llm(self) -> str | None:
-        """嘗試初始化 LLM Client"""
         try:
             if not self.llm_client:
                 self.llm_client = LLMClient()
@@ -116,7 +114,6 @@ class SearchService:
                 existing_doc = link_to_doc[link]
                 existing_content = existing_doc.get("content", "")
                 new_content = doc.get("content", "")
-                # Avoid appending if content is identical (optional optimization)
                 if new_content not in existing_content:
                     existing_doc["content"] = (
                         f"{existing_content}\n\n --- \n\n{new_content}"
@@ -144,11 +141,8 @@ class SearchService:
             return {"error": err, "status": "failed", "stage": "meilisearch"}
 
         # --- Stage 2: Check Embedding Service ---
-        # 只有在需要語義搜索時才檢查 embedding，或者根據您的需求強制檢查
         if semantic_ratio > 0 or not manual_semantic_ratio:
             if err := self._check_embedding_service():
-                # 根據需求，embedding 失敗可以是 Fatal 或是降級為關鍵字搜尋
-                # 您的需求是「停止」，所以這裡直接回傳 error
                 return {"error": err, "status": "failed", "stage": "embedding"}
 
         # --- Stage 3: Check/Init LLM Service ---
@@ -158,10 +152,9 @@ class SearchService:
 
         # --- Stage 4: Execution (Run) ---
         try:
-            # 4.1 Parse Intent (Using LLM)
             intent = None
             llm_error = None
-            traces = []  # Log search steps
+            traces = []
 
             if enable_llm:
                 intent_result = self.parse_intent(
@@ -174,7 +167,6 @@ class SearchService:
                         return intent_result
                 else:
                     intent = intent_result.get("result")
-                    # Fix: If LLM returns empty query strings (e.g. for nonsense input), fallback to user_query
                     if not intent.keyword_query or not intent.keyword_query.strip():
                         intent.keyword_query = user_query
                         traces.append(
@@ -186,13 +178,11 @@ class SearchService:
                             "Warning: LLM returned empty semantic_query, fallback to origin user_query"
                         )
 
-            # Fallback intent if LLM failed or disabled
             if not intent:
                 intent = SearchIntent(
                     keyword_query=user_query, semantic_query=user_query, sub_queries=[]
                 )
 
-            # Update params based on intent
             if intent.limit is not None:
                 limit = intent.limit
             if (
@@ -201,15 +191,11 @@ class SearchService:
             ):
                 semantic_ratio = intent.recommended_semantic_ratio
 
-            # 4.2 Build Query Batch
-            # Collect all distinct queries: primary intent + sub_queries
             query_candidates = []
 
-            # Add primary (original intent)
             query_candidates.append(intent.keyword_query)
             traces.append(f"Primary Query: {intent.keyword_query}")
 
-            # Add sub-queries
             if intent.sub_queries:
                 for sq in intent.sub_queries:
                     if sq and sq not in query_candidates:
@@ -217,12 +203,6 @@ class SearchService:
                         traces.append(f"Sub-Query: {sq}")
             meili_filter = build_meili_filter(intent)
 
-            # -------------------------------------------------------
-            # ★★★ 修改邏輯：AI 優先權判定 ★★★
-            # -------------------------------------------------------
-
-            # 檢查 AI 是否已經偵測到日期意圖 (year_month)
-            # 如果 AI 覺得使用者在問特定年份，我們就「忽略」手動設定的日期，以免發生衝突
             ai_has_date_constraint = intent.year_month and len(intent.year_month) > 0
 
             if ai_has_date_constraint:
@@ -249,7 +229,6 @@ class SearchService:
                     else:
                         meili_filter = manual_date_filter
 
-            # Append exclude_ids filter if present
             if exclude_ids:
                 exclude_filter_safe = (
                     f"id NOT IN [{', '.join([f'\"{eid}\"' for eid in exclude_ids])}]"
@@ -263,9 +242,6 @@ class SearchService:
                     f"Applied ID exclusion filter for {len(exclude_ids)} items."
                 )
 
-            # Boost keywords logic
-
-            # Boost keywords logic
             boosted_suffix = ""
             if intent.must_have_keywords:
                 boosted_keywords = []
@@ -273,18 +249,14 @@ class SearchService:
                     boosted_keywords.extend([kw] * 2)
                 boosted_suffix = f" {' '.join(boosted_keywords)}"
 
-            # Generate Embeddings & Build Multi-Search Queries
             multi_search_queries = []
 
             for q_text in query_candidates:
-                # 1. Keyword Component
                 final_kw_query = f"{q_text}{boosted_suffix}"
 
-                # 2. Vector Component
                 vector = None
                 if semantic_ratio > 0:
                     text_for_embedding = q_text
-                    # Use intent.semantic_query if this is the primary candidate
                     if q_text == intent.keyword_query and intent.semantic_query:
                         text_for_embedding = intent.semantic_query
 
@@ -296,7 +268,6 @@ class SearchService:
                             f"Embedding failed for '{q_text}': {embedding_result.get('error')}"
                         )
 
-                # 3. Build Query Object
                 search_params = {
                     "indexUid": MEILISEARCH_INDEX,
                     "q": final_kw_query,
@@ -318,7 +289,6 @@ class SearchService:
 
                 multi_search_queries.append(search_params)
 
-            # 4.4 Execute Multi-Search
             if not multi_search_queries:
                 return {
                     "status": "success",
@@ -335,10 +305,8 @@ class SearchService:
             if batch_result.get("status") == "failed":
                 return batch_result
 
-            # 4.5 Aggregate Results
             raw_hits_batch = batch_result.get("result", {}).get("results", [])
 
-            # Flatten and Deduplicate by ID
             all_hits = []
             seen_ids = set()
 
@@ -351,7 +319,6 @@ class SearchService:
                         seen_ids.add(doc_id)
                         all_hits.append(hit)
 
-            # 4.6 Rerank & Process
             pre_merge_limit = round(limit * 2.5)
 
             reranker = ResultReranker(all_hits, intent.must_have_keywords)
@@ -365,11 +332,9 @@ class SearchService:
                     key=lambda x: x.get("_rerank_score", 0), reverse=True
                 )
 
-            # Merge same links
             merged_results = self._merge_duplicate_links(reranked_results)
             final_results = merged_results[:limit]
 
-            # 4.7 Response
             response = {
                 "status": "success",
                 "intent": (

@@ -206,12 +206,13 @@ function renderStructuredSummary(summary, linkMapping) {
     // Part 3: General Summary
     if (general_summary && general_summary.trim()) {
         const summaryParsed = marked.parse(general_summary);
+        const summaryWithLinks = convertCitationsToLinks(summaryParsed, linkMapping);
 
         html += `
             <div class="mb-4">
                 <h4 class="font-bold text-slate-700 dark:text-slate-300 mb-2">內容總結</h4>
                 <div class="text-slate-600 dark:text-slate-300 leading-relaxed prose prose-sm dark:prose-invert max-w-none">
-                    ${summaryParsed}
+                    ${summaryWithLinks}
                 </div>
             </div>
         `;
