@@ -186,6 +186,21 @@ async function generateSearchSummary(query, results) {
     const summaryContent = document.getElementById('summaryContent');
     const summaryTitle = document.getElementById('summaryTitle');
 
+    // 1. 先取得當前的門檻值
+    const threshold = searchConfig.similarityThreshold || 0;
+
+    // 2. 篩選出高於或等於門檻的文章 (與 render.js 邏輯同步)
+    const validResults = (results || []).filter(item => {
+        const score = Math.round((item._rankingScore || 0) * 100);
+        return score >= threshold;
+    });
+
+    // 3. 如果沒有任何合格的文章，則隱藏摘要區塊並結束
+    if (validResults.length === 0) {
+        summaryContainer.classList.add('hidden');
+        return;
+    }
+
     // 初始化 UI：顯示容器，並顯示 Loading 狀態
     summaryContainer.classList.remove('hidden');
     summaryTitle.innerHTML = `正在為您總結「<span class="text-primary">${query}</span>」的相關公告...`;
@@ -200,8 +215,8 @@ async function generateSearchSummary(query, results) {
     `;
 
     try {
-        // 準備要傳給後端的資料 (只傳前 5 筆 ID 或內容，減少傳輸量)
-        const topResults = results.slice(0, 5).map(item => ({
+        // 準備要傳給後端的資料 (只取合格的前 5 筆)
+        const topResults = validResults.slice(0, 5).map(item => ({
             title: item.title,
             content: item.content || item.cleaned_content
         }));
@@ -223,17 +238,14 @@ async function generateSearchSummary(query, results) {
             summaryTitle.innerHTML = `以下為「<span class="text-primary">${query}</span>」的相關公告總結：`;
 
             // 渲染 Markdown 內容
-            // 使用 marked.parse 來解析後端回傳的 Markdown 列表
             summaryContent.innerHTML = marked.parse(data.summary);
 
             // 讓列表樣式更好看 (Tailwind Typography)
-            // 確保 summaryContent 外層或本身有 prose class，或手動調整 CSS
             const ul = summaryContent.querySelector('ul');
             if (ul) {
                 ul.classList.add('list-disc', 'pl-5', 'space-y-1');
             }
         } else if (data.error) {
-            // 後端返回錯誤
             summaryTitle.innerHTML = `摘要生成失敗`;
             summaryContent.innerHTML = `
                 <div class="flex items-center gap-2 text-amber-600 dark:text-amber-400">
@@ -242,7 +254,6 @@ async function generateSearchSummary(query, results) {
                 </div>
             `;
         } else {
-            // 後端沒返回摘要也沒返回錯誤
             summaryTitle.innerHTML = `摘要生成失敗`;
             summaryContent.innerHTML = `
                 <div class="flex items-center gap-2 text-slate-500 dark:text-slate-400">
@@ -254,7 +265,6 @@ async function generateSearchSummary(query, results) {
 
     } catch (error) {
         console.error("摘要生成失敗:", error);
-        // 顯示錯誤訊息而不是隱藏區塊
         summaryTitle.innerHTML = `摘要生成失敗`;
         summaryContent.innerHTML = `
             <div class="flex items-center gap-2 text-red-600 dark:text-red-400">
@@ -392,6 +402,7 @@ function setupChatbot() {
 
         suggestionsContainer.innerHTML = '';
 
+        // --- 第一層檢查：完全沒有搜尋結果的情況 (原始邏輯) ---
         if (!currentResults || currentResults.length === 0) {
             appendMessage('user', text);
             setTimeout(() => {
@@ -402,13 +413,35 @@ function setupChatbot() {
             return;
         }
 
+        // --- 第二層檢查：有搜尋結果，但根據相似度門檻篩選合格文章 ---
+        const threshold = searchConfig.similarityThreshold || 0;
+        
+        // 根據 render.js 邏輯，使用 Math.round((_rankingScore || 0) * 100) 取得整數分數
+        const validResults = currentResults.filter(item => {
+            const score = Math.round((item._rankingScore || 0) * 100);
+            return score >= threshold;
+        });
+
+        // 如果過濾後沒有任何合格的文章
+        if (validResults.length === 0) {
+            appendMessage('user', text);
+            setTimeout(() => {
+                appendMessage('bot', `抱歉，目前的搜尋結果相似度皆低於您的門檻 (${threshold}%)，我無法從中獲取準確資訊。請嘗試調低相似度門檻或變更關鍵字。`);
+                renderSuggestions(["調低相似度門檻", "重新搜尋"]);
+            }, 500);
+            chatInput.value = '';
+            return;
+        }
+
+        // --- 通過檢查，開始發送請求 ---
         appendMessage('user', text);
         chatInput.value = '';
 
         const loadingId = appendLoading();
 
         try {
-            const currentContext = currentResults.slice(0, 5).map(item => ({
+            // 取前 5 筆「合格」的資料作為 Context 傳給 AI
+            const currentContext = validResults.slice(0, 5).map(item => ({
                 title: item.title,
                 content: item.content || item.cleaned_content,
                 link: item.link,
