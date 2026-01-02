@@ -3,11 +3,14 @@ from typing import List, Dict, Any
 from pathlib import Path
 import re
 
+# 修正路徑與檔名
 FILES_NEED_TO_BE_PROCESSED = [
-    "fetch_result/partner_center.json",
-    # "windows-message.json",
-    # "m365_roadmap_flat.json",
-    # "fetch_result/PowerBI_dataset.json"
+    "fetch_result/m365_roadmap.json",
+    "fetch_result/partner_center_announcements.json",
+    "fetch_result/powerbi_blog.json",
+    "fetch_result/windows_message_center.json",
+    # "fetch_result/azure_updates.json", 
+    # "fetch_result/msrc_blog.json"
 ]
 
 OUTPUT_FILE = "data.json"
@@ -16,7 +19,6 @@ OUTPUT_FILE = "data.json"
 def clean_content(content: str) -> str:
     """
     Clean the content by removing noise and keeping key information.
-
     Cleaning steps:
     1. Remove URLs (http/https)
     2. Remove Markdown links (keep anchor text)
@@ -90,19 +92,22 @@ def process_files():
             continue
 
         # 根據檔名決定 website tag
-        current_website_tag = "general" # 預設值
-        if "partner_center" in filename:
+        filename_lower = filename.lower()
+        current_website_tag = "general"
+
+        if "partner_center" in filename_lower:
             current_website_tag = "partner_center"
-        elif "m365_roadmap" in filename:
+        elif "m365_roadmap" in filename_lower:
             current_website_tag = "m365_roadmap"
-        elif "windows_message_center" in filename:
+        elif "windows-message" in filename_lower or "windows_message" in filename_lower:
             current_website_tag = "windows_message_center"
-        elif "powerbi_blog" in filename:
+        elif "powerbi" in filename_lower:
             current_website_tag = "powerbi_blog"
-        elif "azure_update" in filename:
+        elif "azure" in filename_lower:
             current_website_tag = "azure_update"
         elif "msrc_blog" in filename:
             current_website_tag = "msrc_blog"
+        # -----------------------
 
         for item in data:
             # Helper to check required fields
@@ -127,17 +132,24 @@ def process_files():
             year = year_month.split("-")[0] if "-" in year_month else year_month[:4]
 
             # Update existing item to preserve other keys
-            item["year"] = year
-            item["content"] = raw_content
-            item["cleaned_content"] = cleaned_content
-            item["website"] = current_website_tag
-
+            clean_item = {
+                "id": item.get("id", ""),                     
+                "main_title": item.get("main_title", ""),     
+                "heading_link": item.get("heading_link", ""), 
+                "title": item["title"],
+                "content": raw_content,
+                "link": item["link"],
+                "year_month": item["year_month"],
+                "year": year,
+                "cleaned_content": cleaned_content, # 算向量用
+                "website": current_website_tag,     # 來源標籤
+            }
             if "Workspace" not in item:
                 item["Workspace"] = "General"
 
-            aggregated_data.append(item)
+            aggregated_data.append(clean_item)
 
-    # Save aggregated data
+    # Save
     try:
         with open(output_path, "w", encoding="utf-8") as f:
             json.dump(aggregated_data, f, ensure_ascii=False, indent=4)

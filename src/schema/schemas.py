@@ -62,3 +62,7 @@ class SearchIntent(BaseModel):
         le=1.0,
         description="Recommended weight for semantic search (0.0=pure keyword, 1.0=pure semantic, 0.5=balanced)",
     )
+    websites: List[str] = Field(
+        default_factory=list,
+        description="List of websites to filter by e.g. ['azure_update', 'partner_center']",
+    )

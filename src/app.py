@@ -107,12 +107,16 @@ def search():
         semantic_ratio = data.get("semantic_ratio", 0.5)
         enable_llm = data.get("enable_llm", True)
         manual_semantic_ratio = data.get("manual_semantic_ratio", False)
-
+        filters = data.get("filters", {}) # 預設是空字典
+        selected_websites = filters.get("website", []) # 拿出 website 列表
+        
+    
         print(f"  Query: {query}")
         print(f"  Limit: {limit}")
         print(f"  Semantic Ratio: {semantic_ratio}")
         print(f"  Enable LLM: {enable_llm}")
         print(f"  Manual Semantic Ratio: {manual_semantic_ratio}")
+        print(f"  Websites Filter: {selected_websites}")
 
         # Validate parameters
         if not isinstance(limit, int) or limit < 1 or limit > 100:
@@ -150,6 +154,7 @@ def search():
             semantic_ratio=semantic_ratio,
             enable_llm=enable_llm,
             manual_semantic_ratio=manual_semantic_ratio,
+            website_filters=selected_websites
         )
 
         print(f"Search completed. Results count: {len(results.get('results', []))}")
@@ -333,4 +338,4 @@ if __name__ == "__main__":
     print(f"Server will run on: http://localhost:5000")
     print("=" * 60)
 
-    app.run(debug=True, host="0.0.0.0", port=5000)
+    app.run(debug=True, host="0.0.0.0", port=5001)

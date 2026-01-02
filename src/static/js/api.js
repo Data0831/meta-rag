@@ -8,11 +8,13 @@ import { searchConfig } from './config.js';
 /**
  * Perform collection search
  * @param {string} query - Search query
+ * @param {Array<string>} websites - List of selected websites (filters)
  * @returns {Promise<{data: Object, duration: number}>}
  */
-export async function performCollectionSearch(query) {
+export async function performCollectionSearch(query, websites = []) {
     console.log('Starting search...');
     console.log('  Query:', query);
+    console.log('  Filters:', websites);
     console.log('  Config:', searchConfig);
 
     if (!query) {
@@ -23,6 +25,9 @@ export async function performCollectionSearch(query) {
 
     const requestBody = {
         query: query,
+        filters: {
+            website: websites 
+        },
         limit: searchConfig.limit,
         semantic_ratio: searchConfig.semanticRatio,
         enable_llm: searchConfig.enableLlm,

@@ -29,6 +29,7 @@ FILTERABLE_ATTRIBUTES = [
     "year_month",  # YYYY-MM format e.g., 2025-12 (Note: hyphen not underscore)
     "workspace",  # e.g., General, Security
     "link",
+    "website"
 ]
 
 # Searchable Attributes
@@ -38,6 +39,7 @@ SEARCHABLE_ATTRIBUTES = [
     "title",
     "cleaned_content",  # Use cleaned content (URLs removed) for better search quality
     "content",  # Original content as fallback
+    "website"
 ]
 
 # Embedding Configuration

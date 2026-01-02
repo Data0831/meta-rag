@@ -125,6 +125,7 @@ class SearchService:
         semantic_ratio: float = DEFAULT_SEMANTIC_RATIO,
         enable_llm: bool = True,
         manual_semantic_ratio: bool = False,
+        website_filters: Optional[List[str]] = None,  # 新增：接收 UI 傳來的網站列表
     ) -> Dict[str, Any]:
         """
         Perform unified hybrid search using Meilisearch.
@@ -136,7 +137,7 @@ class SearchService:
         3. Generate query embedding for semantic search
         4. Single Meilisearch API call (combines keyword + semantic + filters)
         5. Return ranked results
-
+        
         Args:
             user_query: Natural language query
             limit: Maximum number of results to return
@@ -175,6 +176,16 @@ class SearchService:
         if intent.limit is not None:
             limit = intent.limit
 
+        
+        # 如果前端有傳來 website_filters，強制覆蓋 intent 裡的設定
+        if website_filters and len(website_filters) > 0:
+            print(f"UI Override: Applying website filters: {website_filters}")
+            intent.websites = website_filters
+        else:
+            # 如果前端沒傳 (例如全選或沒選)，確保它是空的，避免 None 導致錯誤
+            if not hasattr(intent, 'websites') or intent.websites is None:
+                intent.websites = []
+
         # Use LLM-recommended semantic_ratio logic:
         # If manual_semantic_ratio is True, we respect the user's provided ratio.
         # If manual_semantic_ratio is False (Auto Mode), we use LLM's recommendation if available.
@@ -185,9 +196,12 @@ class SearchService:
             print(f"Manual Mode (or no LLM rec): Using provided semantic_ratio: {semantic_ratio:.2f}")
 
         # 2. Build Meilisearch filter expression
+        # 這裡會呼叫 db_adapter_meili.py 的 build_meili_filter
+        # 因為上面已經把 intent.websites 更新了，所以這裡會自動產生 website IN [...] 的語法
         meili_filter = build_meili_filter(intent)
 
         # 2.1 Enforce "Must Have" keywords via Soft Boosting
+        
         # We append critical keywords multiple times (e.g., 3x) to the query string.
         # Mechanics:
         # - No quotes: Preserves Meilisearch's typo tolerance (GEMNI -> GEMINI works).
@@ -195,7 +209,7 @@ class SearchService:
         #   If a doc is missing these terms, its keyword score will near-zero, dragging down the final hybrid score
         #   even if the vector score is high.
         if intent.must_have_keywords:
-            # Repeat 2 times for strong boosting (3x might be too aggressive)
+            # Repeat 2 times for strong boosting
             boosted_keywords = []
             for kw in intent.must_have_keywords:
                 boosted_keywords.extend([kw] * 2)
@@ -203,7 +217,7 @@ class SearchService:
             intent.keyword_query = (
                 f"{intent.keyword_query} {' '.join(boosted_keywords)}"
             )
-            # print(f"Boosting critical keywords (2x): {intent.must_have_keywords}")
+            # print(f"Boosting critical keywords (2x): {intent.must_have_keywords}"
 
         # 3. Generate query embedding for semantic search
         query_vector = None
@@ -219,14 +233,11 @@ class SearchService:
             except Exception as e:
                 print(f"  Embedding generation failed: {e}")
                 import traceback
-
                 traceback.print_exc()
                 query_vector = None
 
             if not query_vector:
-                print(
-                    "Embedding generation failed. Falling back to keyword-only search."
-                )
+                print("Embedding generation failed. Falling back to keyword-only search.")
                 semantic_ratio = 0
 
         # 4. Single Meilisearch API call (Hybrid Search)
@@ -249,7 +260,6 @@ class SearchService:
         except Exception as e:
             print(f"  Meilisearch search failed: {e}")
             import traceback
-
             traceback.print_exc()
             raise
 
@@ -265,13 +275,15 @@ class SearchService:
         print(f"DEBUG - Before serialization:")
         print(f"  intent.year_month: {intent.year_month}")
         print(f"  intent.workspaces: {intent.workspaces}")
-
         serialized_intent = (
             intent.model_dump() if hasattr(intent, "model_dump") else intent.dict()
         )
-        print(f"DEBUG - After serialization:")
-        print(f"  serialized year_month: {serialized_intent.get('year_month')}")
-        print(f"  serialized workspaces: {serialized_intent.get('workspaces')}")
+        
+        # Debug print updated with websites info
+        print(f"DEBUG - Intent Summary:")
+        print(f"  year_month: {serialized_intent.get('year_month')}")
+        print(f"  workspaces: {serialized_intent.get('workspaces')}")
+        print(f"  websites: {serialized_intent.get('websites')}")
 
         response = {
             "intent": serialized_intent,
