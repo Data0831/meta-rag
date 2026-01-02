@@ -333,15 +333,11 @@ async function performSearch() {
         return;
     }
 
-    // 🔥【修改點 1】獲取使用者勾選的網站列表
+    // 獲取使用者勾選的網站列表
     const selectedWebsites = getSelectedSources();
 
     // Debug: 在 F12 console 顯示目前勾了哪些，方便你檢查
     console.log('Active Source Filters:', selectedWebsites);
-
-    // 🔥【修改點 2】將 selectedWebsites 作為第二個參數傳給 API
-    // 注意：等一下我們還要去 api.js 修改 performCollectionSearch 來接收這個參數
-    const { data, duration } = await performCollectionSearch(query, selectedWebsites);
 
     // Reset UI states
     hideAllStates();
@@ -375,7 +371,7 @@ async function performSearch() {
 
     try {
         // Initiate Stream
-        const response = await performSearchStream(query);
+        const response = await performSearchStream(query, selectedWebsites);
 
         if (!response.body) throw new Error("ReadableStream not supported");
 
