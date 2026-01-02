@@ -58,7 +58,18 @@ project_root/
 │   │   └── rag_service.py      # RAG 業務邏輯
 │   ├── static/
 │   │   ├── css/                # 樣式表
-│   │   └── js/                 # 前端腳本 (API, 渲染, 搜尋邏輯)
+│   │   └── js/                 # 前端腳本 (模組化架構)
+│   │       ├── search.js       # 主入口，orchestrate 所有模組
+│   │       ├── alert.js        # Alert 通知功能
+│   │       ├── citation.js     # Citation 轉換與摘要渲染
+│   │       ├── search-config.js # 搜尋配置 UI 控制
+│   │       ├── search-logic.js # 搜尋執行邏輯
+│   │       ├── chatbot.js      # Chatbot 功能
+│   │       ├── config.js       # 前端配置管理
+│   │       ├── dom.js          # DOM 元素參照
+│   │       ├── api.js          # API 呼叫
+│   │       ├── ui.js           # UI 狀態管理
+│   │       └── render.js       # 結果渲染
 │   ├── templates/
 │   │   └── index.html          # 主頁面模板
 │   ├── tool/
