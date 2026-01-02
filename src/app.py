@@ -158,6 +158,9 @@ def search_endpoint():
         enable_keyword_weight_rerank = data.get(
             "enable_keyword_weight_rerank", ENABLE_KEYWORD_WEIGHT_RERANK
         )
+        start_date = data.get("start_date")
+        end_date = data.get("end_date")
+
         if not query:
             return jsonify({"error": "Query is required"}), 400
         print(f"  Query: {query}")
@@ -166,6 +169,8 @@ def search_endpoint():
         print(f"  Enable LLM: {enable_llm}")
         print(f"  Manual Semantic Ratio: {manual_semantic_ratio}")
         print(f"  Enable Rerank: {enable_keyword_weight_rerank}")
+        print(f"  Start Date: {start_date}")
+        print(f"  End Date: {end_date}")
         # Validate parameters
         if not isinstance(limit, int) or limit < 1 or limit > 100:
             return (
@@ -199,6 +204,8 @@ def search_endpoint():
                 enable_llm=enable_llm,
                 manual_semantic_ratio=manual_semantic_ratio,
                 enable_keyword_weight_rerank=enable_keyword_weight_rerank,
+                start_date=start_date,
+                end_date=end_date,
             ):
                 yield json.dumps(step, ensure_ascii=False) + "\n"
 

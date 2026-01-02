@@ -133,6 +133,8 @@ class SearchService:
         exclude_ids: List[str] = None,
         history: List[str] = None,
         direction: str = None,
+        start_date: Optional[str] = None,
+        end_date: Optional[str] = None,
     ) -> Dict[str, Any]:
 
         # --- Stage 1: Check Meilisearch Connection ---
@@ -211,9 +213,39 @@ class SearchService:
                     if sq and sq not in query_candidates:
                         query_candidates.append(sq)
                         traces.append(f"Sub-Query: {sq}")
-
-            # 4.3 Prepare Batch Request
             meili_filter = build_meili_filter(intent)
+
+            # -------------------------------------------------------
+            # ★★★ 修改邏輯：AI 優先權判定 ★★★
+            # -------------------------------------------------------
+
+            # 檢查 AI 是否已經偵測到日期意圖 (year_month)
+            # 如果 AI 覺得使用者在問特定年份，我們就「忽略」手動設定的日期，以免發生衝突
+            ai_has_date_constraint = intent.year_month and len(intent.year_month) > 0
+
+            if ai_has_date_constraint:
+                print(
+                    f"  [優先權判定] AI 已指定日期 {intent.year_month}，忽略手動日期篩選。"
+                )
+            else:
+                date_filters = []
+
+                if start_date:
+                    ym_start = start_date[:7]
+                    date_filters.append(f'year_month >= "{ym_start}"')
+
+                if end_date:
+                    ym_end = end_date[:7]
+                    date_filters.append(f'year_month <= "{ym_end}"')
+
+                if date_filters:
+                    manual_date_filter = " AND ".join(date_filters)
+                    print(f"  [手動過濾] 年月範圍: {manual_date_filter}")
+
+                    if meili_filter:
+                        meili_filter = f"({meili_filter}) AND ({manual_date_filter})"
+                    else:
+                        meili_filter = manual_date_filter
 
             # Append exclude_ids filter if present
             if exclude_ids:

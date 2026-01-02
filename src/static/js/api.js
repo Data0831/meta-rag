@@ -25,7 +25,9 @@ export async function performSearchStream(query) {
         semantic_ratio: searchConfig.semanticRatio,
         enable_llm: searchConfig.enableLlm,
         manual_semantic_ratio: searchConfig.manualSemanticRatio,
-        enable_keyword_weight_rerank: searchConfig.enableKeywordWeightRerank
+        enable_keyword_weight_rerank: searchConfig.enableKeywordWeightRerank,
+        start_date: searchConfig.startDate,
+        end_date: searchConfig.endDate
     };
 
     console.log('Request Body:', requestBody);
@@ -44,7 +46,7 @@ export async function performSearchStream(query) {
         console.error('Response not OK:', response.status, response.statusText);
         const errorText = await response.text();
         console.error('Error Body:', errorText);
-        
+
         let errorMessage;
         try {
             const error = JSON.parse(errorText);

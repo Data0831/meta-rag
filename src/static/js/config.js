@@ -1,14 +1,15 @@
 /**
  * Search Configuration Module
  */
-
 export const searchConfig = {
     limit: 5,
     semanticRatio: 0.5,
     similarityThreshold: 0,
     enableLlm: true,
     manualSemanticRatio: false,
-    enableKeywordWeightRerank: true
+    enableKeywordWeightRerank: true,
+    startDate: null,
+    endDate: null
 };
 
 /**
