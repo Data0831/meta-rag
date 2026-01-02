@@ -90,8 +90,16 @@
       transition: all 0.3s ease;
     }
 
-    .modal-enter { opacity: 0; transform: scale(0.95); }
-    .modal-enter-active { opacity: 1; transform: scale(1); transition: opacity 300ms, transform 300ms; }
+    .modal-enter {
+      opacity: 0;
+      transform: scale(0.95);
+    }
+
+    .modal-enter-active {
+      opacity: 1;
+      transform: scale(1);
+      transition: opacity 300ms, transform 300ms;
+    }
   </style>
 </head>
 
@@ -105,7 +113,8 @@
   <!-- Alert Notification -->
   <div id="alertNotification" class="fixed inset-0 z-[70] flex items-start justify-center pt-24 pointer-events-none">
     <div id="alertBox" class="transform transition-all duration-300 ease-out opacity-0 translate-y-[-20px] scale-95">
-      <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border-2 border-primary max-w-md mx-4 overflow-hidden">
+      <div
+        class="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border-2 border-primary max-w-md mx-4 overflow-hidden">
         <div class="flex items-center gap-4 p-5">
           <div class="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
             <span id="alertIcon" class="material-icons-round text-primary text-2xl">info</span>
@@ -119,35 +128,43 @@
   </div>
 
   <!-- info button -->
-  <div id="modalBackdrop" class="fixed inset-0 bg-black/60 z-[60] hidden flex items-center justify-center backdrop-blur-sm transition-opacity duration-300">
+  <div id="modalBackdrop"
+    class="fixed inset-0 bg-black/60 z-[60] hidden flex items-center justify-center backdrop-blur-sm transition-opacity duration-300">
     <div class="relative flex flex-col items-end w-11/12 md:w-4/5 lg:w-3/5 max-w-5xl">
-      
-      <div id="infoModal" class="bg-white dark:bg-slate-800 w-full h-[75vh] rounded-2xl shadow-2xl flex flex-col overflow-hidden border-2 border-[#7facb6] transform transition-all duration-300 opacity-0 scale-95">
-        
+
+      <div id="infoModal"
+        class="bg-white dark:bg-slate-800 w-full h-[75vh] rounded-2xl shadow-2xl flex flex-col overflow-hidden border-2 border-[#7facb6] transform transition-all duration-300 opacity-0 scale-95">
+
         <div class="bg-[#7facb6] p-3 flex items-center relative shrink-0">
-          <div class="flex-1"></div> 
-          
+          <div class="flex-1"></div>
+
           <div class="flex bg-black/10 rounded-lg p-1 gap-1">
-            <button id="tabLatest" class="px-6 py-1.5 rounded-md text-sm font-bold transition-all bg-white text-[#7facb6] shadow-sm">最新公告</button>
-            <button id="tabWebsites" class="px-6 py-1.5 rounded-md text-sm font-bold transition-all text-white hover:bg-white/10">來源網站</button>
+            <button id="tabLatest"
+              class="px-6 py-1.5 rounded-md text-sm font-bold transition-all bg-white text-[#7facb6] shadow-sm">最新公告</button>
+            <button id="tabWebsites"
+              class="px-6 py-1.5 rounded-md text-sm font-bold transition-all text-white hover:bg-white/10">來源網站</button>
           </div>
 
           <div class="flex-1 flex justify-end">
-              <button id="closeModal" class="w-8 h-8 flex items-center justify-center text-white hover:bg-white/20 rounded-full transition-colors">
-                <span class="material-icons-round">close</span>
-              </button>
+            <button id="closeModal"
+              class="w-8 h-8 flex items-center justify-center text-white hover:bg-white/20 rounded-full transition-colors">
+              <span class="material-icons-round">close</span>
+            </button>
           </div>
         </div>
 
         <div id="modalBody" class="flex-1 flex overflow-hidden bg-white dark:bg-slate-900">
-          
+
           <div id="viewLatest" class="flex flex-1 overflow-hidden">
-            <div id="latestSideMenu" class="w-1/4 border-r border-slate-100 dark:border-slate-800 overflow-y-auto bg-slate-50/50 dark:bg-slate-900/50">
-              </div>
+            <div id="latestSideMenu"
+              class="w-1/4 border-r border-slate-100 dark:border-slate-800 overflow-y-auto bg-slate-50/50 dark:bg-slate-900/50">
+            </div>
             <div id="latestArticleContent" class="flex-1 p-6 overflow-y-auto bg-white dark:bg-slate-900">
-              <h2 id="articleTitle" class="text-xl text-slate-800 dark:text-white mb-5 border-b pb-5 border-[#7facb6]/20"></h2>
-              <div id="articleBody" class="prose prose-sm dark:prose-invert max-w-none text-slate-600 dark:text-slate-300 leading-relaxed">
-                </div>
+              <h2 id="articleTitle"
+                class="text-xl text-slate-800 dark:text-white mb-5 border-b pb-5 border-[#7facb6]/20"></h2>
+              <div id="articleBody"
+                class="prose prose-sm dark:prose-invert max-w-none text-slate-600 dark:text-slate-300 leading-relaxed">
+              </div>
             </div>
           </div>
 
@@ -158,7 +175,8 @@
       </div>
 
       <div class="mt-3 mr-3 flex items-center gap-2 text-white/90 text-sm drop-shadow-md">
-        <input type="checkbox" id="dontShowAgain" class="w-4 h-4 rounded border-white/30 bg-black/20 text-[#7facb6] focus:ring-[#7facb6]">
+        <input type="checkbox" id="dontShowAgain"
+          class="w-4 h-4 rounded border-white/30 bg-black/20 text-[#7facb6] focus:ring-[#7facb6]">
         <label for="dontShowAgain" class="cursor-pointer font-medium">下次不再自動彈出</label>
       </div>
     </div>
@@ -228,7 +246,109 @@
             class="w-4 h-4 text-primary bg-white dark:bg-slate-700 border-slate-300 dark:border-slate-500 rounded focus:ring-primary"
             id="enableKeywordWeightRerankCheckbox" type="checkbox" checked />
           <label class="text-sm text-slate-700 dark:text-slate-300 cursor-pointer"
-            for="enableKeywordWeightRerankCheckbox">啟用重排序 (Rerank)</label>
+            for="enableKeywordWeightRerankCheckbox">啟用關鍵字加權算法</label>
+        </div>
+      </div>
+      <div class="bg-card-light dark:bg-card-dark rounded-xl p-5 shadow-sm transition-colors duration-300 space-y-3">
+        <div class="flex items-center justify-between mb-2">
+          <div class="flex items-center space-x-2 text-slate-700 dark:text-slate-200">
+            <span class="material-icons-round text-xl">library_books</span>
+            <h3 class="font-bold">資料來源</h3>
+          </div>
+          <div class="flex items-center space-x-2">
+            <label class="text-xs text-slate-500 dark:text-slate-400 cursor-pointer select-none"
+              for="selectAllSources">全選</label>
+            <input id="selectAllSources" type="checkbox" checked
+              class="w-4 h-4 text-primary bg-white dark:bg-slate-700 border-slate-300 dark:border-slate-500 rounded focus:ring-primary transition-colors cursor-pointer" />
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 gap-3" id="sourceCheckboxList">
+          <label class="flex items-center space-x-3 cursor-pointer group">
+            <input type="checkbox" name="source_checkbox" value="partner_center" checked
+              class="source-item w-4 h-4 text-primary bg-white dark:bg-slate-700 border-slate-300 dark:border-slate-500 rounded focus:ring-primary transition-colors group-hover:border-primary" />
+            <span class="text-sm text-slate-600 dark:text-slate-300 group-hover:text-primary transition-colors">Partner
+              Center</span>
+          </label>
+
+          <label class="flex items-center space-x-3 cursor-pointer group">
+            <input type="checkbox" name="source_checkbox" value="azure_update" checked
+              class="source-item w-4 h-4 text-primary bg-white dark:bg-slate-700 border-slate-300 dark:border-slate-500 rounded focus:ring-primary transition-colors group-hover:border-primary" />
+            <span class="text-sm text-slate-600 dark:text-slate-300 group-hover:text-primary transition-colors">Azure
+              Updates</span>
+          </label>
+
+          <label class="flex items-center space-x-3 cursor-pointer group">
+            <input type="checkbox" name="source_checkbox" value="m365_roadmap" checked
+              class="source-item w-4 h-4 text-primary bg-white dark:bg-slate-700 border-slate-300 dark:border-slate-500 rounded focus:ring-primary transition-colors group-hover:border-primary" />
+            <span class="text-sm text-slate-600 dark:text-slate-300 group-hover:text-primary transition-colors">M365
+              Roadmap</span>
+          </label>
+
+          <label class="flex items-center space-x-3 cursor-pointer group">
+            <input type="checkbox" name="source_checkbox" value="windows_message_center" checked
+              class="source-item w-4 h-4 text-primary bg-white dark:bg-slate-700 border-slate-300 dark:border-slate-500 rounded focus:ring-primary transition-colors group-hover:border-primary" />
+            <span class="text-sm text-slate-600 dark:text-slate-300 group-hover:text-primary transition-colors">Windows
+              Message</span>
+          </label>
+
+          <label class="flex items-center space-x-3 cursor-pointer group">
+            <input type="checkbox" name="source_checkbox" value="powerbi_blog" checked
+              class="source-item w-4 h-4 text-primary bg-white dark:bg-slate-700 border-slate-300 dark:border-slate-500 rounded focus:ring-primary transition-colors group-hover:border-primary" />
+            <span class="text-sm text-slate-600 dark:text-slate-300 group-hover:text-primary transition-colors">PowerBI
+              Blog</span>
+          </label>
+        </div>
+      </div>
+      <div class="bg-card-light dark:bg-card-dark rounded-xl p-5 shadow-sm transition-colors duration-300 space-y-3">
+        <div class="flex items-center justify-between mb-2">
+          <div class="flex items-center space-x-2 text-slate-700 dark:text-slate-200">
+            <span class="material-icons-round text-xl">library_books</span>
+            <h3 class="font-bold">資料來源</h3>
+          </div>
+          <div class="flex items-center space-x-2">
+            <label class="text-xs text-slate-500 dark:text-slate-400 cursor-pointer select-none"
+              for="selectAllSources">全選</label>
+            <input id="selectAllSources" type="checkbox" checked
+              class="w-4 h-4 text-primary bg-white dark:bg-slate-700 border-slate-300 dark:border-slate-500 rounded focus:ring-primary transition-colors cursor-pointer" />
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 gap-3" id="sourceCheckboxList">
+          <label class="flex items-center space-x-3 cursor-pointer group">
+            <input type="checkbox" name="source_checkbox" value="partner_center" checked
+              class="source-item w-4 h-4 text-primary bg-white dark:bg-slate-700 border-slate-300 dark:border-slate-500 rounded focus:ring-primary transition-colors group-hover:border-primary" />
+            <span class="text-sm text-slate-600 dark:text-slate-300 group-hover:text-primary transition-colors">Partner
+              Center</span>
+          </label>
+
+          <label class="flex items-center space-x-3 cursor-pointer group">
+            <input type="checkbox" name="source_checkbox" value="azure_update" checked
+              class="source-item w-4 h-4 text-primary bg-white dark:bg-slate-700 border-slate-300 dark:border-slate-500 rounded focus:ring-primary transition-colors group-hover:border-primary" />
+            <span class="text-sm text-slate-600 dark:text-slate-300 group-hover:text-primary transition-colors">Azure
+              Updates</span>
+          </label>
+
+          <label class="flex items-center space-x-3 cursor-pointer group">
+            <input type="checkbox" name="source_checkbox" value="m365_roadmap" checked
+              class="source-item w-4 h-4 text-primary bg-white dark:bg-slate-700 border-slate-300 dark:border-slate-500 rounded focus:ring-primary transition-colors group-hover:border-primary" />
+            <span class="text-sm text-slate-600 dark:text-slate-300 group-hover:text-primary transition-colors">M365
+              Roadmap</span>
+          </label>
+
+          <label class="flex items-center space-x-3 cursor-pointer group">
+            <input type="checkbox" name="source_checkbox" value="windows_message_center" checked
+              class="source-item w-4 h-4 text-primary bg-white dark:bg-slate-700 border-slate-300 dark:border-slate-500 rounded focus:ring-primary transition-colors group-hover:border-primary" />
+            <span class="text-sm text-slate-600 dark:text-slate-300 group-hover:text-primary transition-colors">Windows
+              Message</span>
+          </label>
+
+          <label class="flex items-center space-x-3 cursor-pointer group">
+            <input type="checkbox" name="source_checkbox" value="powerbi_blog" checked
+              class="source-item w-4 h-4 text-primary bg-white dark:bg-slate-700 border-slate-300 dark:border-slate-500 rounded focus:ring-primary transition-colors group-hover:border-primary" />
+            <span class="text-sm text-slate-600 dark:text-slate-300 group-hover:text-primary transition-colors">PowerBI
+              Blog</span>
+          </label>
         </div>
       </div>
       <div class="bg-card-light dark:bg-card-dark rounded-xl p-5 shadow-sm transition-colors duration-300 space-y-4">
@@ -238,16 +358,16 @@
         </div>
         <div>
           <p class="text-xs font-medium text-slate-600 dark:text-slate-300 mb-2">開始月份</p>
-          <input
-            id="startDateInput"
+          <input id="startDateInput"
             class="w-full bg-white dark:bg-slate-700 border-none rounded-lg py-2 px-3 text-sm text-slate-600 dark:text-slate-200 focus:ring-2 focus:ring-primary shadow-sm"
-            type="month" /> </div>
+            type="month" />
+        </div>
         <div>
           <p class="text-xs font-medium text-slate-600 dark:text-slate-300 mb-2">結束月份</p>
-          <input
-            id="endDateInput"
+          <input id="endDateInput"
             class="w-full bg-white dark:bg-slate-700 border-none rounded-lg py-2 px-3 text-sm text-slate-600 dark:text-slate-200 focus:ring-2 focus:ring-primary shadow-sm"
-            type="month" /> </div>
+            type="month" />
+        </div>
       </div>
     </div>
   </aside>
@@ -276,7 +396,8 @@
                    placeholder-slate-400 dark:placeholder-slate-800" placeholder="例如：2025 年 4 月份價格相關公告" type="text" />
           </div>
           <button id="infoBtn"
-            class="flex items-center justify-center w-10 h-10 rounded-full text-[#5f8595] hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors flex-shrink-0" title="查看所有公告來源">
+            class="flex items-center justify-center w-10 h-10 rounded-full text-[#5f8595] hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors flex-shrink-0"
+            title="查看所有公告來源">
             <span class="material-icons-round text-3xl">info</span>
           </button>
         </div>
@@ -548,97 +669,97 @@
 
     // 初始化勾選狀態 (從 localStorage 讀取)
     function initDontShowAgain() {
-        const isHidden = localStorage.getItem('hideAnnouncementModal') === 'true';
-        dontShowAgainCheckbox.checked = isHidden;
+      const isHidden = localStorage.getItem('hideAnnouncementModal') === 'true';
+      dontShowAgainCheckbox.checked = isHidden;
     }
 
     // 監聽勾選框變動：立即儲存狀態，不需要等到關閉視窗
     dontShowAgainCheckbox.addEventListener('change', () => {
-        localStorage.setItem('hideAnnouncementModal', dontShowAgainCheckbox.checked);
+      localStorage.setItem('hideAnnouncementModal', dontShowAgainCheckbox.checked);
     });
 
     const openModal = (isAuto = false) => {
-        // 自動彈出時，檢查 localStorage
-        if (isAuto && dontShowAgainCheckbox.checked) return;
+      // 自動彈出時，檢查 localStorage
+      if (isAuto && dontShowAgainCheckbox.checked) return;
 
-        modalBackdropElement.classList.remove('hidden');
-        setTimeout(() => {
-            modalBackdropElement.classList.add('opacity-100');
-            infoModalElement.classList.remove('opacity-0', 'scale-95');
-            infoModalElement.classList.add('opacity-100', 'scale-100');
-        }, 10);
+      modalBackdropElement.classList.remove('hidden');
+      setTimeout(() => {
+        modalBackdropElement.classList.add('opacity-100');
+        infoModalElement.classList.remove('opacity-0', 'scale-95');
+        infoModalElement.classList.add('opacity-100', 'scale-100');
+      }, 10);
     };
 
     const hideModal = () => {
-        modalBackdropElement.classList.remove('opacity-100');
-        infoModalElement.classList.remove('opacity-100', 'scale-100');
-        infoModalElement.classList.add('opacity-0', 'scale-95');
-        setTimeout(() => modalBackdropElement.classList.add('hidden'), 300);
+      modalBackdropElement.classList.remove('opacity-100');
+      infoModalElement.classList.remove('opacity-100', 'scale-100');
+      infoModalElement.classList.add('opacity-0', 'scale-95');
+      setTimeout(() => modalBackdropElement.classList.add('hidden'), 300);
     };
 
     // --- [核心修正 2: 支援 Markdown 渲染] ---
 
     function renderArticle(index) {
-        const item = latestAnnouncements[index];
-        if (!item) return;
+      const item = latestAnnouncements[index];
+      if (!item) return;
 
-        document.getElementById('articleTitle').innerText = item.title;
-        
-        let rawContent = "";
-        if (Array.isArray(item.content)) {
-            rawContent = item.content.join('\n');
+      document.getElementById('articleTitle').innerText = item.title;
+
+      let rawContent = "";
+      if (Array.isArray(item.content)) {
+        rawContent = item.content.join('\n');
+      } else {
+        rawContent = String(item.content || "");
+      }
+
+      // 使用 marked.parse() 來解析 Markdown
+      // 此處不再需要 .replace(/\n/g, '<br>')，因為 Markdown 會處理換行
+      document.getElementById('articleBody').innerHTML = marked.parse(rawContent);
+
+      document.querySelectorAll('.side-menu-item').forEach((el, i) => {
+        if (i === index) {
+          el.classList.add('bg-[#7facb6]/10', 'text-[#7facb6]', 'border-l-4', 'border-[#7facb6]');
         } else {
-            rawContent = String(item.content || "");
+          el.classList.remove('bg-[#7facb6]/10', 'text-[#7facb6]', 'border-l-4', 'border-[#7facb6]');
         }
-        
-        // 使用 marked.parse() 來解析 Markdown
-        // 此處不再需要 .replace(/\n/g, '<br>')，因為 Markdown 會處理換行
-        document.getElementById('articleBody').innerHTML = marked.parse(rawContent);
-        
-        document.querySelectorAll('.side-menu-item').forEach((el, i) => {
-            if(i === index) {
-                el.classList.add('bg-[#7facb6]/10', 'text-[#7facb6]', 'border-l-4', 'border-[#7facb6]');
-            } else {
-                el.classList.remove('bg-[#7facb6]/10', 'text-[#7facb6]', 'border-l-4', 'border-[#7facb6]');
-            }
-        });
+      });
     }
 
     // --- [其餘邏輯保持不變] ---
 
     const switchTab = (tab) => {
-        const activeBtn = "bg-white text-[#7facb6] shadow-sm";
-        const inactiveBtn = "text-white hover:bg-white/10";
-        if (tab === 'latest') {
-            tabLatest.className = `px-6 py-1.5 rounded-md text-sm font-bold transition-all ${activeBtn}`;
-            tabWebsites.className = `px-6 py-1.5 rounded-md text-sm font-bold transition-all ${inactiveBtn}`;
-            viewLatest.classList.remove('hidden');
-            viewWebsites.classList.add('hidden');
-        } else {
-            tabWebsites.className = `px-6 py-1.5 rounded-md text-sm font-bold transition-all ${activeBtn}`;
-            tabLatest.className = `px-6 py-1.5 rounded-md text-sm font-bold transition-all ${inactiveBtn}`;
-            viewWebsites.classList.remove('hidden');
-            viewLatest.classList.add('hidden');
-        }
+      const activeBtn = "bg-white text-[#7facb6] shadow-sm";
+      const inactiveBtn = "text-white hover:bg-white/10";
+      if (tab === 'latest') {
+        tabLatest.className = `px-6 py-1.5 rounded-md text-sm font-bold transition-all ${activeBtn}`;
+        tabWebsites.className = `px-6 py-1.5 rounded-md text-sm font-bold transition-all ${inactiveBtn}`;
+        viewLatest.classList.remove('hidden');
+        viewWebsites.classList.add('hidden');
+      } else {
+        tabWebsites.className = `px-6 py-1.5 rounded-md text-sm font-bold transition-all ${activeBtn}`;
+        tabLatest.className = `px-6 py-1.5 rounded-md text-sm font-bold transition-all ${inactiveBtn}`;
+        viewWebsites.classList.remove('hidden');
+        viewLatest.classList.add('hidden');
+      }
     };
 
     async function loadData() {
-        try {
-            const resAnn = await fetch('/static/data/announcement.json');
-            if (resAnn.ok) {
-                latestAnnouncements = await resAnn.json();
-                latestSideMenu.innerHTML = latestAnnouncements.map((item, index) => `
+      try {
+        const resAnn = await fetch('/static/data/announcement.json');
+        if (resAnn.ok) {
+          latestAnnouncements = await resAnn.json();
+          latestSideMenu.innerHTML = latestAnnouncements.map((item, index) => `
                     <div onclick="renderArticle(${index})" class="side-menu-item p-4 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 transition-all border-b border-slate-100 dark:border-slate-800 text-sm font-medium text-slate-600 dark:text-slate-400">
                         ${item.main_title}
                     </div>
                 `).join('');
-                if (latestAnnouncements.length > 0) renderArticle(0);
-            }
+          if (latestAnnouncements.length > 0) renderArticle(0);
+        }
 
-            const resWeb = await fetch('/static/data/website.json');
-            if (resWeb.ok) {
-                const webData = await resWeb.json();
-                announcementGridContainer.innerHTML = webData.map(item => `
+        const resWeb = await fetch('/static/data/website.json');
+        if (resWeb.ok) {
+          const webData = await resWeb.json();
+          announcementGridContainer.innerHTML = webData.map(item => `
                     <a href="${item.URL}" target="_blank" class="group flex items-center bg-slate-50 dark:bg-slate-800 rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700 hover:border-[#7facb6] hover:shadow-md transition-all duration-300">
                         <div class="w-26 h-20 shrink-0 bg-slate-200 dark:bg-slate-700 relative overflow-hidden">
                             <img src="https://s.wordpress.com/mshots/v1/${encodeURIComponent(item.URL)}?w=200" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" onerror="this.src='https://via.placeholder.com/200x160?text=No+Img'">
@@ -649,8 +770,8 @@
                         </div>
                     </a>
                 `).join('');
-            }
-        } catch (err) { console.error(err); }
+        }
+      } catch (err) { console.error(err); }
     }
 
     infoBtn.addEventListener('click', () => openModal(false));
@@ -661,9 +782,9 @@
 
     // 初始化
     window.addEventListener('load', () => {
-        initDontShowAgain(); // 先同步勾選框狀態
-        loadData();
-        setTimeout(() => openModal(true), 1200);
+      initDontShowAgain(); // 先同步勾選框狀態
+      loadData();
+      setTimeout(() => openModal(true), 1200);
     });
 
   </script>

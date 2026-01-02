@@ -171,6 +171,44 @@ function setupSearchConfig() {
             console.log('結束日期已更新:', searchConfig.endDate);
         });
     }
+    // --- 新增：資料來源篩選 (全選/取消全選邏輯) ---
+    const selectAllCheckbox = document.getElementById('selectAllSources');
+    // 注意：這裡假設你的 HTML checkbox 有 class="source-item"
+    const sourceCheckboxes = document.querySelectorAll('input[name="source_checkbox"]');
+
+    if (selectAllCheckbox && sourceCheckboxes.length > 0) {
+        // 1. 全選被點擊
+        selectAllCheckbox.addEventListener('change', (e) => {
+            const isChecked = e.target.checked;
+            sourceCheckboxes.forEach(cb => {
+                cb.checked = isChecked;
+            });
+        });
+
+        // 2. 個別選項被點擊 (檢查是否要取消全選勾勾)
+        sourceCheckboxes.forEach(cb => {
+            cb.addEventListener('change', () => {
+                const allChecked = Array.from(sourceCheckboxes).every(item => item.checked);
+                selectAllCheckbox.checked = allChecked;
+            });
+        });
+    }
+}
+
+/**
+ * 新增：取得目前勾選的資料來源列表
+ */
+
+function getSelectedSources() {
+    const selected = [];
+    const sourceCheckboxes = document.querySelectorAll('input[name="source_checkbox"]:checked');
+
+    sourceCheckboxes.forEach(cb => {
+        selected.push(cb.value);
+    });
+
+    // 如果什麼都沒選，視同全選 (或是給空陣列，看你後端邏輯)
+    return selected;
 }
 
 /**
@@ -294,6 +332,16 @@ async function performSearch() {
         showError('請輸入搜尋查詢');
         return;
     }
+
+    // 🔥【修改點 1】獲取使用者勾選的網站列表
+    const selectedWebsites = getSelectedSources();
+
+    // Debug: 在 F12 console 顯示目前勾了哪些，方便你檢查
+    console.log('Active Source Filters:', selectedWebsites);
+
+    // 🔥【修改點 2】將 selectedWebsites 作為第二個參數傳給 API
+    // 注意：等一下我們還要去 api.js 修改 performCollectionSearch 來接收這個參數
+    const { data, duration } = await performCollectionSearch(query, selectedWebsites);
 
     // Reset UI states
     hideAllStates();
@@ -596,7 +644,34 @@ function setupChatbot() {
         const loadingId = appendLoading();
 
         try {
-            const currentContext = currentResults.slice(0, 5).map(item => ({
+            // 1. 取得目前設定的相似度門檻 (預設為 0)
+            // 注意：searchConfig.similarityThreshold 通常是 0-100 的整數
+            const thresholdPercent = searchConfig.similarityThreshold || 0;
+            // 2. 過濾資料：只抓取「未反灰」的結果 (相似度 >= 門檻)
+            // 如果你的後端欄位名稱不同 (例如 score, _rankingScore)，請在此調整
+            const validResults = currentResults.filter(item => {
+                // 這樣能配合 render.js 的邏輯，正確抓到分數
+                const score = item._rankingScore ?? item.similarity ?? item.score ?? 0;
+
+                // 將 0-1 的分數轉為 0-100 與門檻比較
+                return (score * 100) >= thresholdPercent;
+            });
+            // 檢查是否全反灰 (也就是 validResults 為空)
+            if (validResults.length === 0) {
+                // 移除 Loading 動畫
+                removeMessage(loadingId);
+
+                // 直接回覆使用者，不呼叫後端 API
+                appendMessage('bot', `目前的搜尋結果相似度皆低於 **${thresholdPercent}%**，已被全部過濾。請嘗試**調低相似度滑桿**，讓 AI 能參考更多資料。`);
+                // 中止函式，不執行後面的 fetch
+                return;
+            }
+            // 3. 如果有資料，就直接使用過濾後的結果 (拿掉原本的保底機制)
+            const finalResults = validResults;
+            console.log(`Chatbot Context: 使用了 ${finalResults.length} 筆資料 (門檻: ${thresholdPercent}%)`);
+
+            // 4. 組裝 Context (移除 slice 限制，只要符合門檻全都要)
+            const currentContext = finalResults.map(item => ({
                 title: item.title,
                 content: item.content || item.cleaned_content,
                 link: item.link,

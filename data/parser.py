@@ -89,6 +89,21 @@ def process_files():
             print(f"Warning: Data in {filename} is not a list. Skipping.")
             continue
 
+        # 根據檔名決定 website tag
+        current_website_tag = "general"  # 預設值
+        if "partner_center" in filename:
+            current_website_tag = "partner_center"
+        elif "m365_roadmap" in filename:
+            current_website_tag = "m365_roadmap"
+        elif "windows_message_center" in filename:
+            current_website_tag = "windows_message_center"
+        elif "powerbi_blog" in filename:
+            current_website_tag = "powerbi_blog"
+        elif "azure_update" in filename:
+            current_website_tag = "azure_update"
+        elif "msrc_blog" in filename:
+            current_website_tag = "msrc_blog"
+
         for item in data:
             # Helper to check required fields
             if not all(
@@ -115,6 +130,7 @@ def process_files():
             item["year"] = year
             item["content"] = raw_content
             item["cleaned_content"] = cleaned_content
+            item["website"] = current_website_tag
 
             aggregated_data.append(item)
 
