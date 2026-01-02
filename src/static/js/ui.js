@@ -8,7 +8,7 @@ import * as DOM from './dom.js';
  * Show loading state
  */
 export function showLoading() {
-    console.log('⏳ Showing loading state');
+    console.log('Showing loading state');
     hideAllStates();
     DOM.loadingState.classList.remove('hidden');
     DOM.loadingState.classList.add('flex');
@@ -19,7 +19,7 @@ export function showLoading() {
  * @param {string} message - Error message to display
  */
 export function showError(message) {
-    console.error('🚨 Showing error:', message);
+    console.error('Showing error:', message);
     hideAllStates();
     DOM.errorMessage.textContent = message;
     DOM.errorState.classList.remove('hidden');

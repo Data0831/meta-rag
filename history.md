@@ -1,50 +1,23 @@
 # Project History
 
-## 2025-12-15
-- **初期建置**：完成專案基礎架構 (Phase 1-2)，包含 ETL Pipeline、資料攝取與 Pydantic Schema。
-- **優化**：實作自動化 ETL，整合 Gemini LLM 進行 Metadata 提取，並優化配置管理與 API 穩定性，建立 `metadata.json` 聚合輸出。
+## 2025-12-15 ~ 12-26 系統奠基與檢索升級
+- **架構與部署**：遷移至 Meilisearch (30ms 延遲)，完成 Azure App Service 部署與 OpenAI Structured Outputs 兼容性修復。
+- **檢索優化**：Link 去重合併技術，實作關鍵字精確加權重排 (Reranking) 與雙語擴展，並優化 Schema (年份/主標題) 適配新資料源。
+- **UI/UX 重構**：前端模組化設計，採用 Tailwind CSS 與 Markdown 渲染，實作動態配置同步與 LLM 異常回退機制。
+- **日誌開發**：全面導入 ANSI 彩色日誌，提升後端解析與 API 異常除錯的可辨識度。
+  
 
-## 2025-12-16
-- **架構遷移 (Phase 3-5)**：完成向量攝取與 Hybrid Search 核心後，執行重大決策遷移至 **Meilisearch** 單一引擎，移除 SQLite/Qdrant 雙資料庫架構，搜尋延遲降至 ~30ms。
-- **中文優化**：實作 `jieba` 分詞方案 (`meta_summary_segmented`)，並在 ETL 中整合分詞處理，大幅提升中文關鍵字匹配準確度。
-- **系統重構**：統一資料庫適配器為 `db_adapter_meili.py`，簡化 `SearchService` 邏輯，建立 `MIGRATION.md`。
+## 2025-12-29
+- **系統架構優化與功能增強**：統一全域錯誤處理機制與配置管理系統，實作 ID-based 文檔異動與分批預處理以提升效能，優化非對稱關鍵字加權演算法與意圖匹配邏輯，並重構前端 UI 與錯誤處理流程。
 
-## 2025-12-17
-- **前端整合**：發布 Collection Search 介面，支援動態相似度閾值、語意權重調整 (Semantic Ratio) 與 LLM 意圖重寫開關。
-- **搜尋調優**：建立 `meilisearch_config.py` 集中管理排序規則，修復混合搜尋結果排序問題 (Ranking Score Fix)，並實作 LLM 動態推薦語意權重。
-- **路由修復**：修正 Flask 路由與前端導航，確保 Collection 與 Vector Search 頁面連結正常。
+## 2025-12-30 代理式檢索與結構化摘要 (Agentic RAG & Structured Summary)
+- **Agentic RAG 核心實作**：推出 `SrhSumAgent` 實作「搜尋 -> 判定 -> 重寫 -> 摘要」迭代流程，支援歷史意識查詢改寫與文檔排除，提升檢索覆蓋率與精準度。
+- **架構與 API 重構**：整合搜尋邏輯至 Agent 主導，統一端點為 `/api/search` 並導入多階段狀態回傳（Stage-based streaming），提升系統反饋的透明度。
+- **評分與過濾優化**：統一 Match 分數顯示邏輯，實作 `SCORE_PASS_THRESHOLD` 品質門檻與智慧篩選機制，並修正 Meilisearch 語法錯誤以確保檢索強健性。
+- **結構化摘要與 UI 適配**：實作三段式摘要（簡答/詳答/總結）與引用超連結系統，優化檢索耗時計算視覺提示，提供層次分明且具備可信度的資訊呈現。
 
-## 2025-12-18
-- **搜尋策略優化**：實作「軟性強制關鍵字」(Soft Keyword Enforcement) 與「雙語關鍵字擴展」(Bilingual Expansion)，利用重複關鍵字加權 (Boosting) 解決向量搜尋發散與中英匹配問題。
-- **架構輕量化 (Phase 6)**：徹底移除 Metadata 與 Enriched Text 複雜結構，改採 parse.json 扁平化格式，大幅簡化 ETL 流程與 Schema。
-- **代碼清理**：修復 Meilisearch 過濾器語法 (`IN` operator)，並刪除約 165 行廢棄代碼 (Legacy Code Removal)，系統進入穩定期。
+### 2026-01-02 搜尋檢索邏輯調整 (Search Logic Adjustment)
+- **移除查詢字串加成 (Remove Query Augmentation)**：修改 `src/services/search_service.py`，移除在 Meilisearch 初步檢索階段將 `must_have_keywords` 重複附加於查詢字串後方的邏輯。此舉旨在簡化原始查詢，避免 Meilisearch 內建評分過度受到關鍵字重複出現的干擾。關鍵字的加權功能現在完全由服務層的 `ResultReranker` 負責，透過 `hit_ratio` 實現更精確且可控的二次分數加成，確保最終排名能真實反映文件與關鍵字的相關性。
 
-## 2025-12-19
-- **前端重構 (Modularization)**：將龐大的 `search.js` 拆分為 6 個 ES6 模組 (Config/DOM/API/UI/Render/Main)，大幅提升代碼可維護性。
-- **UI/UX 全面更新**：將介面升級為 Tailwind CSS 設計，引入 `marked.js` 支援 Markdown 渲染，並優化搜尋結果展示 (預設展開第一筆、改進卡片佈局)。
-- **配置整合**：建立後端配置 API (`/api/config`) 與前端動態同步機制，統一管理相似度閾值與語意權重 (Slider 調整為 0-100 整數範圍)。
-- **系統優化**：修正 `/collection_search` 路由重定向問題，並修復 LLM 過濾條件 (Year/Workspace/Links) 在前端的視覺化標籤顯示。
-
-## 2025-12-23 11:14:13
-- **Link 去重合併功能**：在 `config.py` 新增 `PRE_SEARCH_LIMIT=24` 配置（附 TODO 建議未來可改為動態倍數）。修改 `search_service.py` 實作 `_merge_duplicate_links()` 方法，先向 Meilisearch 請求 24 筆結果，按 `_rankingScore` 排序後合併相同 link 的文檔（content 用 `
----
-` 拼接，保留最高 score 的 metadata），最後取前 `limit` 筆返回。更新 `docs/archtect/search-flow.md` 流程圖與文字說明，記錄去重邏輯以避免切塊後同一網頁重複出現。
-
-## 2025-12-23 13:50:37
-- **搜尋結果 UI 優化**：修改 `render.js` 與 `search_service.py`，在後端返回 `final_semantic_ratio` 欄位，前端根據此值在搜尋結果卡片的 match score 旁顯示搜尋類型標籤（Keyword/Semantic/Hybrid，分別使用藍/綠/紫配色）。卡片標題限制為 15 字，超過加上 "..."，展開後顯示完整標題。
-- **LLM 錯誤處理**：在 `search_service.py` 中檢測 LLM 調用失敗（`parse_intent` 返回 `None`），設置 `llm_error` 欄位並使用 fallback 基本搜尋。前端在 `intentContainer` 頂部（查詢資訊後）顯示琥珀色警告橫幅「LLM 服務暫時無法使用，使用基本搜尋模式」。同步修復摘要生成失敗時的錯誤顯示，改為友好提示而非隱藏區塊。
-
-## 2025-12-23 15:00:00
-- **搜尋模式邏輯修復**：修正 `SearchService` 與 UI 在切換純關鍵字/語意模式時的不一致問題。
-  - 將 Schema 中 `recommended_semantic_ratio` 預設值改為 `None` 以區分 LLM 建議。
-  - 更新後端邏輯：當用戶手動設定極端值 (0.0 或 1.0) 時優先採納，忽略 LLM 建議。
-  - 優化前端標籤：將 `render.js` 中的標籤判定改為容許浮點數誤差範圍 (<=0.01, >=0.99)，解決切換 Hybrid 顯示錯誤。
-
-## 2025-12-24 09:09:16
-- **Azure OpenAI Structured Outputs 兼容性修復**：解決 LLM Schema 驗證 400 錯誤。
-  - 展平 Schema 結構：刪除 `SearchFilters` 類別，將 `year_month/links/workspaces` 直接整合至 `SearchIntent`，消除 `$ref` 引用。
-  - 嚴格模式處理：在 `client.py` 新增 `_add_additional_properties()` 方法，遞迴為所有 object 添加 `"additionalProperties": false` 並強制所有 properties 加入 `required` 數組。
-  - 級聯更新：修改 `db_adapter_meili.py` 的 `build_meili_filter()` 與 `search_service.py` 的調用邏輯，適配新的扁平化 Schema 結構。
-
-## 2025-12-24 15:30:00
-- **前端 LLM 意圖顯示修復**：修正 `render.js` 中 `updateIntentDisplay()` 函數的數據讀取邏輯，從錯誤的 `intent.filters.year_month` 改為直接讀取 `intent.year_month` 等頂層欄位。新增 `must_have_keywords` 紅色標籤渲染（格式：`[必含: xxx]`）。在 `index.html` 的 `llmDetails` 區塊新增「LLM 建議權重」顯示元素（`intentRecommendedRatio`），動態顯示 `recommended_semantic_ratio` 百分比值（例如：40%）。修復後前端可正確顯示所有 LLM 解析的篩選條件（year_month 藍色標籤、must_have_keywords 紅色標籤、workspaces 綠色標籤、links 紫色標籤、limit 灰色標籤）。
+### 2026-01-02 引用連結轉換修復 (Citation Link Conversion Fix)
+- **修復內容總結引用連結 (Fix General Summary Citations)**：修正 `src/static/js/search.js` 的 `renderStructuredSummary` 函數，在處理「內容總結」(general_summary) 時補上遺漏的 `convertCitationsToLinks()` 調用。現在三段式摘要中的「詳細說明」與「內容總結」區塊都能正確將引用標記 `[1]`, `[2]` 等轉換為藍色上標超連結，點擊後於新標籤頁開啟來源文件，提升使用者體驗一致性與資訊可信度。

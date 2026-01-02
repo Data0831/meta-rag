@@ -6,13 +6,14 @@
 import { searchConfig } from './config.js';
 
 /**
- * Perform collection search
+ * Perform search with streaming response
  * @param {string} query - Search query
  * @param {Array<string>} websites - List of selected websites (filters)
- * @returns {Promise<{data: Object, duration: number}>}
+ * @param {Array<string>} selectedWebsites - Selected website filters
+ * @returns {Promise<Response>} - Fetch response object (for streaming)
  */
-export async function performCollectionSearch(query, websites = []) {
-    console.log('Starting search...');
+export async function performSearchStream(query, websites = [], selectedWebsites = []) {
+    console.log('Starting search stream...');
     console.log('  Query:', query);
     console.log('  Filters:', websites);
     console.log('  Config:', searchConfig);
@@ -20,8 +21,6 @@ export async function performCollectionSearch(query, websites = []) {
     if (!query) {
         throw new Error('請輸入搜尋查詢');
     }
-
-    const startTime = performance.now();
 
     const requestBody = {
         query: query,
@@ -31,12 +30,16 @@ export async function performCollectionSearch(query, websites = []) {
         limit: searchConfig.limit,
         semantic_ratio: searchConfig.semanticRatio,
         enable_llm: searchConfig.enableLlm,
-        manual_semantic_ratio: searchConfig.manualSemanticRatio // Add manual flag
+        manual_semantic_ratio: searchConfig.manualSemanticRatio,
+        enable_keyword_weight_rerank: searchConfig.enableKeywordWeightRerank,
+        start_date: searchConfig.startDate,
+        end_date: searchConfig.endDate,
+        selected_websites: selectedWebsites
     };
 
     console.log('Request Body:', requestBody);
 
-    const response = await fetch('/api/collection_search', {
+    const response = await fetch('/api/search', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json'
@@ -44,11 +47,7 @@ export async function performCollectionSearch(query, websites = []) {
         body: JSON.stringify(requestBody)
     });
 
-    const endTime = performance.now();
-    const duration = Math.round(endTime - startTime);
-
     console.log('Response Status:', response.status);
-    console.log('Duration:', duration + 'ms');
 
     if (!response.ok) {
         console.error('Response not OK:', response.status, response.statusText);
@@ -65,10 +64,6 @@ export async function performCollectionSearch(query, websites = []) {
         throw new Error(errorMessage);
     }
 
-    const data = await response.json();
-    console.log('Response Data:', data);
-    console.log('  Results count:', data.results?.length || 0);
-    console.log('  Intent:', data.intent);
-
-    return { data, duration };
+    return response;
 }
+

@@ -2,10 +2,11 @@ import os
 import json
 import sys
 import datetime
-from typing import Type, TypeVar, List
+from typing import Type, TypeVar, List, Dict, Any
 from openai import AzureOpenAI, APIError, APIStatusError
 from dotenv import load_dotenv
 from pydantic import BaseModel, ValidationError
+from src.tool.ANSI import print_red
 
 load_dotenv()
 
@@ -34,11 +35,11 @@ class LLMClient:
         )
 
         print(
-            f"Initializing LLMClient (Azure) with endpoint={self.endpoint}, model={self.model}"
+            f"✓ Initializing LLMClient (Azure) with endpoint={self.endpoint}, model={self.model}\n"
         )
 
         if not self.api_key:
-            print("Warning: PROXY_API_KEY not found in environment variables.")
+            print_red("Warning: PROXY_API_KEY not found in environment variables.")
 
         self.client = AzureOpenAI(
             azure_endpoint=self.endpoint,
@@ -100,7 +101,7 @@ class LLMClient:
                 json.dump(logs, f, indent=2, ensure_ascii=False)
 
         except Exception as log_error:
-            print(f"Warning: Failed to write LLM logs: {log_error}")
+            print_red(f"Warning: Failed to write LLM logs: {log_error}")
 
     def call_gemini(
         self,
@@ -120,7 +121,7 @@ class LLMClient:
             )
             response_content = response.choices[0].message.content
         except Exception as e:
-            print(f"Error calling LLM: {e}")
+            print_red(f"Error calling LLM: {e}")
             response_content = None
 
         self._log_request(
@@ -136,7 +137,7 @@ class LLMClient:
         temperature: float = 0.0,
         model: str = None,
         max_retries: int = 1,
-    ) -> T | None:
+    ) -> Dict[str, Any]:
         schema = response_model.model_json_schema()
         schema_name = response_model.__name__
 
@@ -157,7 +158,7 @@ class LLMClient:
                 )
 
                 if not response_text:
-                    print(f"Empty response from LLM (attempt {attempt + 1})")
+                    print_red(f"Empty response from LLM (attempt {attempt + 1})")
                     continue
 
                 clean_text = response_text.strip()
@@ -173,21 +174,28 @@ class LLMClient:
                 validated = response_model.model_validate(data)
 
                 print(f"✓ Schema 驗證成功 ({schema_name})")
-                return validated
+                return {
+                    "status": "success",
+                    "result": validated
+                }
 
             except json.JSONDecodeError as e:
-                print(f"JSON 解析錯誤 (attempt {attempt + 1}): {e}")
-                print(f"Raw text: {response_text[:200]}...")
+                print_red(f"JSON 解析錯誤 (attempt {attempt + 1}): {e}")
+                print_red(f"Raw text: {response_text[:200]}...")
             except ValidationError as e:
-                print(f"Pydantic 驗證錯誤 (attempt {attempt + 1}): {e}")
+                print_red(f"Pydantic 驗證錯誤 (attempt {attempt + 1}): {e}")
             except Exception as e:
-                print(f"未預期的錯誤 (attempt {attempt + 1}): {e}")
+                print_red(f"未預期的錯誤 (attempt {attempt + 1}): {e}")
 
             if attempt < max_retries:
                 print(f"重試中... ({attempt + 1}/{max_retries})")
 
-        print(f"✗ Schema 驗證失敗，已達最大重試次數")
-        return None
+        print_red(f"✗ Schema 驗證失敗，已達最大重試次數")
+        return {
+            "status": "failed",
+            "error": f"LLM schema validation failed after {max_retries + 1} attempts",
+            "stage": "llm_schema_validation"
+        }
 
 
 if __name__ == "__main__":

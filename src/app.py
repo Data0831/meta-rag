@@ -10,23 +10,38 @@ from pathlib import Path
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
-from flask import Flask, render_template, jsonify, request, redirect, url_for
+from flask import (
+    Flask,
+    render_template,
+    jsonify,
+    request,
+    redirect,
+    url_for,
+    Response,
+    stream_with_context,
+)
 import os
+import json
 from dotenv import load_dotenv
 from typing import Dict, Any
 
 from src.database.db_adapter_meili import MeiliAdapter
-from src.services.search_service import SearchService
-from src.services.rag_service import RAGService
+from src.agents.srhSumAgent import SrhSumAgent
 from src.config import (
     MEILISEARCH_HOST,
     MEILISEARCH_API_KEY,
     MEILISEARCH_INDEX,
     DEFAULT_SEARCH_LIMIT,
-    DEFAULT_SIMILARITY_THRESHOLD,
+    MAX_SEARCH_LIMIT,
+    SCORE_PASS_THRESHOLD,
     DEFAULT_SEMANTIC_RATIO,
+    ENABLE_LLM,
+    MANUAL_SEMANTIC_RATIO,
+    ENABLE_KEYWORD_WEIGHT_RERANK,
 )
-
+from src.tool.ANSI import print_red
+from src.services.rag_service import RAGService
+from src.services.search_service import SearchService
 # Load environment variables
 load_dotenv()
 
@@ -51,6 +66,7 @@ def get_meili_adapter() -> MeiliAdapter:
 @app.route("/")
 def index():
     """Main page"""
+    print("Rendering index page")
     return render_template("index.html")
 
 
@@ -70,10 +86,15 @@ def get_config():
     return jsonify(
         {
             "default_limit": DEFAULT_SEARCH_LIMIT,
-            "default_similarity_threshold": DEFAULT_SIMILARITY_THRESHOLD,
+            "max_limit": MAX_SEARCH_LIMIT,
+            "default_similarity_threshold": SCORE_PASS_THRESHOLD,
             "default_semantic_ratio": DEFAULT_SEMANTIC_RATIO,
+            "enable_llm": ENABLE_LLM,
+            "manual_semantic_ratio": MANUAL_SEMANTIC_RATIO,
+            "enable_rerank": ENABLE_KEYWORD_WEIGHT_RERANK,
         }
     )
+
 
 
 @app.route("/api/collection_search", methods=["POST"])
@@ -185,86 +206,113 @@ def chat_endpoint():
     try:
         print("\n" + "=" * 60)
         print("/api/chat called")
-
         data = request.get_json()
         if not data:
             return jsonify({"error": "Invalid JSON"}), 400
-
         user_message = data.get("message", "")
         # 接收前端傳來的 Context (搜尋結果)
         provided_context = data.get("context", [])
         # 接收前端傳來的 History (對話紀錄)
         chat_history = data.get("history", [])
-
         print(f"  Message: {user_message}")
         print(f"  Context items: {len(provided_context)}")
         print(f"  History items: {len(chat_history)}")
-
         if not user_message:
             return jsonify({"error": "Message is required"}), 400
-
         # 初始化 RAG Service 並執行
         rag_service = RAGService()
-
         response = rag_service.chat(
             user_query=user_message,
             provided_context=provided_context,
             history=chat_history,
         )
-
-        print("✅ Chat response generated")
+        print("Chat response generated")
         print("=" * 60 + "\n")
         return jsonify(response)
-
     except Exception as e:
-        print(f"❌ RAG Endpoint Error: {e}")
+        print_red(f"RAG Endpoint Error: {e}")
         import traceback
 
         traceback.print_exc()
         return jsonify({"error": str(e)}), 500
 
 
-@app.route("/api/summary", methods=["POST"])
-def generate_summary():
+@app.route("/api/search", methods=["POST"])
+def search_endpoint():
     """
-    API Route: Generate summary for search results
-    處理前端傳來的摘要請求
-    Request JSON: {
-        "query": "user query string",
-        "results": [ ... top 5 search results ... ]
-    }
+    API Route: Search and generate summary (Streaming)
+    處理前端傳來的搜尋請求，Agent 內部執行搜尋、檢查相關性、優化與摘要生成
     """
     try:
         print("\n" + "=" * 60)
-        print("📝 /api/summary called")
-
+        print("/api/search (Streaming) called")
         data = request.get_json()
         if not data:
             return jsonify({"error": "Invalid JSON"}), 400
+        query = data.get("query", "")
+        limit = data.get("limit", DEFAULT_SEARCH_LIMIT)
+        semantic_ratio = data.get("semantic_ratio", DEFAULT_SEMANTIC_RATIO)
+        enable_llm = data.get("enable_llm", ENABLE_LLM)
+        manual_semantic_ratio = data.get("manual_semantic_ratio", MANUAL_SEMANTIC_RATIO)
+        enable_keyword_weight_rerank = data.get(
+            "enable_keyword_weight_rerank", ENABLE_KEYWORD_WEIGHT_RERANK
+        )
+        start_date = data.get("start_date")
+        end_date = data.get("end_date")
 
-        user_query = data.get("query", "")
-        search_results = data.get("results", [])
-
-        if not user_query:
-            print("Missing 'query' field")
+        if not query:
             return jsonify({"error": "Query is required"}), 400
+        print(f"  Query: {query}")
+        print(f"  Limit: {limit}")
+        print(f"  Semantic Ratio: {semantic_ratio}")
+        print(f"  Enable LLM: {enable_llm}")
+        print(f"  Manual Semantic Ratio: {manual_semantic_ratio}")
+        print(f"  Enable Rerank: {enable_keyword_weight_rerank}")
+        print(f"  Start Date: {start_date}")
+        print(f"  End Date: {end_date}")
+        # Validate parameters
+        if not isinstance(limit, int) or limit < 1 or limit > MAX_SEARCH_LIMIT:
+            return (
+                jsonify(
+                    {
+                        "error": f"Invalid 'limit' value. Must be integer between 1 and {MAX_SEARCH_LIMIT}."
+                    }
+                ),
+                400,
+            )
+        if (
+            not isinstance(semantic_ratio, (int, float))
+            or semantic_ratio < 0
+            or semantic_ratio > 1
+        ):
+            return (
+                jsonify(
+                    {
+                        "error": "Invalid 'semantic_ratio' value. Must be float between 0.0 and 1.0."
+                    }
+                ),
+                400,
+            )
 
-        print(f"  Query: {user_query}")
-        print(f"  Results to summarize: {len(search_results)}")
+        def generate():
+            agent = SrhSumAgent()
+            for step in agent.run(
+                query=query,
+                limit=limit,
+                semantic_ratio=semantic_ratio,
+                enable_llm=enable_llm,
+                manual_semantic_ratio=manual_semantic_ratio,
+                enable_keyword_weight_rerank=enable_keyword_weight_rerank,
+                start_date=start_date,
+                end_date=end_date,
+            ):
+                yield json.dumps(step, ensure_ascii=False) + "\n"
 
-        # 初始化 RAG Service
-        rag_service = RAGService()
-
-        # 呼叫摘要方法
-        summary_text = rag_service.summarize(user_query, search_results)
-
-        print("✅ Summary generated")
-        print("=" * 60 + "\n")
-
-        return jsonify({"summary": summary_text})
-
+        return Response(
+            stream_with_context(generate()), mimetype="application/x-ndjson"
+        )
     except Exception as e:
-        print(f"❌ Summary Endpoint Error: {e}")
+        print_red(f"Search Endpoint Error: {e}")
         import traceback
 
         traceback.print_exc()
@@ -282,9 +330,7 @@ def get_stats():
     try:
         adapter = get_meili_adapter()
         stats = adapter.get_stats()
-
         return jsonify({"index_name": MEILISEARCH_INDEX, "stats": stats})
-
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
@@ -295,7 +341,6 @@ def health_check():
     try:
         adapter = get_meili_adapter()
         stats = adapter.get_stats()
-
         return jsonify(
             {
                 "status": "healthy",
@@ -335,7 +380,8 @@ if __name__ == "__main__":
     print("=" * 60)
     print(f"Meilisearch Host: {MEILISEARCH_HOST}")
     print(f"Index Name: {MEILISEARCH_INDEX}")
-    print(f"Server will run on: http://localhost:5000")
+    port = int(os.environ.get("PORT", 5000))
+    print(f"Server will run on: http://0.0.0.0:{port}")
     print("=" * 60)
 
     app.run(debug=True, host="0.0.0.0", port=5001)

@@ -1,13 +1,16 @@
 /**
  * Search Configuration Module
  */
-
 export const searchConfig = {
-    limit: 5,  // Number of results to return
-    semanticRatio: 0.5,  // Weight for semantic search (0.0 = pure keyword, 1.0 = pure semantic)
-    similarityThreshold: 0,  // Similarity threshold (0-100), results below this will be dimmed
+    limit: 5,
+    maxLimit: 20,
+    semanticRatio: 0.5,
+    similarityThreshold: 0,
     enableLlm: true,
-    manualSemanticRatio: false // Checkbox state: true = use manual ratio, false = auto (LLM)
+    manualSemanticRatio: false,
+    enableKeywordWeightRerank: true,
+    startDate: null,
+    endDate: null
 };
 
 /**
@@ -24,6 +27,13 @@ export async function loadBackendConfig() {
             searchConfig.limit = config.default_limit;
             const limitInput = document.getElementById('limitInput');
             if (limitInput) limitInput.value = config.default_limit;
+        }
+
+        // Update Max Limit
+        if (config.max_limit !== undefined) {
+            searchConfig.maxLimit = config.max_limit;
+            const limitInput = document.getElementById('limitInput');
+            if (limitInput) limitInput.max = config.max_limit;
         }
 
         // Update Similarity Threshold
@@ -44,6 +54,27 @@ export async function loadBackendConfig() {
             const ratioValue = document.getElementById('semanticRatioValue');
             if (ratioInput) ratioInput.value = config.default_semantic_ratio * 100;
             if (ratioValue) ratioValue.textContent = Math.round(config.default_semantic_ratio * 100) + '%';
+        }
+
+        // Update Enable LLM
+        if (config.enable_llm !== undefined) {
+            searchConfig.enableLlm = config.enable_llm;
+            const llmCheckbox = document.getElementById('llmRewriteCheckbox');
+            if (llmCheckbox) llmCheckbox.checked = config.enable_llm;
+        }
+
+        // Update Manual Semantic Ratio
+        if (config.manual_semantic_ratio !== undefined) {
+            searchConfig.manualSemanticRatio = config.manual_semantic_ratio;
+            const manualCheckbox = document.getElementById('manualRatioCheckbox');
+            if (manualCheckbox) manualCheckbox.checked = config.manual_semantic_ratio;
+        }
+
+        // Update Enable Rerank
+        if (config.enable_rerank !== undefined) {
+            searchConfig.enableKeywordWeightRerank = config.enable_rerank;
+            const rerankCheckbox = document.getElementById('enableKeywordWeightRerankCheckbox');
+            if (rerankCheckbox) rerankCheckbox.checked = config.enable_rerank;
         }
 
         console.log('Final Config:', searchConfig);
