@@ -254,99 +254,165 @@ async function performSearch() {
     const summaryContainer = document.getElementById('summaryContainer');
     const summaryContent = document.getElementById('summaryContent');
     const summaryTitle = document.getElementById('summaryTitle');
-
-    // 1. 先取得當前的門檻值
-    const threshold = searchConfig.similarityThreshold || 0;
-
-    // 2. 篩選出高於或等於門檻的文章 (與 render.js 邏輯同步)
-    const validResults = (results || []).filter(item => {
-        const score = Math.round((item._rankingScore || 0) * 100);
-        return score >= threshold;
-    });
-
-    // 3. 如果沒有任何合格的文章，則隱藏摘要區塊並結束
-    if (validResults.length === 0) {
-        summaryContainer.classList.add('hidden');
-        return;
-    }
+    const searchTimeValue = document.getElementById('searchTimeValue');
 
     if (summaryContainer) {
         summaryContainer.classList.remove('hidden');
         summaryTitle.innerHTML = `<span class="material-icons-round animate-pulse mr-2 align-middle text-primary">manage_search</span>正在初始化搜尋...`;
 
-    // 顯示 Loading 動畫 (Skeleton)
-    summaryContent.innerHTML = `
-        <div class="animate-pulse space-y-3">
-            <div class="h-2 bg-slate-200 dark:bg-slate-700 rounded w-3/4"></div>
-            <div class="h-2 bg-slate-200 dark:bg-slate-700 rounded w-full"></div>
-            <div class="h-2 bg-slate-200 dark:bg-slate-700 rounded w-5/6"></div>
-        </div>
-    `;
+        // Show Skeleton in content area while working
+        summaryContent.innerHTML = `
+            <div class="animate-pulse space-y-3">
+                <div class="h-2 bg-slate-200 dark:bg-slate-700 rounded w-3/4"></div>
+                <div class="h-2 bg-slate-200 dark:bg-slate-700 rounded w-full"></div>
+                <div class="h-2 bg-slate-200 dark:bg-slate-700 rounded w-5/6"></div>
+            </div>
+        `;
+    } else {
+        // Fallback if summary container missing
+        showLoading();
+    }
+
+    // Record start time
+    const totalStartTime = performance.now();
+    let hasUpdatedResults = false;
 
     try {
-        // 準備要傳給後端的資料 (只取合格的前 5 筆)
-        const topResults = validResults.slice(0, 5).map(item => ({
-            title: item.title,
-            content: item.content || item.cleaned_content
-        }));
+        // Initiate Stream
+        const response = await performSearchStream(query);
 
-        // 呼叫後端 API
-        const response = await fetch('/api/summary', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                query: query,
-                results: topResults
-            })
-        });
+        if (!response.body) throw new Error("ReadableStream not supported");
 
-        const data = await response.json();
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = "";
 
-        if (data.summary && data.summary.trim()) {
-            // 更新標題
-            summaryTitle.innerHTML = `以下為「<span class="text-primary">${query}</span>」的相關公告總結：`;
+        while (true) {
+            const { value, done } = await reader.read();
+            if (done) break;
 
-            // 渲染 Markdown 內容
-            summaryContent.innerHTML = marked.parse(data.summary);
+            buffer += decoder.decode(value, { stream: true });
+            const lines = buffer.split("\n");
+            buffer = lines.pop(); // Keep incomplete line
 
-            // 讓列表樣式更好看 (Tailwind Typography)
-            const ul = summaryContent.querySelector('ul');
-            if (ul) {
-                ul.classList.add('list-disc', 'pl-5', 'space-y-1');
+            for (const line of lines) {
+                if (!line.trim()) continue;
+
+                try {
+                    const data = JSON.parse(line);
+                    console.log('Agent Stream:', data.status, data); // ★ 修改為印出完整 data
+
+                    // Handle Status Updates
+                    if (data.status === "failed") {
+                        // Display error in summary container based on error stage
+                        let errorTitle = "搜尋失敗";
+                        const errorStage = data.error_stage || data.stage || "unknown";
+
+                        switch (errorStage) {
+                            case "meilisearch":
+                                errorTitle = "資料庫連線失敗";
+                                break;
+                            case "embedding":
+                                errorTitle = "向量服務失敗";
+                                break;
+                            case "llm":
+                                errorTitle = "語言模型服務失敗";
+                                break;
+                            case "intent_parsing":
+                                errorTitle = "意圖解析失敗";
+                                break;
+                            case "initial_search":
+                                errorTitle = "初始搜尋失敗";
+                                break;
+                            case "summarizing":
+                                errorTitle = "摘要生成失敗";
+                                break;
+                            default:
+                                errorTitle = "搜尋過程發生錯誤";
+                        }
+
+                        if (summaryContainer) {
+                            summaryTitle.innerHTML = `<span class="material-icons-round mr-2 align-middle text-red-500">error</span>${errorTitle}`;
+                            summaryContent.innerHTML = `
+                                <div class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
+                                    <div class="text-red-800 dark:text-red-200 font-mono text-sm whitespace-pre-wrap break-words">${data.error || "Unknown error"}</div>
+                                </div>
+                            `;
+                        }
+                        return; // Stop processing stream
+                    }
+
+                    if (data.stage === "searching") {
+                        summaryTitle.innerHTML = `<span class="material-icons-round animate-spin mr-2 align-middle text-primary">sync</span>${data.message}`;
+                        // Blur time if needed
+                        if (searchTimeValue) {
+                            searchTimeValue.style.filter = 'blur(3px)';
+                            searchTimeValue.style.opacity = '0.5';
+                        }
+                    } else if (data.stage === "checking") {
+                        summaryTitle.innerHTML = `<span class="material-icons-round animate-pulse mr-2 align-middle text-secondary">fact_check</span>${data.message}`;
+                    } else if (data.stage === "rewriting") {
+                        summaryTitle.innerHTML = `<span class="material-icons-round animate-pulse mr-2 align-middle text-amber-500">edit_note</span>${data.message}`;
+                    } else if (data.stage === "retrying") {
+                        summaryTitle.innerHTML = `<span class="material-icons-round animate-spin mr-2 align-middle text-amber-500">sync_problem</span>${data.message}`;
+                    } else if (data.stage === "summarizing") {
+                        summaryTitle.innerHTML = `<span class="material-icons-round animate-pulse mr-2 align-middle text-primary">auto_awesome</span>${data.message}`;
+                    } else if (data.stage === "complete") {
+                        // Finalize
+                        const totalEndTime = performance.now();
+                        const totalDuration = Math.round(totalEndTime - totalStartTime);
+
+                        if (searchTimeValue) {
+                            searchTimeValue.textContent = totalDuration;
+                            searchTimeValue.style.filter = 'none';
+                            searchTimeValue.style.opacity = '1';
+                        }
+
+                        // Update Title
+                        summaryTitle.innerHTML = `以下為「<span class="text-primary">${query}</span>」的相關公告總結：`;
+
+                        // Render Structured Summary
+                        if (data.summary) {
+                            summaryContent.innerHTML = renderStructuredSummary(data.summary, data.link_mapping || {});
+                        } else {
+                            summaryContent.innerHTML = "<p>無相關總結。</p>";
+                        }
+
+                        // Render Results
+                        if (data.results && data.results.length > 0) {
+                            const renderData = {
+                                results: data.results,
+                                intent: data.intent || null,
+                            };
+
+                            // Calculate duration for display (using total time)
+                            renderResults(renderData, totalDuration, query);
+                        } else {
+                            // No results found
+                            if (DOM.resultsContainer) DOM.resultsContainer.classList.add('hidden');
+                            // Maybe show empty state if summary is also empty?
+                            if (!data.summary) {
+                                showError("未找到相關結果");
+                            }
+                        }
+                    }
+
+                    // Handle intermediate results if available (optional, dependent on agent implementation)
+                    if (data.new_query) {
+                        // Just an update, handled by stage message
+                    }
+
+                } catch (e) {
+                    console.error("Error parsing stream line:", e, line);
+                }
             }
-        } else if (data.error) {
-            summaryTitle.innerHTML = `摘要生成失敗`;
-            summaryContent.innerHTML = `
-                <div class="flex items-center gap-2 text-amber-600 dark:text-amber-400">
-                    <span class="material-icons-round text-lg">warning</span>
-                    <p class="text-sm">AI 服務暫時無法使用，請稍後再試。</p>
-                </div>
-            `;
-        } else {
-            summaryTitle.innerHTML = `摘要生成失敗`;
-            summaryContent.innerHTML = `
-                <div class="flex items-center gap-2 text-slate-500 dark:text-slate-400">
-                    <span class="material-icons-round text-lg">info</span>
-                    <p class="text-sm">無法生成摘要，請稍後再試。</p>
-                </div>
-            `;
         }
 
     } catch (error) {
-        console.error("摘要生成失敗:", error);
-        summaryTitle.innerHTML = `摘要生成失敗`;
-        summaryContent.innerHTML = `
-            <div class="flex items-center gap-2 text-red-600 dark:text-red-400">
-                <span class="material-icons-round text-lg">error</span>
-                <p class="text-sm">網路連線錯誤，請檢查後端服務是否正常運行。</p>
-            </div>
-        `;
+        console.error('Search failed:', error);
+        showError(error.message);
+        if (summaryContainer) summaryContainer.classList.add('hidden');
     }
-}
-
-function hideSummary() {
-    const summaryContainer = document.getElementById('summaryContainer');
-    if (summaryContainer) summaryContainer.classList.add('hidden');
 }
 
 /**
@@ -466,7 +532,6 @@ function setupChatbot() {
 
         suggestionsContainer.innerHTML = '';
 
-        // --- 第一層檢查：完全沒有搜尋結果的情況 (原始邏輯) ---
         if (!currentResults || currentResults.length === 0) {
             appendMessage('user', text);
             setTimeout(() => {
@@ -477,35 +542,13 @@ function setupChatbot() {
             return;
         }
 
-        // --- 第二層檢查：有搜尋結果，但根據相似度門檻篩選合格文章 ---
-        const threshold = searchConfig.similarityThreshold || 0;
-        
-        // 根據 render.js 邏輯，使用 Math.round((_rankingScore || 0) * 100) 取得整數分數
-        const validResults = currentResults.filter(item => {
-            const score = Math.round((item._rankingScore || 0) * 100);
-            return score >= threshold;
-        });
-
-        // 如果過濾後沒有任何合格的文章
-        if (validResults.length === 0) {
-            appendMessage('user', text);
-            setTimeout(() => {
-                appendMessage('bot', `抱歉，目前的搜尋結果相似度皆低於您的門檻 (${threshold}%)，我無法從中獲取準確資訊。請嘗試調低相似度門檻或變更關鍵字。`);
-                renderSuggestions(["調低相似度門檻", "重新搜尋"]);
-            }, 500);
-            chatInput.value = '';
-            return;
-        }
-
-        // --- 通過檢查，開始發送請求 ---
         appendMessage('user', text);
         chatInput.value = '';
 
         const loadingId = appendLoading();
 
         try {
-            // 取前 5 筆「合格」的資料作為 Context 傳給 AI
-            const currentContext = validResults.slice(0, 5).map(item => ({
+            const currentContext = currentResults.slice(0, 5).map(item => ({
                 title: item.title,
                 content: item.content || item.cleaned_content,
                 link: item.link,
