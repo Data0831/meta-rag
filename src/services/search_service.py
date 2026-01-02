@@ -9,6 +9,7 @@ from src.config import (
     MEILISEARCH_API_KEY,
     MEILISEARCH_INDEX,
     PRE_SEARCH_LIMIT,
+    MAX_SEARCH_LIMIT,
 )
 from meilisearch_config import DEFAULT_SEMANTIC_RATIO
 from datetime import datetime
@@ -136,6 +137,8 @@ class SearchService:
         end_date: Optional[str] = None,
     ) -> Dict[str, Any]:
 
+        limit = min(limit, MAX_SEARCH_LIMIT)
+
         # --- Stage 1: Check Meilisearch Connection ---
         if err := self._init_meilisearch():
             return {"error": err, "status": "failed", "stage": "meilisearch"}
@@ -242,17 +245,10 @@ class SearchService:
                     f"Applied ID exclusion filter for {len(exclude_ids)} items."
                 )
 
-            boosted_suffix = ""
-            if intent.must_have_keywords:
-                boosted_keywords = []
-                for kw in intent.must_have_keywords:
-                    boosted_keywords.extend([kw] * 2)
-                boosted_suffix = f" {' '.join(boosted_keywords)}"
-
             multi_search_queries = []
 
             for q_text in query_candidates:
-                final_kw_query = f"{q_text}{boosted_suffix}"
+                final_kw_query = q_text
 
                 vector = None
                 if semantic_ratio > 0:

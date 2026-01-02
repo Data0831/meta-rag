@@ -23,6 +23,38 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 /**
+ * Show alert notification with auto-dismiss
+ */
+function showAlert(message, iconName = 'info') {
+    const alertNotification = document.getElementById('alertNotification');
+    const alertBox = document.getElementById('alertBox');
+    const alertMessage = document.getElementById('alertMessage');
+    const alertIcon = document.getElementById('alertIcon');
+
+    if (!alertNotification || !alertBox || !alertMessage || !alertIcon) return;
+
+    // Set content
+    alertMessage.textContent = message;
+    alertIcon.textContent = iconName;
+
+    // Show with animation
+    alertNotification.classList.remove('pointer-events-none');
+    setTimeout(() => {
+        alertBox.classList.remove('opacity-0', 'translate-y-[-20px]', 'scale-95');
+        alertBox.classList.add('opacity-100', 'translate-y-0', 'scale-100');
+    }, 10);
+
+    // Auto dismiss after 3 seconds
+    setTimeout(() => {
+        alertBox.classList.remove('opacity-100', 'translate-y-0', 'scale-100');
+        alertBox.classList.add('opacity-0', 'translate-y-[-20px]', 'scale-95');
+        setTimeout(() => {
+            alertNotification.classList.add('pointer-events-none');
+        }, 300);
+    }, 3000);
+}
+
+/**
  * Setup search configuration UI controls
  */
 function setupSearchConfig() {
@@ -83,8 +115,24 @@ function setupSearchConfig() {
     const limitInput = document.getElementById('limitInput');
     if (limitInput) {
         limitInput.addEventListener('change', (e) => {
-            const value = parseInt(e.target.value);
-            if (value > 0 && value <= 100) {
+            let value = parseInt(e.target.value);
+            const maxLimit = searchConfig.maxLimit;
+            let corrected = false;
+            let correctedValue = value;
+
+            if (isNaN(value) || value < 1) {
+                correctedValue = 1;
+                corrected = true;
+            } else if (value > maxLimit) {
+                correctedValue = maxLimit;
+                corrected = true;
+            }
+
+            if (corrected) {
+                e.target.value = correctedValue;
+                searchConfig.limit = correctedValue;
+                showAlert(`您輸入的數量超出範圍，已自動調整為 ${correctedValue}`, 'warning');
+            } else {
                 searchConfig.limit = value;
             }
         });

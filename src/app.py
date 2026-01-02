@@ -32,6 +32,7 @@ from src.config import (
     MEILISEARCH_API_KEY,
     MEILISEARCH_INDEX,
     DEFAULT_SEARCH_LIMIT,
+    MAX_SEARCH_LIMIT,
     SCORE_PASS_THRESHOLD,
     DEFAULT_SEMANTIC_RATIO,
     ENABLE_LLM,
@@ -85,6 +86,7 @@ def get_config():
     return jsonify(
         {
             "default_limit": DEFAULT_SEARCH_LIMIT,
+            "max_limit": MAX_SEARCH_LIMIT,
             "default_similarity_threshold": SCORE_PASS_THRESHOLD,
             "default_semantic_ratio": DEFAULT_SEMANTIC_RATIO,
             "enable_llm": ENABLE_LLM,
@@ -173,11 +175,11 @@ def search_endpoint():
         print(f"  Start Date: {start_date}")
         print(f"  End Date: {end_date}")
         # Validate parameters
-        if not isinstance(limit, int) or limit < 1 or limit > 100:
+        if not isinstance(limit, int) or limit < 1 or limit > MAX_SEARCH_LIMIT:
             return (
                 jsonify(
                     {
-                        "error": "Invalid 'limit' value. Must be integer between 1 and 100."
+                        "error": f"Invalid 'limit' value. Must be integer between 1 and {MAX_SEARCH_LIMIT}."
                     }
                 ),
                 400,
