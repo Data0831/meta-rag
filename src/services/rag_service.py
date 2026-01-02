@@ -34,12 +34,14 @@ class RAGService:
         results = []
         source_type = "search"
 
-        if provided_context and len(provided_context) > 0:
+        if provided_context is not None:
             results = provided_context
             source_type = "provided"
         else:
+            # 只有當 provided_context 真的是 None (前端沒傳這個欄位) 時
+            # 才執行後端的自動補位搜尋
             try:
-                # 這裡假設你有 search_service
+                print("   No context provided, performing backend search...")
                 search_data = self.search_service.search(
                     user_query=user_query, limit=3, semantic_ratio=0.5, enable_llm=True
                 )
@@ -59,13 +61,13 @@ class RAGService:
                 date = doc.get("year_month", "N/A")
                 
                 # 截斷過長內容以節省 Token
-                if len(content) > 800:
-                    content = content[:800] + "..."
+                if len(content) > 15000:
+                    content = content[:15000] + "..."     
                 context_text += f"Document {idx}:\nTitle: {title}\nDate: {date}\nContent: {content}\n\n"
         else:
             # 若無搜尋結果，直接回傳，不浪費 LLM 資源
             return {
-                "answer": "抱歉，目前沒有相關的搜尋結果可供參考。",
+                "answer": "根據目前的搜尋設定（相似度門檻），找不到相關公告可供回答。",
                 "suggestions": ["如何使用搜尋？", "最近有什麼公告？", "Copilot 價格查詢"],
                 "references": [],
             }
