@@ -3,6 +3,7 @@
  */
 export const searchConfig = {
     limit: 5,
+    maxLimit: 20,
     semanticRatio: 0.5,
     similarityThreshold: 0,
     enableLlm: true,
@@ -26,6 +27,13 @@ export async function loadBackendConfig() {
             searchConfig.limit = config.default_limit;
             const limitInput = document.getElementById('limitInput');
             if (limitInput) limitInput.value = config.default_limit;
+        }
+
+        // Update Max Limit
+        if (config.max_limit !== undefined) {
+            searchConfig.maxLimit = config.max_limit;
+            const limitInput = document.getElementById('limitInput');
+            if (limitInput) limitInput.max = config.max_limit;
         }
 
         // Update Similarity Threshold

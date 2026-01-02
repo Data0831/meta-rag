@@ -23,6 +23,38 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 /**
+ * Show alert notification with auto-dismiss
+ */
+function showAlert(message, iconName = 'info') {
+    const alertNotification = document.getElementById('alertNotification');
+    const alertBox = document.getElementById('alertBox');
+    const alertMessage = document.getElementById('alertMessage');
+    const alertIcon = document.getElementById('alertIcon');
+
+    if (!alertNotification || !alertBox || !alertMessage || !alertIcon) return;
+
+    // Set content
+    alertMessage.textContent = message;
+    alertIcon.textContent = iconName;
+
+    // Show with animation
+    alertNotification.classList.remove('pointer-events-none');
+    setTimeout(() => {
+        alertBox.classList.remove('opacity-0', 'translate-y-[-20px]', 'scale-95');
+        alertBox.classList.add('opacity-100', 'translate-y-0', 'scale-100');
+    }, 10);
+
+    // Auto dismiss after 3 seconds
+    setTimeout(() => {
+        alertBox.classList.remove('opacity-100', 'translate-y-0', 'scale-100');
+        alertBox.classList.add('opacity-0', 'translate-y-[-20px]', 'scale-95');
+        setTimeout(() => {
+            alertNotification.classList.add('pointer-events-none');
+        }, 300);
+    }, 3000);
+}
+
+/**
  * Setup search configuration UI controls
  */
 function setupSearchConfig() {
@@ -83,8 +115,24 @@ function setupSearchConfig() {
     const limitInput = document.getElementById('limitInput');
     if (limitInput) {
         limitInput.addEventListener('change', (e) => {
-            const value = parseInt(e.target.value);
-            if (value > 0 && value <= 100) {
+            let value = parseInt(e.target.value);
+            const maxLimit = searchConfig.maxLimit;
+            let corrected = false;
+            let correctedValue = value;
+
+            if (isNaN(value) || value < 1) {
+                correctedValue = 1;
+                corrected = true;
+            } else if (value > maxLimit) {
+                correctedValue = maxLimit;
+                corrected = true;
+            }
+
+            if (corrected) {
+                e.target.value = correctedValue;
+                searchConfig.limit = correctedValue;
+                showAlert(`您輸入的數量超出範圍，已自動調整為 ${correctedValue}`, 'warning');
+            } else {
                 searchConfig.limit = value;
             }
         });
@@ -123,6 +171,44 @@ function setupSearchConfig() {
             console.log('結束日期已更新:', searchConfig.endDate);
         });
     }
+    // --- 新增：資料來源篩選 (全選/取消全選邏輯) ---
+    const selectAllCheckbox = document.getElementById('selectAllSources');
+    // 注意：這裡假設你的 HTML checkbox 有 class="source-item"
+    const sourceCheckboxes = document.querySelectorAll('input[name="source_checkbox"]');
+
+    if (selectAllCheckbox && sourceCheckboxes.length > 0) {
+        // 1. 全選被點擊
+        selectAllCheckbox.addEventListener('change', (e) => {
+            const isChecked = e.target.checked;
+            sourceCheckboxes.forEach(cb => {
+                cb.checked = isChecked;
+            });
+        });
+
+        // 2. 個別選項被點擊 (檢查是否要取消全選勾勾)
+        sourceCheckboxes.forEach(cb => {
+            cb.addEventListener('change', () => {
+                const allChecked = Array.from(sourceCheckboxes).every(item => item.checked);
+                selectAllCheckbox.checked = allChecked;
+            });
+        });
+    }
+}
+
+/**
+ * 新增：取得目前勾選的資料來源列表
+ */
+
+function getSelectedSources() {
+    const selected = [];
+    const sourceCheckboxes = document.querySelectorAll('input[name="source_checkbox"]:checked');
+
+    sourceCheckboxes.forEach(cb => {
+        selected.push(cb.value);
+    });
+
+    // 如果什麼都沒選，視同全選 (或是給空陣列，看你後端邏輯)
+    return selected;
 }
 
 /**
@@ -247,6 +333,12 @@ async function performSearch() {
         return;
     }
 
+    // 獲取使用者勾選的網站列表
+    const selectedWebsites = getSelectedSources();
+
+    // Debug: 在 F12 console 顯示目前勾了哪些，方便你檢查
+    console.log('Active Source Filters:', selectedWebsites);
+
     // Reset UI states
     hideAllStates();
 
@@ -279,7 +371,7 @@ async function performSearch() {
 
     try {
         // Initiate Stream
-        const response = await performSearchStream(query);
+        const response = await performSearchStream(query, selectedWebsites);
 
         if (!response.body) throw new Error("ReadableStream not supported");
 
@@ -548,7 +640,34 @@ function setupChatbot() {
         const loadingId = appendLoading();
 
         try {
-            const currentContext = currentResults.slice(0, 5).map(item => ({
+            // 1. 取得目前設定的相似度門檻 (預設為 0)
+            // 注意：searchConfig.similarityThreshold 通常是 0-100 的整數
+            const thresholdPercent = searchConfig.similarityThreshold || 0;
+            // 2. 過濾資料：只抓取「未反灰」的結果 (相似度 >= 門檻)
+            // 如果你的後端欄位名稱不同 (例如 score, _rankingScore)，請在此調整
+            const validResults = currentResults.filter(item => {
+                // 這樣能配合 render.js 的邏輯，正確抓到分數
+                const score = item._rankingScore ?? item.similarity ?? item.score ?? 0;
+
+                // 將 0-1 的分數轉為 0-100 與門檻比較
+                return (score * 100) >= thresholdPercent;
+            });
+            // 檢查是否全反灰 (也就是 validResults 為空)
+            if (validResults.length === 0) {
+                // 移除 Loading 動畫
+                removeMessage(loadingId);
+
+                // 直接回覆使用者，不呼叫後端 API
+                appendMessage('bot', `目前的搜尋結果相似度皆低於 **${thresholdPercent}%**，已被全部過濾。請嘗試**調低相似度滑桿**，讓 AI 能參考更多資料。`);
+                // 中止函式，不執行後面的 fetch
+                return;
+            }
+            // 3. 如果有資料，就直接使用過濾後的結果 (拿掉原本的保底機制)
+            const finalResults = validResults;
+            console.log(`Chatbot Context: 使用了 ${finalResults.length} 筆資料 (門檻: ${thresholdPercent}%)`);
+
+            // 4. 組裝 Context (移除 slice 限制，只要符合門檻全都要)
+            const currentContext = finalResults.map(item => ({
                 title: item.title,
                 content: item.content || item.cleaned_content,
                 link: item.link,

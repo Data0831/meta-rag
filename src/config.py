@@ -13,12 +13,13 @@ DATA_JSON = os.path.join(DATA_DIR, "data.json")
 # Meilisearch Settings
 MEILISEARCH_HOST = os.getenv("MEILISEARCH_HOST", "http://localhost:7700")
 MEILISEARCH_API_KEY = os.getenv("MEILISEARCH_API_KEY", "masterKey")
-MEILISEARCH_INDEX = "announcements_v3"
+MEILISEARCH_INDEX = "announcements_v4"
 
 # ============================================================================
 # Frontend Configurable Variables (exposed via /api/config)
 # ============================================================================
 DEFAULT_SEARCH_LIMIT = 5
+MAX_SEARCH_LIMIT = 20
 SCORE_PASS_THRESHOLD = 0.81
 DEFAULT_SEMANTIC_RATIO = 0.5
 ENABLE_LLM = True
