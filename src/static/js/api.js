@@ -8,10 +8,10 @@ import { searchConfig } from './config.js';
 /**
  * Perform search with streaming response
  * @param {string} query - Search query
- * @param {Array<string>} selectedWebsites - Selected website filters
+ * @param {Array<string>} selectedwebsite - Selected website filters
  * @returns {Promise<Response>} - Fetch response object (for streaming)
  */
-export async function performSearchStream(query, selectedWebsites = []) {
+export async function performSearchStream(query, selectedwebsite = []) {
     console.log('Starting search stream...');
     console.log('  Query:', query);
     console.log('  Config:', searchConfig);
@@ -29,7 +29,7 @@ export async function performSearchStream(query, selectedWebsites = []) {
         enable_keyword_weight_rerank: searchConfig.enableKeywordWeightRerank,
         start_date: searchConfig.startDate,
         end_date: searchConfig.endDate,
-        selected_websites: selectedWebsites
+        selected_website: selectedwebsite
     };
 
     console.log('Request Body:', requestBody);

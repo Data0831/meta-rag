@@ -364,3 +364,14 @@ table {
 html {
   scrollbar-gutter: stable;
 }
+
+.website-tag {
+    font-size: 0.8rem;
+    padding: 4px 8px;
+    border-radius: 4px;
+    background-color: #e7f1ff; /* 淺藍色背景 */
+    color: #0d6efd;           /* 深藍色文字 */
+    font-weight: 600;
+    display: inline-block;
+    margin-bottom: 5px;
+}

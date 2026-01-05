@@ -68,19 +68,25 @@ class SearchService:
             return msg
 
     def parse_intent(
-        self, user_query: str, history: List[str] = None, direction: str = ""
+        self, user_query: str, history: List[str] = None, direction: str = "", website: List[str] = None
     ) -> Dict[str, Any]:
         try:
             previous_queries_str = str(history) if history else "None"
-
+            website_str = ", ".join(website) if website else "All Sources"
             system_prompt = SEARCH_INTENT_PROMPT.format(
                 current_date=datetime.now().strftime("%Y-%m-%d"),
                 previous_queries=previous_queries_str,
                 direction=direction or "",
+                website=website_str
             )
+
+            if website:
+                user_content = f"User Request: {user_query}\nContext - Selected website: {website_str}"
+            else:
+                user_content = user_query
             messages = [
                 {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_query},
+                {"role": "user", "content": user_content},
             ]
             result = self.llm_client.call_with_schema(
                 messages=messages,
@@ -118,13 +124,14 @@ class SearchService:
         history: List[str],
         direction: str,
         traces: List[str],
+        website: List[str] = None,
     ) -> tuple[SearchIntent, Optional[str]]:
         llm_error = None
         intent = None
 
         if enable_llm:
             intent_result = self.parse_intent(
-                user_query, history=history, direction=direction
+                user_query, history=history, direction=direction, website=website
             )
             if intent_result.get("status") == "failed":
                 llm_error = intent_result.get("error")
@@ -174,6 +181,7 @@ class SearchService:
         end_date: Optional[str],
         exclude_ids: List[str],
         traces: List[str],
+        manual_website: List[str] = None,
     ) -> Optional[str]:
         meili_filter = build_meili_filter(intent)
 
@@ -202,6 +210,19 @@ class SearchService:
                     meili_filter = f"({meili_filter}) AND ({manual_date_filter})"
                 else:
                     meili_filter = manual_date_filter
+        
+        if manual_website and len(manual_website) > 0:
+            # 轉換為 Meilisearch 語法: website IN ["Site A", "Site B"]
+            website_str = ", ".join([f'"{w}"' for w in manual_website])
+            website_filter = f'website IN [{website_str}]'
+            
+            # 將新的條件用 AND 接在現有的 filter 後面
+            if meili_filter:
+                meili_filter = f"({meili_filter}) AND ({website_filter})"
+            else:
+                meili_filter = website_filter
+                
+            traces.append(f"Applied manual website filter: {manual_website}")
 
         if exclude_ids:
             exclude_filter_safe = (
@@ -359,6 +380,7 @@ class SearchService:
         direction: str = None,
         start_date: Optional[str] = None,
         end_date: Optional[str] = None,
+        website: List[str] = None,
     ) -> Dict[str, Any]:
 
         limit = min(limit, MAX_SEARCH_LIMIT)
@@ -370,7 +392,7 @@ class SearchService:
             )
 
             intent, llm_error = self._parse_search_intent(
-                user_query, enable_llm, fall_back, history, direction, traces
+                user_query, enable_llm, fall_back, history, direction, traces, website=website
             )
 
             if intent.limit is not None:
@@ -383,7 +405,7 @@ class SearchService:
 
             query_candidates = self._build_query_candidates(intent, traces)
             meili_filter = self._build_filter_expression(
-                intent, start_date, end_date, exclude_ids or [], traces
+                intent, start_date, end_date, exclude_ids or [], traces, manual_website=website
             )
 
             multi_search_queries = [

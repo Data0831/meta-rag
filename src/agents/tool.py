@@ -22,6 +22,7 @@ class SearchTool:
         direction: str = None,
         start_date: str = None,
         end_date: str = None,
+        website: List[str] = None,
     ) -> Dict[str, Any]:
         """
         Executes a search using the SearchService.
@@ -38,6 +39,7 @@ class SearchTool:
             direction=direction,
             start_date=start_date,
             end_date=end_date,
+            website=website,
         )
 
     def summarize(self, user_query: str, search_results: List[Dict]) -> Dict[str, Any]:
