@@ -1,12 +1,11 @@
 import os
-import json
 import asyncio
-from datetime import datetime
 from typing import List, Dict, Any, Union
 import ollama
 from collections import deque
 from dotenv import load_dotenv
 from src.tool.ANSI import print_red
+from src.log.logManager import LogManager
 import logging
 
 logger = logging.getLogger(__name__)
@@ -16,37 +15,6 @@ load_dotenv()
 # Ollama configuration
 OLLAMA_HOST = os.getenv("OLLAMA_HOST", "http://localhost:11434")
 ollama_client = ollama.Client(host=OLLAMA_HOST)
-
-# Path to log errors
-ERROR_LOG_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "error_log")
-
-
-def log_embedding_error(errors: List[Dict[str, Any]]):
-    """
-    Log embedding errors to a JSON file.
-    Format: src/error_log/embedding.json_YYYYMMDD_HH.json
-    """
-    if not errors:
-        return
-
-    if not os.path.exists(ERROR_LOG_DIR):
-        os.makedirs(ERROR_LOG_DIR)
-
-    timestamp = datetime.now().strftime("%Y%m%d_%H")
-    log_file = os.path.join(ERROR_LOG_DIR, f"embedding.json_{timestamp}.json")
-
-    existing_data = []
-    if os.path.exists(log_file):
-        try:
-            with open(log_file, "r", encoding="utf-8") as f:
-                existing_data = json.load(f)
-        except Exception:
-            existing_data = []
-
-    existing_data.extend(errors)
-
-    with open(log_file, "w", encoding="utf-8") as f:
-        json.dump(existing_data, f, ensure_ascii=False, indent=2)
 
 
 async def get_embeddings_batch(
@@ -133,16 +101,11 @@ async def get_embeddings_batch(
                         "text_preview": t[:100],
                         "stage": "embedding_generation",
                     }
-                    log_embedding_error(
-                        [
-                            {
-                                "timestamp": datetime.now().isoformat(),
-                                "text": t,
-                                "error": str(e),
-                                "model": model,
-                                "index": start_idx,
-                            }
-                        ]
+                    LogManager.log_embedding(
+                        text=t,
+                        error=str(e),
+                        model=model,
+                        index=start_idx
                     )
 
     # Run loop until queue is empty
@@ -178,14 +141,9 @@ def get_embedding(text: str, model: str = "bge-m3") -> Dict[str, Any]:
             "error": f"Error generating embedding from {OLLAMA_HOST}: {str(e)}",
             "stage": "embedding_generation",
         }
-        log_embedding_error(
-            [
-                {
-                    "timestamp": datetime.now().isoformat(),
-                    "text": text,
-                    "error": str(e),
-                    "model": model,
-                }
-            ]
+        LogManager.log_embedding(
+            text=text,
+            error=str(e),
+            model=model
         )
         return error_info

@@ -40,3 +40,12 @@
 - **LogManager 核心實作**：建立 `src/log/logManager.py` 統一管理三類日誌（client/search/chat），採用 JSON 格式與按小時分檔機制（`log_{YYYYMMDD_HH}.json`），日誌主目錄 `LOG_BASE_DIR` 可透過 `config.py` 環境變數配置（預設 `data_logs`），子目錄（client/search/chat）寫死於系統架構。
 - **LLM 日誌遷移**：重構 `src/llm/client.py` 的 `_log_request()` 方法，移除手動日誌寫入邏輯，改為呼叫 `LogManager.log_client()`，簡化程式碼並確保日誌格式一致性。
 - **API 端點日誌整合**：在 `src/app.py` 的 `/api/search` 與 `/api/chat` endpoint 整合日誌記錄，收集請求 IP（`request.remote_addr`）、完整 Headers、請求參數與回應結果。對於 streaming response，實作累積機制確保完整記錄所有階段回應。所有日誌寫入失敗僅透過 `print_red` 發出警告，不影響主流程，確保系統可追溯性與穩定性。
+
+### 2026-01-05 用戶反饋系統 (User Feedback System)
+- **反饋日誌擴展**：擴充 `LogManager` 支援第四類日誌 `feedback`，新增 `log_feedback()` 方法記錄用戶對搜尋摘要的讚/倒讚反饋，日誌儲存至 `data_logs/feedback/` 並包含反饋類型、查詢內容、搜尋參數等完整上下文。
+- **後端 API 實作**：新增 `/api/feedback` POST 端點於 `src/app.py`，驗證 `feedback_type` 必須為 "positive" 或 "negative"，收集請求 IP 與 Headers，調用 `LogManager.log_feedback()` 完成日誌記錄後回傳成功狀態。
+- **前端互動整合**：為 `index.html` 摘要區塊的讚/倒讚按鈕添加唯一 ID（`feedbackThumbUp`/`feedbackThumbDown`），於 `render.js` 實作 `setupFeedbackButtons()` 綁定 click 事件，點擊後透過 `api.js` 的 `sendFeedback()` 發送反饋請求，並使用 `alert.js` 顯示「感謝您的反饋」提示訊息。按鈕可重複點擊且互不影響，每次點擊均記錄獨立日誌條目。前端採用模組化架構，於 `search.js` 主入口調用 `setupFeedbackButtons()` 完成初始化。
+
+### 2026-01-05 向量生成日誌整合 (Embedding Log Integration)
+- **LogManager 擴展**：新增第五類日誌 `embedding`，實作 `log_embedding()` 單筆記錄與 `log_embedding_batch()` 批次記錄方法，支援向量生成錯誤的完整上下文（text/error/model/index）。新增內部方法 `_write_log_batch()` 提供批次寫入能力，日誌儲存至 `data_logs/embedding/log_YYYYMMDD_HH.json`。
+- **向量工具重構**：移除 `src/database/vector_utils.py` 中的獨立日誌系統（`ERROR_LOG_DIR` 常數與 `log_embedding_error()` 函數），改用 `LogManager.log_embedding()` 統一管理。在 `get_embeddings_batch()` 與 `get_embedding()` 兩處錯誤處理邏輯中整合新日誌方法，確保向量生成失敗時自動記錄至統一日誌系統，提升系統可追溯性與維護性。
