@@ -23,6 +23,8 @@ from typing import Dict, Any
 from src.database.db_adapter_meili import MeiliAdapter
 from src.agents.srhSumAgent import SrhSumAgent
 from src.config import (
+    APP_VERSION,
+    DATE_RANGE_MIN,
     MEILISEARCH_HOST,
     MEILISEARCH_API_KEY,
     MEILISEARCH_INDEX,
@@ -84,6 +86,8 @@ def get_config():
     Returns:
         JSON response with config values
     """
+    from datetime import datetime
+
     announcements = []
     websites = []
 
@@ -104,8 +108,11 @@ def get_config():
     except Exception as e:
         print_red(f"Failed to load website.json: {e}")
 
+    date_range_max = datetime.now().strftime("%Y-%m")
+
     return jsonify(
         {
+            "version": APP_VERSION,
             "default_limit": DEFAULT_SEARCH_LIMIT,
             "max_limit": MAX_SEARCH_LIMIT,
             "default_similarity_threshold": SCORE_PASS_THRESHOLD,
@@ -118,6 +125,8 @@ def get_config():
             "sources": AVAILABLE_SOURCES,
             "max_search_input_length": MAX_SEARCH_INPUT_LENGTH,
             "max_chat_input_length": MAX_CHAT_INPUT_LENGTH,
+            "date_range_min": DATE_RANGE_MIN,
+            "date_range_max": date_range_max,
         }
     )
 

@@ -14,11 +14,14 @@ export const searchConfig = {
 };
 
 export const appConfig = {
+    version: "v0.0.1",
     sources: [],
     announcements: [],
     websites: [],
     maxSearchInputLength: 100,
-    maxChatInputLength: 500
+    maxChatInputLength: 500,
+    dateRangeMin: "2023-01",
+    dateRangeMax: null
 };
 
 /**
@@ -29,6 +32,13 @@ export async function loadBackendConfig() {
         const response = await fetch('/api/config');
         const config = await response.json();
         console.log('Backend Config:', config);
+
+        // Update Version
+        if (config.version !== undefined) {
+            appConfig.version = config.version;
+            const versionElement = document.getElementById('appVersion');
+            if (versionElement) versionElement.textContent = `版本 ${config.version}`;
+        }
 
         // Update Limit
         if (config.default_limit !== undefined) {
@@ -100,6 +110,26 @@ export async function loadBackendConfig() {
         }
         if (config.max_chat_input_length !== undefined) {
             appConfig.maxChatInputLength = config.max_chat_input_length;
+        }
+
+        // Update Date Range
+        if (config.date_range_min !== undefined) {
+            appConfig.dateRangeMin = config.date_range_min;
+        }
+        if (config.date_range_max !== undefined) {
+            appConfig.dateRangeMax = config.date_range_max;
+        }
+
+        // Apply Date Range to Input Elements
+        const startDateInput = document.getElementById('startDateInput');
+        const endDateInput = document.getElementById('endDateInput');
+        if (startDateInput) {
+            if (appConfig.dateRangeMin) startDateInput.min = appConfig.dateRangeMin;
+            if (appConfig.dateRangeMax) startDateInput.max = appConfig.dateRangeMax;
+        }
+        if (endDateInput) {
+            if (appConfig.dateRangeMin) endDateInput.min = appConfig.dateRangeMin;
+            if (appConfig.dateRangeMax) endDateInput.max = appConfig.dateRangeMax;
         }
 
         console.log('Final Config:', searchConfig);

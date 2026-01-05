@@ -104,6 +104,7 @@ export async function performSearch() {
 
     if (summaryContainer) {
         summaryContainer.classList.remove('hidden');
+        if (feedbackContainer) feedbackContainer.classList.add('hidden');
         summaryTitle.innerHTML = `<span class="material-icons-round animate-pulse mr-2 align-middle text-primary">manage_search</span>正在初始化搜尋...`;
 
         summaryContent.innerHTML = `

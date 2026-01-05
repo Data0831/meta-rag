@@ -3,6 +3,12 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+# Application Version
+APP_VERSION = "v0.0.1"
+
+# Date Range Configuration
+DATE_RANGE_MIN = "2023-01"
+
 # Base directories
 DATA_DIR = "data_update"
 DATABASE_DIR = "database"
