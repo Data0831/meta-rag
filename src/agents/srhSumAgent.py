@@ -7,6 +7,8 @@ from src.tool.ANSI import print_red
 from src.llm.prompts.check_retry_search import CHECK_RETRY_SEARCH_PROMPT
 from src.schema.schemas import RetrySearchDecision
 
+MAX_QUERY_LENGTH = 1000
+
 
 class SrhSumAgent:
     def __init__(self):
@@ -62,6 +64,17 @@ class SrhSumAgent:
         start_date: str = None,
         end_date: str = None,
     ):
+        
+        # 如果輸入超過限制，直接 yield 錯誤並結束
+        if len(query) > MAX_QUERY_LENGTH:
+            yield {
+                "status": "failed",
+                "stage": "initial_search",
+                "error": f"Input length exceeds limit of {MAX_QUERY_LENGTH} characters.",
+                "error_stage": "validation"
+            }
+            return
+
         from src.config import (
             SCORE_PASS_THRESHOLD,
             get_score_min_threshold,

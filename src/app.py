@@ -5,6 +5,7 @@ Web interface for the Microsoft RAG system using Meilisearch
 
 import sys
 from pathlib import Path
+MAX_CHAT_INPUT_LENGTH = 1000
 
 # Add project root to Python path
 project_root = Path(__file__).parent.parent
@@ -210,6 +211,13 @@ def chat_endpoint():
         if not data:
             return jsonify({"error": "Invalid JSON"}), 400
         user_message = data.get("message", "")
+        # --- [新增] 字數限制檢查 ---
+        if len(user_message) > MAX_CHAT_INPUT_LENGTH:
+            print(f"Refused: Input length {len(user_message)} exceeds limit.")
+            return jsonify({
+                "error": f"Input length exceeds limit of {MAX_CHAT_INPUT_LENGTH} characters."
+            }), 400
+
         # 接收前端傳來的 Context (搜尋結果)
         provided_context = data.get("context", [])
         # 接收前端傳來的 History (對話紀錄)

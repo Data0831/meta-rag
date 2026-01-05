@@ -11,6 +11,25 @@ export function convertCitationsToLinks(text, linkMapping) {
 }
 
 export function renderStructuredSummary(summary, linkMapping) {
+    // --- [新增] 檢查是否為錯誤狀態 ---
+    if (summary && summary.status === "failed") {
+        let errorMsg = "處理請求時發生錯誤。";
+        // 判斷是否為字數過長的特定錯誤
+        if (summary.error && summary.error.includes("Input length exceeds")) {
+            errorMsg = "輸入的字數過多，請精簡您的問題後再試一次。";
+        } else {
+            errorMsg = `錯誤: ${summary.error || "未知錯誤"}`;
+        }
+        
+        // 回傳紅色的錯誤提示 HTML
+        return `
+            <div class="mb-6 p-4 border border-red-200 bg-red-50 rounded-lg dark:bg-red-900/20 dark:border-red-800">
+                <h4 class="font-bold text-red-600 dark:text-red-400 mb-2">無法執行搜索</h4>
+                <p class="text-red-600 dark:text-red-300 text-sm">${errorMsg}</p>
+            </div>
+        `;
+    }
+
     if (typeof summary === 'string') {
         return marked.parse(summary);
     }

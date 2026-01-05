@@ -21,6 +21,11 @@ export function setupChatbot() {
         inputArea.insertBefore(suggestionsContainer, inputArea.firstChild);
     }
 
+    // --- [新增] 直接在 JS 設定輸入框最大長度，防止使用者輸入過多 ---
+    if (chatInput) {
+        chatInput.setAttribute('maxlength', '1000');
+    }
+
     let isOpen = false;
     let chatHistory = [];
 
@@ -168,7 +173,12 @@ export function setupChatbot() {
             removeMessage(loadingId);
 
             if (data.error) {
-                appendMessage('bot', '系統錯誤：' + data.error);
+                // --- [修改] 針對字數過長顯示友善訊息 ---
+                if (data.error.includes("Input length exceeds")) {
+                    appendMessage('bot', '**輸入的字數過多**，請精簡您的問題後再試一次。');
+                } else {
+                    appendMessage('bot', '系統錯誤：' + data.error);
+                }
             } else {
                 appendMessage('bot', data.answer);
 
