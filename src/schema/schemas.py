@@ -63,6 +63,10 @@ class SearchIntent(BaseModel):
         le=1.0,
         description="Recommended weight for semantic search (0.0=pure keyword, 1.0=pure semantic, 0.5=balanced)",
     )
+    websites: List[str] = Field(
+        default_factory=list,
+        description="List of websites to filter by e.g. ['azure_update', 'partner_center']",
+    )
     sub_queries: List[str] = Field(
         default_factory=list,
         description="List of 3-5 sub-queries (natural language) to broaden the search scope. Each should focus on a different aspect (e.g. specific product, specific issue type, broad intent).",

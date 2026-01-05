@@ -49,14 +49,20 @@ export async function performSearchStream(query, selectedWebsites = []) {
         const errorText = await response.text();
         console.error('Error Body:', errorText);
 
-        let errorMessage;
         try {
-            const error = JSON.parse(errorText);
-            errorMessage = error.error || `HTTP error! status: ${response.status}`;
-        } catch {
-            errorMessage = errorText || `HTTP error! status: ${response.status}`;
+            const errorData = JSON.parse(errorText);
+            if (errorData.status === "failed" && errorData.error_stage) {
+                const error = new Error(errorData.error || `HTTP error! status: ${response.status}`);
+                error.errorData = errorData;
+                throw error;
+            }
+            throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+        } catch (parseError) {
+            if (parseError.errorData) {
+                throw parseError;
+            }
+            throw new Error(errorText || `HTTP error! status: ${response.status}`);
         }
-        throw new Error(errorMessage);
     }
 
     return response;

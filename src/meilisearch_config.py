@@ -42,6 +42,7 @@ SEARCHABLE_ATTRIBUTES = [
     "cleaned_content",  # Use cleaned content (URLs removed) for better search quality
     "content",  # Original content as fallback
     "main_title",  # Lowest priority
+    # "website"
 ]
 
 # Embedding Configuration

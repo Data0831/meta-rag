@@ -14,6 +14,45 @@ export function setupEventListeners(performSearchCallback) {
     });
 }
 
+function error_display(error_stage, error) {
+    let errorTitle = "搜尋失敗";
+
+    switch (error_stage) {
+        case "input_validation":
+            errorTitle = "輸入驗證失敗";
+            break;
+        case "meilisearch":
+            errorTitle = "資料庫連線失敗";
+            break;
+        case "embedding":
+            errorTitle = "向量服務失敗";
+            break;
+        case "llm":
+            errorTitle = "語言模型服務失敗";
+            break;
+        case "intent_parsing":
+            errorTitle = "意圖解析失敗";
+            break;
+        case "initial_search":
+            errorTitle = "初始搜尋失敗";
+            break;
+        case "summarizing":
+            errorTitle = "摘要生成失敗";
+            break;
+        default:
+            errorTitle = "搜尋過程發生錯誤";
+    }
+
+    const title = `<span class="material-icons-round mr-2 align-middle text-red-500">error</span>${errorTitle}`;
+    const content = `
+        <div class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
+            <div class="text-red-800 dark:text-red-200 font-mono text-sm whitespace-pre-wrap break-words">${error || "Unknown error"}</div>
+        </div>
+    `;
+
+    return { title, content };
+}
+
 export async function performSearch() {
     const query = DOM.searchInput.value.trim();
 
@@ -33,6 +72,7 @@ export async function performSearch() {
     const summaryContent = document.getElementById('summaryContent');
     const summaryTitle = document.getElementById('summaryTitle');
     const searchTimeValue = document.getElementById('searchTimeValue');
+    const feedbackContainer = document.getElementById('feedbackContainer');
 
     if (summaryContainer) {
         summaryContainer.classList.remove('hidden');
@@ -77,39 +117,15 @@ export async function performSearch() {
                     console.log('Agent Stream:', data.status, data);
 
                     if (data.status === "failed") {
-                        let errorTitle = "搜尋失敗";
                         const errorStage = data.error_stage || data.stage || "unknown";
-
-                        switch (errorStage) {
-                            case "meilisearch":
-                                errorTitle = "資料庫連線失敗";
-                                break;
-                            case "embedding":
-                                errorTitle = "向量服務失敗";
-                                break;
-                            case "llm":
-                                errorTitle = "語言模型服務失敗";
-                                break;
-                            case "intent_parsing":
-                                errorTitle = "意圖解析失敗";
-                                break;
-                            case "initial_search":
-                                errorTitle = "初始搜尋失敗";
-                                break;
-                            case "summarizing":
-                                errorTitle = "摘要生成失敗";
-                                break;
-                            default:
-                                errorTitle = "搜尋過程發生錯誤";
-                        }
+                        const { title, content } = error_display(errorStage, data.error);
 
                         if (summaryContainer) {
-                            summaryTitle.innerHTML = `<span class="material-icons-round mr-2 align-middle text-red-500">error</span>${errorTitle}`;
-                            summaryContent.innerHTML = `
-                                <div class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
-                                    <div class="text-red-800 dark:text-red-200 font-mono text-sm whitespace-pre-wrap break-words">${data.error || "Unknown error"}</div>
-                                </div>
-                            `;
+                            summaryTitle.innerHTML = title;
+                            summaryContent.innerHTML = content;
+                        }
+                        if (feedbackContainer) {
+                            feedbackContainer.classList.add('hidden');
                         }
                         return;
                     }
@@ -146,6 +162,10 @@ export async function performSearch() {
                             summaryContent.innerHTML = "<p>無相關總結。</p>";
                         }
 
+                        if (feedbackContainer) {
+                            feedbackContainer.classList.remove('hidden');
+                        }
+
                         if (data.results && data.results.length > 0) {
                             const renderData = {
                                 results: data.results,
@@ -153,6 +173,10 @@ export async function performSearch() {
                             };
 
                             renderResults(renderData, totalDuration, query);
+
+                            if (window.updateChatHeader) {
+                                window.updateChatHeader();
+                            }
                         } else {
                             if (DOM.resultsContainer) DOM.resultsContainer.classList.add('hidden');
                             if (!data.summary) {
@@ -172,7 +196,21 @@ export async function performSearch() {
 
     } catch (error) {
         console.error('Search failed:', error);
-        showError(error.message);
-        if (summaryContainer) summaryContainer.classList.add('hidden');
+
+        if (error.errorData && error.errorData.error_stage) {
+            const { title, content } = error_display(error.errorData.error_stage, error.errorData.error);
+            if (summaryContainer) {
+                summaryContainer.classList.remove('hidden');
+                summaryTitle.innerHTML = title;
+                summaryContent.innerHTML = content;
+            }
+        } else {
+            showError(error.message);
+            if (summaryContainer) summaryContainer.classList.add('hidden');
+        }
+
+        if (feedbackContainer) {
+            feedbackContainer.classList.add('hidden');
+        }
     }
 }

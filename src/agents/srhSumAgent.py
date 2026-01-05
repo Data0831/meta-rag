@@ -62,6 +62,7 @@ class SrhSumAgent:
         start_date: str = None,
         end_date: str = None,
     ):
+
         from src.config import (
             SCORE_PASS_THRESHOLD,
             get_score_min_threshold,

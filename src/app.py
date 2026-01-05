@@ -1,8 +1,3 @@
-"""
-Flask Application Entry Point
-Web interface for the Microsoft RAG system using Meilisearch
-"""
-
 import sys
 from pathlib import Path
 
@@ -38,6 +33,8 @@ from src.config import (
     ENABLE_LLM,
     MANUAL_SEMANTIC_RATIO,
     ENABLE_KEYWORD_WEIGHT_RERANK,
+    MAX_SEARCH_INPUT_LENGTH,
+    MAX_CHAT_INPUT_LENGTH,
 )
 from src.tool.ANSI import print_red
 from src.services.rag_service import RAGService
@@ -115,6 +112,20 @@ def chat_endpoint():
         if not data:
             return jsonify({"error": "Invalid JSON"}), 400
         user_message = data.get("message", "")
+        # --- [新增] 字數限制檢查 ---
+        if len(user_message) > MAX_CHAT_INPUT_LENGTH:
+            print(f"Refused: Input length {len(user_message)} exceeds limit.")
+            return (
+                jsonify(
+                    {
+                        "status": "failed",
+                        "error_stage": "input_validation",
+                        "error": f"Input length exceeds limit of {MAX_CHAT_INPUT_LENGTH} characters.",
+                    }
+                ),
+                400,
+            )
+
         # 接收前端傳來的 Context (搜尋結果)
         provided_context = data.get("context", [])
         # 接收前端傳來的 History (對話紀錄)
@@ -140,7 +151,7 @@ def chat_endpoint():
             ip=client_ip,
             headers=request_headers,
             request_data=request_data,
-            response_data=response
+            response_data=response,
         )
 
         print("Chat response generated")
@@ -179,6 +190,20 @@ def search_endpoint():
 
         if not query:
             return jsonify({"error": "Query is required"}), 400
+
+        if len(query) > MAX_SEARCH_INPUT_LENGTH:
+            print(f"Refused: Query length {len(query)} exceeds limit.")
+            return (
+                jsonify(
+                    {
+                        "status": "failed",
+                        "error_stage": "input_validation",
+                        "error": f"Input length exceeds limit of {MAX_SEARCH_INPUT_LENGTH} characters.",
+                    }
+                ),
+                400,
+            )
+
         print(f"  Query: {query}")
         print(f"  Limit: {limit}")
         print(f"  Semantic Ratio: {semantic_ratio}")
@@ -236,7 +261,7 @@ def search_endpoint():
                 ip=client_ip,
                 headers=request_headers,
                 request_data=request_data,
-                response_data=response_steps
+                response_data=response_steps,
             )
 
         return Response(
@@ -310,9 +335,7 @@ def feedback_endpoint():
         request_headers = dict(request.headers)
 
         LogManager.log_feedback(
-            ip=client_ip,
-            headers=request_headers,
-            feedback_data=data
+            ip=client_ip, headers=request_headers, feedback_data=data
         )
 
         print(f"  Feedback Type: {feedback_type}")
@@ -325,6 +348,7 @@ def feedback_endpoint():
     except Exception as e:
         print_red(f"Feedback Endpoint Error: {e}")
         import traceback
+
         traceback.print_exc()
         return jsonify({"error": str(e)}), 500
 
@@ -359,4 +383,5 @@ if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     print(f"Server will run on: http://0.0.0.0:{port}")
     print("=" * 60)
-    app.run(threaded=True, debug=True, host="0.0.0.0", port=port)
+
+    app.run(debug=True, host="0.0.0.0", port=5001)

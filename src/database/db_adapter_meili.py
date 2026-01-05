@@ -185,6 +185,7 @@ def build_meili_filter(intent) -> Optional[str]:
     if hasattr(intent, "websites") and intent.websites:
         websites_str = ", ".join([f"'{w}'" for w in intent.websites])
         conditions.append(f"website IN [{websites_str}]")
+
     return " AND ".join(conditions) if conditions else None
 
 

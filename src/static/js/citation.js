@@ -11,6 +11,7 @@ export function convertCitationsToLinks(text, linkMapping) {
 }
 
 export function renderStructuredSummary(summary, linkMapping) {
+
     if (typeof summary === 'string') {
         return marked.parse(summary);
     }

@@ -290,9 +290,7 @@ class SearchService:
         )
 
         if reranked_results and "_rerank_score" in reranked_results[0]:
-            reranked_results.sort(
-                key=lambda x: x.get("_rerank_score", 0), reverse=True
-            )
+            reranked_results.sort(key=lambda x: x.get("_rerank_score", 0), reverse=True)
 
         merged_results = self._merge_duplicate_links(reranked_results)
         return merged_results[:limit]
@@ -309,9 +307,7 @@ class SearchService:
         response = {
             "status": "success",
             "intent": (
-                intent.model_dump()
-                if hasattr(intent, "model_dump")
-                else intent.dict()
+                intent.model_dump() if hasattr(intent, "model_dump") else intent.dict()
             ),
             "meili_filter": meili_filter,
             "results": results,
