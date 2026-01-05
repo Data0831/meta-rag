@@ -1,8 +1,25 @@
 import json
 import os
 from datetime import datetime
+import sys
 
-# 設定輸出目錄
+current_dir = os.path.dirname(os.path.abspath(__file__))
+# 取得專案根目錄 (假設 rag_sync.py 在 core/ 或 src/ 下，往上一層找)
+# 如果 rag_sync.py 就在根目錄，這行也不會報錯，依然安全
+project_root = os.path.abspath(os.path.join(current_dir, ".."))
+
+if project_root not in sys.path:
+    sys.path.append(project_root)
+try:
+    from parser import DataParser
+    from vectorPreprocessing import VectorPreProcessor
+    # 這裡請確認您的 config 位置是否正確
+    from src.database.vector_config import RTX_4050_6G 
+except ImportError:
+    print("⚠️ 模組引用失敗，將只執行存檔，跳過清洗與資料庫同步。")
+    DataParser = None
+    VectorPreProcessor = None
+
 SYNC_OUTPUT_DIR = "sync_output"
 
 def notify_rag_system(diff_reports: list):
@@ -24,6 +41,7 @@ def notify_rag_system(diff_reports: list):
     print("\n" + "="*60)
     print("🚀 [File Generator] 準備生成向量資料庫同步檔案...")
 
+    parser = DataParser([], "") if DataParser else None
     # 2. 彙整所有來源的資料 (Aggregation)
     all_additions = []
     all_deletion_ids = []
@@ -36,7 +54,10 @@ def notify_rag_system(diff_reports: list):
         # 收集新增的 Chunk (完整的物件)
         if to_add:
             print(f"   📂 [{source_name}] 收集新增: {len(to_add)} 筆")
-            all_additions.extend(to_add)
+            for chunk in to_add:
+                if parser:
+                    chunk = parser.process_item(chunk)
+                all_additions.append(chunk)
             
         # 收集刪除的 ID (只留 ID 字串)
         if to_delete:
@@ -47,7 +68,8 @@ def notify_rag_system(diff_reports: list):
 
     # 3. 產生檔案 (Generate Files)
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    
+    upsert_filename = None
+    delete_filename = None
     # --- 檔案 A: 新增/更新清單 (Upsert List) ---
     if all_additions:
         upsert_filename = os.path.join(SYNC_OUTPUT_DIR, f"upsert_{timestamp}.json")
@@ -66,5 +88,23 @@ def notify_rag_system(diff_reports: list):
         print(f"   ✅ [產出] 刪除清單已建立: {delete_filename} (共 {len(all_deletion_ids)} 筆)")
     else:
         print("   💤 本次無刪除資料。")
+
+    if VectorPreProcessor and (upsert_filename or delete_filename):
+        print("\n⚡ [Auto Sync] 呼叫向量處理器...")
+        try:
+            # 這裡使用 RTX_4050_6G，請依實際硬體調整
+            processor = VectorPreProcessor(
+                index_name="announcements", 
+                **RTX_4050_6G 
+            )
+            processor.run_dynamic_sync(
+                upsert_path=upsert_filename,
+                delete_path=delete_filename
+            )
+            print("✨ [Auto Sync] 資料庫同步完成！")
+        except Exception as e:
+            print(f"❌ [Auto Sync Error] 同步失敗: {e}")
+            import traceback
+            traceback.print_exc()
 
     print("="*60 + "\n")

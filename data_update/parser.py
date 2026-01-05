@@ -65,24 +65,6 @@ class DataParser:
 
         return text
 
-    def _get_website_tag(self, filename: str) -> str:
-        """
-        Determine the website tag based on the filename.
-        """
-        if "partner_center" in filename:
-            return "partner_center"
-        if "m365_roadmap" in filename:
-            return "m365_roadmap"
-        if "windows_message_center" in filename:
-            return "windows_message_center"
-        if "powerbi_blog" in filename:
-            return "powerbi_blog"
-        if "azure_update" in filename:
-            return "azure_update"
-        if "msrc_blog" in filename:
-            return "msrc_blog"
-        return "general"
-
     def process_files(self):
         """
         Process the files defined in self.files_to_process.
@@ -110,8 +92,6 @@ class DataParser:
                 logger.warning(f"Data in {filename} is not a list. Skipping.")
                 continue
 
-            # 根據檔名決定 website tag
-            current_website_tag = self._get_website_tag(filename)
 
             for item in data:
                 # Helper to check required fields
@@ -139,7 +119,6 @@ class DataParser:
                 item["year"] = year
                 item["content"] = raw_content
                 item["cleaned_content"] = cleaned_content
-                item["website"] = current_website_tag
 
                 aggregated_data.append(item)
 
@@ -152,6 +131,28 @@ class DataParser:
             )
         except Exception as e:
             logger.error(f"Error saving output file: {e}")
+    
+    def process_item(self, item: Dict[str, Any]) -> Dict[str, Any]:
+        """供外部呼叫：清洗單筆資料並補齊欄位"""
+        raw_content = item.get("content", "")
+        
+        # 1. 截斷
+        if len(raw_content) > 3000:
+            raw_content = raw_content[:3000]
+
+        # 2. 清洗 (呼叫既有的 clean_content)
+        cleaned_content = self.clean_content(raw_content)
+
+        # 3. 處理年份
+        year_month = item.get("year_month", "")
+        year = year_month.split("-")[0] if "-" in year_month else year_month[:4]
+
+        # 更新欄位
+        item["year"] = year
+        item["content"] = raw_content
+        item["cleaned_content"] = cleaned_content
+        
+        return item
 
 
 if __name__ == "__main__":
