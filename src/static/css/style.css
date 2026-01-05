@@ -362,5 +362,62 @@ table {
 }
 
 html {
-  scrollbar-gutter: stable;
+    scrollbar-gutter: stable;
+}
+
+body {
+    font-family: 'Noto Sans TC', sans-serif;
+}
+
+::-webkit-scrollbar {
+    width: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #cbd5e0;
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #a0aec0;
+}
+
+.range-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: #7facb6;
+    cursor: pointer;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.dark .range-slider::-webkit-slider-thumb {
+    border-color: #2d3748;
+}
+
+.dimmed-result {
+    opacity: 0.4;
+    filter: grayscale(100%);
+    transition: all 0.3s ease;
+}
+
+.modal-enter {
+    opacity: 0;
+    transform: scale(0.95);
+}
+
+.modal-enter-active {
+    opacity: 1;
+    transform: scale(1);
+    transition: opacity 300ms, transform 300ms;
+}
+
+.lock-scroll {
+    overflow: hidden !important;
 }

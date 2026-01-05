@@ -384,4 +384,4 @@ if __name__ == "__main__":
     print(f"Server will run on: http://0.0.0.0:{port}")
     print("=" * 60)
 
-    app.run(debug=True, host="0.0.0.0", port=5001)
+    app.run(debug=True, host="0.0.0.0", port=5000)

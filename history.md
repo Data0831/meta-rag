@@ -55,3 +55,6 @@
 - **統一錯誤格式**：修改 `src/app.py` 的 `/api/chat` 與 `/api/search` 端點字數限制錯誤返回，統一為 `{status: "failed", error_stage: "input_validation", error: "..."}`，並於前端 `error_display()` 新增 `input_validation` 類型映射為「輸入驗證失敗」，確保後端錯誤與前端顯示格式一致。
 - **HTTP 錯誤處理升級**：重構 `src/static/js/api.js` 的 `performSearchStream()` 錯誤捕獲邏輯，解析 HTTP 400 錯誤的 JSON 內容，將完整錯誤資訊附加至 `Error.errorData`，使 `search-logic.js` 能透過 `error_display()` 統一處理流式錯誤與 HTTP 錯誤，提升錯誤顯示一致性。
 - **反饋按鈕條件顯示**：為 `src/templates/index.html` 的反饋容器添加 `feedbackContainer` ID，於 `search-logic.js` 實作條件控制邏輯：搜尋成功完成（`stage: "complete"`）時顯示，任何錯誤發生時（流式錯誤或 catch 錯誤）隱藏，確保用戶僅能對成功的搜尋結果提供反饋，避免對錯誤狀態誤操作。
+
+### 2026-01-05 引用格式強制規範 (Citation Format Enforcement)
+- **多重中括號標準化**：修正 LLM 摘要偶爾出現全形引用的問題。在 Prompt 中明確禁止全形中括號 `【】`，並在後端 `LLMClient` 解析 JSON 前與前端 `citation.js` 渲染前，同步實作 `replace()` 強制將所有全形標記轉換為標準半形 `[]`。這確保了引用超連結系統的穩定性與視覺一致性，徹底解決標籤解析失敗的問題。

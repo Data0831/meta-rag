@@ -103,7 +103,7 @@ class StructuredSummary(BaseModel):
     )
     detailed_answer: str = Field(
         default="",
-        description="Detailed answer with citations using [index]. Empty if no results. If results are irrelevant, explain what the content is about and why it doesn't answer the question.",
+        description="Detailed answer with citations using [index] (only use half-width square brackets, NO full-width brackets like 【1】). Empty if no results. If results are irrelevant, explain what the content is about and why it doesn't answer the question.",
     )
     general_summary: str = Field(
         default="",

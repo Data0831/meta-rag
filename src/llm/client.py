@@ -73,7 +73,7 @@ class LLMClient:
             response_content=response_content,
             temperature=temperature,
             response_format=response_format,
-            model=model or self.model
+            model=model or self.model,
         )
 
     def call_gemini(
@@ -142,15 +142,14 @@ class LLMClient:
                 if clean_text.endswith("```"):
                     clean_text = clean_text[:-3]
                 clean_text = clean_text.strip()
+                # Normalize full-width brackets to half-width to ensure citations are correctly formatted
+                clean_text = clean_text.replace("【", "[").replace("】", "]")
 
                 data = json.loads(clean_text)
                 validated = response_model.model_validate(data)
 
                 print(f"✓ Schema 驗證成功 ({schema_name})")
-                return {
-                    "status": "success",
-                    "result": validated
-                }
+                return {"status": "success", "result": validated}
 
             except json.JSONDecodeError as e:
                 print_red(f"JSON 解析錯誤 (attempt {attempt + 1}): {e}")
@@ -167,7 +166,7 @@ class LLMClient:
         return {
             "status": "failed",
             "error": f"LLM schema validation failed after {max_retries + 1} attempts",
-            "stage": "llm_schema_validation"
+            "stage": "llm_schema_validation",
         }
 
 

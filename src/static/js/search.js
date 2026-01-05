@@ -3,6 +3,8 @@ import { toggleResult, toggleIntentDetails, setupFeedbackButtons } from './rende
 import { setupSearchConfig } from './search-config.js';
 import { setupEventListeners, performSearch } from './search-logic.js';
 import { setupChatbot } from './chatbot.js';
+import { setupSidebar, setupChatbotToggle } from './sidebar.js';
+import { setupAnnouncement } from './announcement.js';
 
 document.addEventListener('DOMContentLoaded', () => {
     console.log('Collection Search initialized');
@@ -13,6 +15,12 @@ document.addEventListener('DOMContentLoaded', () => {
     setupSearchConfig();
     setupChatbot();
     setupFeedbackButtons();
+    setupSidebar();
+    setupChatbotToggle();
+});
+
+window.addEventListener('load', () => {
+    setupAnnouncement();
 });
 
 window.toggleResult = toggleResult;

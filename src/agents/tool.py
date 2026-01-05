@@ -89,9 +89,15 @@ class SearchTool:
             return {
                 "status": "success",
                 "summary": {
-                    "brief_answer": validated_result.brief_answer,
-                    "detailed_answer": validated_result.detailed_answer,
-                    "general_summary": validated_result.general_summary,
+                    "brief_answer": validated_result.brief_answer.replace(
+                        "【", "["
+                    ).replace("】", "]"),
+                    "detailed_answer": validated_result.detailed_answer.replace(
+                        "【", "["
+                    ).replace("】", "]"),
+                    "general_summary": validated_result.general_summary.replace(
+                        "【", "["
+                    ).replace("】", "]"),
                 },
                 "link_mapping": link_mapping,
             }

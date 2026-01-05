@@ -1,7 +1,10 @@
 export function convertCitationsToLinks(text, linkMapping) {
     if (!text || !linkMapping) return text;
 
-    return text.replace(/\[(\d+)\]/g, (match, num) => {
+    // Normalize full-width brackets to half-width
+    const normalizedText = text.replace(/【/g, '[').replace(/】/g, ']');
+
+    return normalizedText.replace(/\[(\d+)\]/g, (match, num) => {
         const link = linkMapping[num];
         if (link) {
             return `<a href="${link}" target="_blank" class="citation-link" style="color: #3b82f6; text-decoration: none; font-weight: 600; vertical-align: super; font-size: 0.85em;">${match}</a>`;

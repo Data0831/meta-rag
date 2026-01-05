@@ -41,5 +41,5 @@ User Query: {query}
 ### 語言與格式:
 - 全程使用繁體中文
 - 詳答和總結可使用 Markdown 格式
-- 引用格式：[index] 其中 index 對應 <search_results> 中的 Document index
+- 引用格式：[index] 其中 index 對應 <search_results> 中的 Document index。注意：只能使用半形中括號（例如：[1]），禁止使用全形中括號（例如：【1】）。
 """
