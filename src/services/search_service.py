@@ -96,6 +96,230 @@ class SearchService:
                 "stage": "intent_parsing",
             }
 
+    def _validate_and_init_services(
+        self, semantic_ratio: float, manual_semantic_ratio: bool, enable_llm: bool
+    ) -> None:
+        if err := self._init_meilisearch():
+            raise RuntimeError(f"Meilisearch: {err}")
+
+        if semantic_ratio > 0 or not manual_semantic_ratio:
+            if err := self._check_embedding_service():
+                raise RuntimeError(f"Embedding: {err}")
+
+        if enable_llm:
+            if err := self._init_llm():
+                raise RuntimeError(f"LLM: {err}")
+
+    def _parse_search_intent(
+        self,
+        user_query: str,
+        enable_llm: bool,
+        fall_back: bool,
+        history: List[str],
+        direction: str,
+        traces: List[str],
+    ) -> tuple[SearchIntent, Optional[str]]:
+        llm_error = None
+        intent = None
+
+        if enable_llm:
+            intent_result = self.parse_intent(
+                user_query, history=history, direction=direction
+            )
+            if intent_result.get("status") == "failed":
+                llm_error = intent_result.get("error")
+                print_red(f"LLM Intent parsing failed: {llm_error}")
+                if not fall_back:
+                    raise RuntimeError(llm_error)
+            else:
+                intent = intent_result.get("result")
+                if not intent.keyword_query or not intent.keyword_query.strip():
+                    intent.keyword_query = user_query
+                    traces.append(
+                        "Warning: LLM returned empty keyword_query, fallback to origin user_query"
+                    )
+                if not intent.semantic_query or not intent.semantic_query.strip():
+                    intent.semantic_query = user_query
+                    traces.append(
+                        "Warning: LLM returned empty semantic_query, fallback to origin user_query"
+                    )
+
+        if not intent:
+            intent = SearchIntent(
+                keyword_query=user_query, semantic_query=user_query, sub_queries=[]
+            )
+
+        return intent, llm_error
+
+    def _build_query_candidates(
+        self, intent: SearchIntent, traces: List[str]
+    ) -> List[str]:
+        query_candidates = []
+
+        query_candidates.append(intent.keyword_query)
+        traces.append(f"Primary Query: {intent.keyword_query}")
+
+        if intent.sub_queries:
+            for sq in intent.sub_queries:
+                if sq and sq not in query_candidates:
+                    query_candidates.append(sq)
+                    traces.append(f"Sub-Query: {sq}")
+
+        return query_candidates
+
+    def _build_filter_expression(
+        self,
+        intent: SearchIntent,
+        start_date: Optional[str],
+        end_date: Optional[str],
+        exclude_ids: List[str],
+        traces: List[str],
+    ) -> Optional[str]:
+        meili_filter = build_meili_filter(intent)
+
+        ai_has_date_constraint = intent.year_month and len(intent.year_month) > 0
+
+        if ai_has_date_constraint:
+            print(
+                f"  [優先權判定] AI 已指定日期 {intent.year_month}，忽略手動日期篩選。"
+            )
+        else:
+            date_filters = []
+
+            if start_date:
+                ym_start = start_date[:7]
+                date_filters.append(f'year_month >= "{ym_start}"')
+
+            if end_date:
+                ym_end = end_date[:7]
+                date_filters.append(f'year_month <= "{ym_end}"')
+
+            if date_filters:
+                manual_date_filter = " AND ".join(date_filters)
+                print(f"  [手動過濾] 年月範圍: {manual_date_filter}")
+
+                if meili_filter:
+                    meili_filter = f"({meili_filter}) AND ({manual_date_filter})"
+                else:
+                    meili_filter = manual_date_filter
+
+        if exclude_ids:
+            exclude_filter_safe = (
+                f"id NOT IN [{', '.join([f'\"{eid}\"' for eid in exclude_ids])}]"
+            )
+
+            if meili_filter:
+                meili_filter = f"({meili_filter}) AND ({exclude_filter_safe})"
+            else:
+                meili_filter = exclude_filter_safe
+            traces.append(f"Applied ID exclusion filter for {len(exclude_ids)} items.")
+
+        return meili_filter
+
+    def _build_single_query_params(
+        self,
+        query_text: str,
+        intent: SearchIntent,
+        semantic_ratio: float,
+        meili_filter: Optional[str],
+    ) -> Dict[str, Any]:
+        final_kw_query = query_text
+        vector = None
+
+        if semantic_ratio > 0:
+            text_for_embedding = query_text
+            if query_text == intent.keyword_query and intent.semantic_query:
+                text_for_embedding = intent.semantic_query
+
+            embedding_result = vector_utils.get_embedding(text_for_embedding)
+            if embedding_result.get("status") == "success":
+                vector = embedding_result.get("result")
+            else:
+                print_red(
+                    f"Embedding failed for '{query_text}': {embedding_result.get('error')}"
+                )
+
+        search_params = {
+            "indexUid": MEILISEARCH_INDEX,
+            "q": final_kw_query,
+            "limit": PRE_SEARCH_LIMIT,
+            "attributesToRetrieve": ["*"],
+            "showRankingScore": True,
+            "showRankingScoreDetails": True,
+        }
+
+        if meili_filter:
+            search_params["filter"] = meili_filter
+
+        if vector:
+            search_params["hybrid"] = {
+                "semanticRatio": semantic_ratio,
+                "embedder": "default",
+            }
+            search_params["vector"] = vector
+
+        return search_params
+
+    def _deduplicate_hits(self, raw_hits_batch: List[Dict]) -> List[Dict[str, Any]]:
+        all_hits = []
+        seen_ids = set()
+
+        for result_set in raw_hits_batch:
+            hits = result_set.get("hits", [])
+            for hit in hits:
+                doc_id = hit.get("id")
+                if doc_id and doc_id not in seen_ids:
+                    seen_ids.add(doc_id)
+                    all_hits.append(hit)
+
+        return all_hits
+
+    def _rerank_and_merge_results(
+        self,
+        all_hits: List[Dict[str, Any]],
+        intent: SearchIntent,
+        limit: int,
+        enable_keyword_weight_rerank: bool,
+    ) -> List[Dict[str, Any]]:
+        pre_merge_limit = round(limit * 2.5)
+
+        reranker = ResultReranker(all_hits, intent.must_have_keywords)
+        reranked_results = reranker.rerank(
+            top_k=pre_merge_limit,
+            enable_keyword_weight_rerank=enable_keyword_weight_rerank,
+        )
+
+        if reranked_results and "_rerank_score" in reranked_results[0]:
+            reranked_results.sort(key=lambda x: x.get("_rerank_score", 0), reverse=True)
+
+        merged_results = self._merge_duplicate_links(reranked_results)
+        return merged_results[:limit]
+
+    def _build_response(
+        self,
+        intent: SearchIntent,
+        results: List[Dict[str, Any]],
+        semantic_ratio: float,
+        meili_filter: Optional[str],
+        traces: List[str],
+        llm_error: Optional[str],
+    ) -> Dict[str, Any]:
+        response = {
+            "status": "success",
+            "intent": (
+                intent.model_dump() if hasattr(intent, "model_dump") else intent.dict()
+            ),
+            "meili_filter": meili_filter,
+            "results": results,
+            "final_semantic_ratio": semantic_ratio,
+            "mode": "semantic" if semantic_ratio > 0 else "keyword",
+            "traces": traces,
+        }
+        if llm_error:
+            response["llm_warning"] = llm_error
+
+        return response
+
     def _merge_duplicate_links(
         self, results: List[Dict[str, Any]]
     ) -> List[Dict[str, Any]]:
@@ -128,7 +352,6 @@ class SearchService:
         semantic_ratio: float = DEFAULT_SEMANTIC_RATIO,
         enable_llm: bool = True,
         manual_semantic_ratio: bool = False,
-        website_filters: Optional[List[str]] = None,  # 新增：接收 UI 傳來的網站列表
         enable_keyword_weight_rerank: bool = True,
         fall_back: bool = False,
         exclude_ids: List[str] = None,
@@ -139,227 +362,53 @@ class SearchService:
     ) -> Dict[str, Any]:
 
         limit = min(limit, MAX_SEARCH_LIMIT)
+        traces = []
 
-        # --- Stage 1: Check Meilisearch Connection ---
-        if err := self._init_meilisearch():
-            return {"error": err, "status": "failed", "stage": "meilisearch"}
-
-        # --- Stage 2: Check Embedding Service ---
-        if semantic_ratio > 0 or not manual_semantic_ratio:
-            if err := self._check_embedding_service():
-                return {"error": err, "status": "failed", "stage": "embedding"}
-
-        # --- Stage 3: Check/Init LLM Service ---
-        if enable_llm:
-            if err := self._init_llm():
-                return {"error": err, "status": "failed", "stage": "llm"}
-
-        # --- Stage 4: Execution (Run) ---
         try:
-            intent = None
-            llm_error = None
-            traces = []
+            self._validate_and_init_services(
+                semantic_ratio, manual_semantic_ratio, enable_llm
+            )
 
-            if enable_llm:
-                intent_result = self.parse_intent(
-                    user_query, history=history, direction=direction
-                )
-                if intent_result.get("status") == "failed":
-                    llm_error = intent_result.get("error")
-                    print_red(f"LLM Intent parsing failed: {llm_error}")
-                    if not fall_back:
-                        return intent_result
-                else:
-                    intent = intent_result.get("result")
-                    if not intent.keyword_query or not intent.keyword_query.strip():
-                        intent.keyword_query = user_query
-                        traces.append(
-                            "Warning: LLM returned empty keyword_query, fallback to origin user_query"
-                        )
-                    if not intent.semantic_query or not intent.semantic_query.strip():
-                        intent.semantic_query = user_query
-                        traces.append(
-                            "Warning: LLM returned empty semantic_query, fallback to origin user_query"
-                        )
+            intent, llm_error = self._parse_search_intent(
+                user_query, enable_llm, fall_back, history, direction, traces
+            )
 
-            if not intent:
-                intent = SearchIntent(
-                    keyword_query=user_query, semantic_query=user_query, sub_queries=[]
-                )
-
-            # Override limit if specified in intent
             if intent.limit is not None:
                 limit = intent.limit
-
-            # 如果前端有傳來 website_filters，強制覆蓋 intent 裡的設定
-            if website_filters and len(website_filters) > 0:
-                print(f"UI Override: Applying website filters: {website_filters}")
-                intent.websites = website_filters
-            else:
-                # 如果前端沒傳 (例如全選或沒選)，確保它是空的，避免 None 導致錯誤
-                if not hasattr(intent, 'websites') or intent.websites is None:
-                    intent.websites = []
-
-            # Use LLM-recommended semantic_ratio logic:
-            if not manual_semantic_ratio and intent.recommended_semantic_ratio is not None:
+            if (
+                not manual_semantic_ratio
+                and intent.recommended_semantic_ratio is not None
+            ):
                 semantic_ratio = intent.recommended_semantic_ratio
-                print(f"Auto Mode: Using LLM-recommended semantic_ratio: {semantic_ratio:.2f}")
-            else:
-                print(f"Manual Mode (or no LLM rec): Using provided semantic_ratio: {semantic_ratio:.2f}")
 
-            # 2. Build Meilisearch filter expression
-            meili_filter = build_meili_filter(intent)
+            query_candidates = self._build_query_candidates(intent, traces)
+            meili_filter = self._build_filter_expression(
+                intent, start_date, end_date, exclude_ids or [], traces
+            )
 
-            # 修正處：直接接著建立 Query Candidates，刪除了原程式碼中重複且縮排錯誤的 limit/semantic_ratio 設定區塊
-            query_candidates = []
-            query_candidates.append(intent.keyword_query)
-            traces.append(f"Primary Query: {intent.keyword_query}")
-
-            if intent.sub_queries:
-                for sq in intent.sub_queries:
-                    if sq and sq not in query_candidates:
-                        query_candidates.append(sq)
-                        traces.append(f"Sub-Query: {sq}")
-
-            ai_has_date_constraint = intent.year_month and len(intent.year_month) > 0
-
-            if ai_has_date_constraint:
-                print(
-                    f"  [優先權判定] AI 已指定日期 {intent.year_month}，忽略手動日期篩選。"
-                )
-            else:
-                date_filters = []
-                if start_date:
-                    ym_start = start_date[:7]
-                    date_filters.append(f'year_month >= "{ym_start}"')
-                if end_date:
-                    ym_end = end_date[:7]
-                    date_filters.append(f'year_month <= "{ym_end}"')
-
-                if date_filters:
-                    manual_date_filter = " AND ".join(date_filters)
-                    print(f"  [手動過濾] 年月範圍: {manual_date_filter}")
-
-                    if meili_filter:
-                        meili_filter = f"({meili_filter}) AND ({manual_date_filter})"
-                    else:
-                        meili_filter = manual_date_filter
-
-            if exclude_ids:
-                exclude_filter_safe = (
-                    f"id NOT IN [{', '.join([f'\"{eid}\"' for eid in exclude_ids])}]"
-                )
-                if meili_filter:
-                    meili_filter = f"({meili_filter}) AND ({exclude_filter_safe})"
-                else:
-                    meili_filter = exclude_filter_safe
-                traces.append(
-                    f"Applied ID exclusion filter for {len(exclude_ids)} items."
-                )
-
-            multi_search_queries = []
-
-            for q_text in query_candidates:
-                final_kw_query = q_text
-
-                vector = None
-                if semantic_ratio > 0:
-                    text_for_embedding = q_text
-                    if q_text == intent.keyword_query and intent.semantic_query:
-                        text_for_embedding = intent.semantic_query
-
-                    embedding_result = vector_utils.get_embedding(text_for_embedding)
-                    if embedding_result.get("status") == "success":
-                        vector = embedding_result.get("result")
-                    else:
-                        print_red(
-                            f"Embedding failed for '{q_text}': {embedding_result.get('error')}"
-                        )
-
-                search_params = {
-                    "indexUid": MEILISEARCH_INDEX,
-                    "q": final_kw_query,
-                    "limit": PRE_SEARCH_LIMIT,
-                    "attributesToRetrieve": ["*"],
-                    "showRankingScore": True,
-                    "showRankingScoreDetails": True,
-                }
-
-                if meili_filter:
-                    search_params["filter"] = meili_filter
-
-                if vector:
-                    search_params["hybrid"] = {
-                        "semanticRatio": semantic_ratio,
-                        "embedder": "default",
-                    }
-                    search_params["vector"] = vector
-
-                multi_search_queries.append(search_params)
+            multi_search_queries = [
+                self._build_single_query_params(q, intent, semantic_ratio, meili_filter)
+                for q in query_candidates
+            ]
 
             if not multi_search_queries:
-                return {
-                    "status": "success",
-                    "results": [],
-                    "traces": traces,
-                    "intent": (
-                        intent.model_dump()
-                        if hasattr(intent, "model_dump")
-                        else intent.dict()
-                    ),
-                }
+                return self._build_response(
+                    intent, [], semantic_ratio, meili_filter, traces, llm_error
+                )
 
             batch_result = self.meili_adapter.multi_search(multi_search_queries)
             if batch_result.get("status") == "failed":
                 return batch_result
 
             raw_hits_batch = batch_result.get("result", {}).get("results", [])
-
-            all_hits = []
-            seen_ids = set()
-
-            for i, result_set in enumerate(raw_hits_batch):
-                hits = result_set.get("hits", [])
-
-                for hit in hits:
-                    doc_id = hit.get("id")
-                    if doc_id and doc_id not in seen_ids:
-                        seen_ids.add(doc_id)
-                        all_hits.append(hit)
-
-            pre_merge_limit = round(limit * 2.5)
-
-            reranker = ResultReranker(all_hits, intent.must_have_keywords)
-            reranked_results = reranker.rerank(
-                top_k=pre_merge_limit,
-                enable_keyword_weight_rerank=enable_keyword_weight_rerank,
+            all_hits = self._deduplicate_hits(raw_hits_batch)
+            final_results = self._rerank_and_merge_results(
+                all_hits, intent, limit, enable_keyword_weight_rerank
             )
 
-            if reranked_results and "_rerank_score" in reranked_results[0]:
-                reranked_results.sort(
-                    key=lambda x: x.get("_rerank_score", 0), reverse=True
-                )
-
-            merged_results = self._merge_duplicate_links(reranked_results)
-            final_results = merged_results[:limit]
-
-            response = {
-                "status": "success",
-                "intent": (
-                    intent.model_dump()
-                    if hasattr(intent, "model_dump")
-                    else intent.dict()
-                ),
-                "meili_filter": meili_filter,
-                "results": final_results,
-                "final_semantic_ratio": semantic_ratio,
-                "mode": "semantic" if semantic_ratio > 0 else "keyword",
-                "traces": traces,
-            }
-            if llm_error:
-                response["llm_warning"] = llm_error
-
-            return response
+            return self._build_response(
+                intent, final_results, semantic_ratio, meili_filter, traces, llm_error
+            )
 
         except Exception as e:
             traceback.print_exc()

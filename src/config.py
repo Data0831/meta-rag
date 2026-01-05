@@ -4,8 +4,9 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Base directories
-DATA_DIR = "data"
+DATA_DIR = "data_update"
 DATABASE_DIR = "database"
+LOG_BASE_DIR = os.getenv("LOG_BASE_DIR", "data_logs")
 
 # Data subdirectories
 DATA_JSON = os.path.join(DATA_DIR, "data.json")
@@ -13,8 +14,12 @@ DATA_JSON = os.path.join(DATA_DIR, "data.json")
 # Meilisearch Settings
 MEILISEARCH_HOST = os.getenv("MEILISEARCH_HOST", "http://localhost:7700")
 MEILISEARCH_API_KEY = os.getenv("MEILISEARCH_API_KEY", "masterKey")
-MEILISEARCH_INDEX = "announcements_v4"
-## search.js init config
+# MEILISEARCH_INDEX = "announcements_v4"
+MEILISEARCH_INDEX = "announcements_deploy"
+
+# ============================================================================
+# Frontend Configurable Variables (exposed via /api/config)
+# ============================================================================
 DEFAULT_SEARCH_LIMIT = 5
 MAX_SEARCH_LIMIT = 20
 SCORE_PASS_THRESHOLD = 0.81
@@ -29,6 +34,8 @@ ENABLE_KEYWORD_WEIGHT_RERANK = True
 PRE_SEARCH_LIMIT = 50
 NO_HIT_PENALTY_FACTOR = 0.15
 KEYWORD_HIT_BOOST_FACTOR = 0.60
+MAX_SEARCH_INPUT_LENGTH = 100
+MAX_CHAT_INPUT_LENGTH = 500
 
 
 def get_score_min_threshold():

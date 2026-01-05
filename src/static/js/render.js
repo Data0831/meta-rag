@@ -5,9 +5,15 @@
 import * as DOM from './dom.js';
 import { searchConfig } from './config.js';
 import { hideAllStates, showEmpty } from './ui.js';
+import { sendFeedback } from './api.js';
+import { showAlert } from './alert.js';
 
 // Current Results Storage
 export let currentResults = [];
+
+// Current Search Context (for feedback logging)
+let currentSearchQuery = '';
+let currentSearchParams = {};
 
 /**
  * Render search results
@@ -19,6 +25,18 @@ export function renderResults(data, duration, query) {
     console.log('Rendering results...');
     console.log('  Data:', data);
     console.log('  Duration:', duration);
+
+    // Store current search context for feedback
+    currentSearchQuery = query;
+    currentSearchParams = {
+        limit: searchConfig.limit,
+        semantic_ratio: searchConfig.semanticRatio,
+        enable_llm: searchConfig.enableLlm,
+        manual_semantic_ratio: searchConfig.manualSemanticRatio,
+        enable_keyword_weight_rerank: searchConfig.enableKeywordWeightRerank,
+        start_date: searchConfig.startDate,
+        end_date: searchConfig.endDate
+    };
 
     hideAllStates();
 
@@ -434,4 +452,41 @@ export function toggleIntentDetails() {
         details.classList.add('hidden');
         icon.classList.add('-rotate-90');
     }
+}
+
+/**
+ * Setup feedback button event listeners
+ */
+export function setupFeedbackButtons() {
+    const thumbUpBtn = document.getElementById('feedbackThumbUp');
+    const thumbDownBtn = document.getElementById('feedbackThumbDown');
+
+    if (!thumbUpBtn || !thumbDownBtn) {
+        console.warn('Feedback buttons not found');
+        return;
+    }
+
+    thumbUpBtn.addEventListener('click', async () => {
+        console.log('Thumb up clicked');
+        try {
+            await sendFeedback('positive', currentSearchQuery, currentSearchParams);
+            showAlert('感謝您的反饋！', 'thumb_up');
+        } catch (error) {
+            console.error('Failed to send positive feedback:', error);
+            showAlert('反饋提交失敗，請稍後再試', 'error');
+        }
+    });
+
+    thumbDownBtn.addEventListener('click', async () => {
+        console.log('Thumb down clicked');
+        try {
+            await sendFeedback('negative', currentSearchQuery, currentSearchParams);
+            showAlert('感謝您的反饋！', 'thumb_down');
+        } catch (error) {
+            console.error('Failed to send negative feedback:', error);
+            showAlert('反饋提交失敗，請稍後再試', 'error');
+        }
+    });
+
+    console.log('Feedback buttons setup complete');
 }

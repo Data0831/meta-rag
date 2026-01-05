@@ -185,10 +185,6 @@ def build_meili_filter(intent) -> Optional[str]:
     if hasattr(intent, "websites") and intent.websites:
         websites_str = ", ".join([f"'{w}'" for w in intent.websites])
         conditions.append(f"website IN [{websites_str}]")
-    if hasattr(intent, "websites") and intent.websites:
-        # 將列表轉成 Meilisearch 的 IN 語法: website IN ['azure', 'partner']
-        sites_str = ", ".join([f"'{s}'" for s in intent.websites])
-        conditions.append(f"website IN [{sites_str}]")
 
     return " AND ".join(conditions) if conditions else None
 

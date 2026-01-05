@@ -100,11 +100,15 @@
       transform: scale(1);
       transition: opacity 300ms, transform 300ms;
     }
+
+    .lock-scroll {
+      overflow: hidden !important;
+    }
   </style>
 </head>
 
 <body
-  class="bg-background-light dark:bg-background-dark text-slate-700 dark:text-slate-200 min-h-screen flex overflow-hidden">
+  class="bg-background-light dark:bg-background-dark text-slate-700 dark:text-slate-200 min-h-screen flex overflow-x-hidden">
 
   <!-- Drawer 背景遮罩 -->
   <div id="sidebarBackdrop"
@@ -161,7 +165,7 @@
             </div>
             <div id="latestArticleContent" class="flex-1 p-6 overflow-y-auto bg-white dark:bg-slate-900">
               <h2 id="articleTitle"
-                class="text-xl text-slate-800 dark:text-white mb-5 border-b pb-5 border-[#7facb6]/20"></h2>
+                class="text-xl font-bold text-[#7facb6] dark:text-[#a1d1db] mb-5 border-b pb-4 border-[#7facb6]"></h2>
               <div id="articleBody"
                 class="prose prose-sm dark:prose-invert max-w-none text-slate-600 dark:text-slate-300 leading-relaxed">
               </div>
@@ -322,7 +326,7 @@
   </aside>
 
   <!-- 主內容 -->
-  <main class="flex-1 h-screen overflow-y-auto relative">
+  <main class="flex-1 relative">
     <div class="max-w-5xl mx-auto px-8 py-10 pb-24">
 
       <!-- 搜尋列 + 漢堡按鈕（這一小段是新排版） -->
@@ -498,13 +502,15 @@
         </div>
         <div class="pl-11 space-y-2 text-slate-600 dark:text-slate-300 leading-relaxed">
           <div id="summaryContent"></div>
-          <div class="flex items-center gap-4 mt-4">
-            <!-- <div
-              class="inline-flex items-center bg-card-light dark:bg-slate-700 px-3 py-1 rounded text-xs text-primary font-medium cursor-pointer hover:bg-primary/20 transition-colors">
+          <div id="feedbackContainer" class="flex items-center gap-4 mt-4">
+            <div
+              class="inline-flex items-center bg-card-light dark:bg-slate-700 px-3 py-1 rounded text-xs text-primary font-medium">
               對您是否有幫助？
-              <span class="material-icons-round text-sm ml-1 hover:text-green-600">thumb_up</span>
-              <span class="material-icons-round text-sm ml-1 hover:text-red-500">thumb_down</span>
-            </div> -->
+              <span id="feedbackThumbUp"
+                class="material-icons-round text-sm ml-1 hover:text-green-600 cursor-pointer transition-colors">thumb_up</span>
+              <span id="feedbackThumbDown"
+                class="material-icons-round text-sm ml-1 hover:text-red-500 cursor-pointer transition-colors">thumb_down</span>
+            </div>
           </div>
         </div>
       </div>
@@ -516,10 +522,10 @@
       <div id="chatbotContainer"
         class="fixed right-0 top-0 h-full z-50 flex transition-transform duration-300 translate-x-[calc(100%-4rem)]">
         <div id="chatTriggerBtn"
-          class="self-center -ml-4 bg-primary/90 backdrop-blur-sm text-white rounded-l-2xl py-6 px-3 shadow-lg flex flex-col items-center gap-6 cursor-pointer hover:bg-primary transition-colors duration-300 w-16">
+          class="self-center -ml-4 bg-primary/90 backdrop-blur-sm text-white rounded-l-2xl py-6 px-3 shadow-lg flex flex-col items-center gap-2 cursor-pointer hover:bg-primary transition-colors duration-300 w-16">
           <span id="chatIconArrow"
-            class="material-icons-round text-2xl transition-transform duration-300">chevron_left</span>
-          <span class="material-icons-round text-3xl">chat_bubble_outline</span>
+            class="material-icons-round text-2xl pb-2 transition-transform duration-300">chevron_left</span>
+          <span class="material-icons-round text-2xl">chat_bubble_outline</span>
           <div class="writing-mode-vertical text-lg font-bold tracking-widest"
             style="writing-mode: vertical-rl; text-orientation: upright;">
             問答機器人
@@ -533,11 +539,11 @@
               <span class="material-icons-round">smart_toy</span>
               <h3 class="font-bold text-lg">AI 知識助手</h3>
               <span id="chatHeaderStatus" class="text-xs font-normal text-slate-500 ml-2">
-                  (計算中...)
+                (計算中...)
               </span>
             </div>
             <button id="clearChatBtn"
-              class="hover:bg-white/20 rounded-full p-2 transition-colors flex items-center justify-center"
+              class="w-9 h-9 flex items-center justify-center rounded-full hover:bg-white/20 transition-colors flex-shrink-0"
               title="清除對話紀錄">
               <span class="material-icons-round text-sm">delete_sweep</span>
             </button>
@@ -599,6 +605,26 @@
     });
 
     sidebarBackdrop.addEventListener('click', closeSidebar);
+
+    const chatTriggerBtn = document.getElementById('chatTriggerBtn');
+    const chatbotContainer = document.getElementById('chatbotContainer');
+
+    chatTriggerBtn.addEventListener('click', () => {
+      // 切換聊天機器人的顯示狀態（根據您原本的 translate 邏輯）
+      const isOpening = chatbotContainer.classList.contains('translate-x-[calc(100%-4rem)]');
+
+      if (isOpening) {
+        // 展開機器人：隱藏主頁面捲軸
+        chatbotContainer.classList.remove('translate-x-[calc(100%-4rem)]');
+        chatbotContainer.classList.add('translate-x-0');
+        document.body.classList.add('lock-scroll');
+      } else {
+        // 收合機器人：恢復主頁面捲軸
+        chatbotContainer.classList.add('translate-x-[calc(100%-4rem)]');
+        chatbotContainer.classList.remove('translate-x-0');
+        document.body.classList.remove('lock-scroll');
+      }
+    });
 
     // === 公告系統邏輯 ===
     const infoBtn = document.getElementById('infoBtn');
@@ -670,9 +696,13 @@
 
       document.querySelectorAll('.side-menu-item').forEach((el, i) => {
         if (i === index) {
+          // 選中狀態：背景淡色、左邊條、文字變為主色 #7facb6
           el.classList.add('bg-[#7facb6]/10', 'text-[#7facb6]', 'border-l-4', 'border-[#7facb6]');
+          el.classList.remove('text-slate-600', 'dark:text-slate-400');
         } else {
+          // 未選中狀態：恢復原本文字顏色，移除背景與邊條
           el.classList.remove('bg-[#7facb6]/10', 'text-[#7facb6]', 'border-l-4', 'border-[#7facb6]');
+          el.classList.add('text-slate-600', 'dark:text-slate-400');
         }
       });
     }
@@ -682,16 +712,43 @@
     const endInput = document.getElementById('endDateInput');
 
     if (startInput && endInput) {
-        const now = new Date();
-        const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-        
-        // 限制最大只能選到這個月
-        startInput.max = currentMonth;
-        endInput.max = currentMonth;
+      const now = new Date();
+      const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+
+      // 限制最大只能選到這個月
+      startInput.max = currentMonth;
+      endInput.max = currentMonth;
     }
     // ------------------
 
     setTimeout(() => openModal(true), 1200);
+
+    function getUpdateStatusHtml(dateStr, count) {
+      if (!dateStr) return '';
+
+      const updateDate = new Date(dateStr);
+      const today = new Date();
+
+      // 將時間歸零，確保純粹比較日期
+      today.setHours(0, 0, 0, 0);
+      updateDate.setHours(0, 0, 0, 0);
+
+      const diffTime = today - updateDate;
+      const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+
+      // 情況 1：今日更新 (使用 #7facb6)
+      if (diffDays === 0) {
+        return `<span class="text-[#7facb6] font-bold text-[11px]">今日更新 ${count} 篇</span>`;
+      }
+
+      // 情況 2：三天內更新 (深灰色，顯示 X 天前)
+      if (diffDays >= 1 && diffDays <= 7) {
+        return `<span class="text-slate-500 dark:text-slate-400">上次更新時間：${diffDays}天前</span>`;
+      }
+
+      // 情況 3：其餘時間 (深灰色，顯示日期)
+      return `<span class="text-slate-500 dark:text-slate-400">上次更新時間：${dateStr}</span>`;
+    }
 
     // --- [其餘邏輯保持不變] ---
 
@@ -727,17 +784,31 @@
         const resWeb = await fetch('/static/data/website.json');
         if (resWeb.ok) {
           const webData = await resWeb.json();
-          announcementGridContainer.innerHTML = webData.map(item => `
-                    <a href="${item.URL}" target="_blank" class="group flex items-center bg-slate-50 dark:bg-slate-800 rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700 hover:border-[#7facb6] hover:shadow-md transition-all duration-300">
-                        <div class="w-26 h-20 shrink-0 bg-slate-200 dark:bg-slate-700 relative overflow-hidden">
-                            <img src="https://s.wordpress.com/mshots/v1/${encodeURIComponent(item.URL)}?w=200" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" onerror="this.src='https://via.placeholder.com/200x160?text=No+Img'">
-                        </div>
-                        <div class="px-3 py-1 min-w-0">
-                            <h4 class="text-xs font-bold text-slate-800 dark:text-slate-100 truncate group-hover:text-[#7facb6]">${item.website}</h4>
-                            <p class="text-[10px] text-slate-400 truncate mt-0.5">點擊前往查看</p>
-                        </div>
-                    </a>
-                `).join('');
+          announcementGridContainer.innerHTML = webData.map(item => {
+            // 呼叫輔助函數獲取更新資訊 HTML
+            const updateInfoHtml = getUpdateStatusHtml(item.update_date, item.update_count);
+
+            return `
+          <a href="${item.URL}" target="_blank" class="relative group flex items-center bg-slate-50 dark:bg-slate-800 rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700 hover:border-[#7facb6] hover:shadow-md transition-all duration-300">
+              <div class="w-26 h-20 shrink-0 bg-slate-200 dark:bg-slate-700 relative overflow-hidden">
+                  <img src="https://s.wordpress.com/mshots/v1/${encodeURIComponent(item.URL)}?w=200" 
+                      class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" 
+                      onerror="this.src='https://via.placeholder.com/200x160?text=No+Img'">
+              </div>
+
+              <div class="px-3 py-1 flex-1 min-w-0 text-left"> 
+                  <h4 class="text-[13px] font-bold text-slate-800 dark:text-slate-100 truncate group-hover:text-[#7facb6]">
+                    ${item.website}
+                  </h4>
+                  <p class="text-[10px] text-slate-400 truncate">點擊前往查看</p>
+              </div>
+              
+              <div class="absolute bottom-1 right-2 text-[10px] font-medium pointer-events-none">
+                  ${updateInfoHtml}
+              </div>
+          </a>
+        `;
+          }).join('');
         }
       } catch (err) { console.error(err); }
     }

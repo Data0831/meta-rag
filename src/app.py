@@ -1,11 +1,5 @@
-"""
-Flask Application Entry Point
-Web interface for the Microsoft RAG system using Meilisearch
-"""
-
 import sys
 from pathlib import Path
-MAX_CHAT_INPUT_LENGTH = 500
 
 # Add project root to Python path
 project_root = Path(__file__).parent.parent
@@ -39,10 +33,13 @@ from src.config import (
     ENABLE_LLM,
     MANUAL_SEMANTIC_RATIO,
     ENABLE_KEYWORD_WEIGHT_RERANK,
+    MAX_SEARCH_INPUT_LENGTH,
+    MAX_CHAT_INPUT_LENGTH,
 )
 from src.tool.ANSI import print_red
 from src.services.rag_service import RAGService
-from src.services.search_service import SearchService
+from src.log.logManager import LogManager
+
 # Load environment variables
 load_dotenv()
 
@@ -97,102 +94,6 @@ def get_config():
     )
 
 
-
-@app.route("/api/collection_search", methods=["POST"])
-def search():
-    """
-    Perform hybrid search using SearchService
-
-    Request JSON:
-    {
-        "query": "user query string",
-        "limit": 20,  // optional
-        "semantic_ratio": 0.5  // optional, 0.0 to 1.0
-    }
-
-    Returns:
-        JSON response with search results
-    """
-    try:
-        print("\n" + "=" * 60)
-        print("/api/collection_search called")
-
-        data = request.get_json()
-        print(f"Request data: {data}")
-
-        if not data or "query" not in data:
-            print("Missing 'query' field")
-            return jsonify({"error": "Missing 'query' field in request body"}), 400
-
-        query = data["query"]
-        limit = data.get("limit", 20)
-        semantic_ratio = data.get("semantic_ratio", 0.5)
-        enable_llm = data.get("enable_llm", True)
-        manual_semantic_ratio = data.get("manual_semantic_ratio", False)
-        filters = data.get("filters", {}) # 預設是空字典
-        selected_websites = filters.get("website", []) # 拿出 website 列表
-        
-    
-        print(f"  Query: {query}")
-        print(f"  Limit: {limit}")
-        print(f"  Semantic Ratio: {semantic_ratio}")
-        print(f"  Enable LLM: {enable_llm}")
-        print(f"  Manual Semantic Ratio: {manual_semantic_ratio}")
-        print(f"  Websites Filter: {selected_websites}")
-
-        # Validate parameters
-        if not isinstance(limit, int) or limit < 1 or limit > 100:
-            return (
-                jsonify(
-                    {
-                        "error": "Invalid 'limit' value. Must be integer between 1 and 100."
-                    }
-                ),
-                400,
-            )
-
-        if (
-            not isinstance(semantic_ratio, (int, float))
-            or semantic_ratio < 0
-            or semantic_ratio > 1
-        ):
-            return (
-                jsonify(
-                    {
-                        "error": "Invalid 'semantic_ratio' value. Must be float between 0.0 and 1.0."
-                    }
-                ),
-                400,
-            )
-
-        # Perform search
-        print("Initializing SearchService...")
-        search_service = SearchService()
-
-        print("Calling search_service.search()...")
-        results = search_service.search(
-            user_query=query,
-            limit=limit,
-            semantic_ratio=semantic_ratio,
-            enable_llm=enable_llm,
-            manual_semantic_ratio=manual_semantic_ratio,
-            website_filters=selected_websites
-        )
-
-        print(f"Search completed. Results count: {len(results.get('results', []))}")
-        print("=" * 60 + "\n")
-        return jsonify(results)
-
-    except Exception as e:
-        print(f"ERROR in /api/collection_search: {e}")
-        print(f"   Error type: {type(e).__name__}")
-        import traceback
-
-        print(f"   Traceback:\n{traceback.format_exc()}")
-        print("=" * 60 + "\n")
-        return jsonify({"error": str(e)}), 500
-
-
 @app.route("/api/chat", methods=["POST"])
 def chat_endpoint():
     """
@@ -214,9 +115,16 @@ def chat_endpoint():
         # --- [新增] 字數限制檢查 ---
         if len(user_message) > MAX_CHAT_INPUT_LENGTH:
             print(f"Refused: Input length {len(user_message)} exceeds limit.")
-            return jsonify({
-                "error": f"Input length exceeds limit of {MAX_CHAT_INPUT_LENGTH} characters."
-            }), 400
+            return (
+                jsonify(
+                    {
+                        "status": "failed",
+                        "error_stage": "input_validation",
+                        "error": f"Input length exceeds limit of {MAX_CHAT_INPUT_LENGTH} characters.",
+                    }
+                ),
+                400,
+            )
 
         # 接收前端傳來的 Context (搜尋結果)
         provided_context = data.get("context", [])
@@ -227,13 +135,25 @@ def chat_endpoint():
         print(f"  History items: {len(chat_history)}")
         if not user_message:
             return jsonify({"error": "Message is required"}), 400
-        # 初始化 RAG Service 並執行
+
+        client_ip = request.remote_addr
+        request_headers = dict(request.headers)
+        request_data = data.copy()
+
         rag_service = RAGService()
         response = rag_service.chat(
             user_query=user_message,
             provided_context=provided_context,
             history=chat_history,
         )
+
+        LogManager.log_chat(
+            ip=client_ip,
+            headers=request_headers,
+            request_data=request_data,
+            response_data=response,
+        )
+
         print("Chat response generated")
         print("=" * 60 + "\n")
         return jsonify(response)
@@ -270,6 +190,20 @@ def search_endpoint():
 
         if not query:
             return jsonify({"error": "Query is required"}), 400
+
+        if len(query) > MAX_SEARCH_INPUT_LENGTH:
+            print(f"Refused: Query length {len(query)} exceeds limit.")
+            return (
+                jsonify(
+                    {
+                        "status": "failed",
+                        "error_stage": "input_validation",
+                        "error": f"Input length exceeds limit of {MAX_SEARCH_INPUT_LENGTH} characters.",
+                    }
+                ),
+                400,
+            )
+
         print(f"  Query: {query}")
         print(f"  Limit: {limit}")
         print(f"  Semantic Ratio: {semantic_ratio}")
@@ -302,6 +236,12 @@ def search_endpoint():
                 400,
             )
 
+        client_ip = request.remote_addr
+        request_headers = dict(request.headers)
+        request_data = data.copy()
+
+        response_steps = []
+
         def generate():
             agent = SrhSumAgent()
             for step in agent.run(
@@ -314,7 +254,15 @@ def search_endpoint():
                 start_date=start_date,
                 end_date=end_date,
             ):
+                response_steps.append(step)
                 yield json.dumps(step, ensure_ascii=False) + "\n"
+
+            LogManager.log_search(
+                ip=client_ip,
+                headers=request_headers,
+                request_data=request_data,
+                response_data=response_steps,
+            )
 
         return Response(
             stream_with_context(generate()), mimetype="application/x-ndjson"
@@ -359,6 +307,50 @@ def health_check():
         )
     except Exception as e:
         return jsonify({"status": "unhealthy", "error": str(e)}), 503
+
+
+@app.route("/api/feedback", methods=["POST"])
+def feedback_endpoint():
+    """
+    User Feedback Endpoint
+    記錄用戶對搜尋結果摘要的反饋（讚/倒讚）
+    Request JSON: {
+        "feedback_type": "positive" | "negative",
+        "query": "user query",
+        "search_params": {...}
+    }
+    """
+    try:
+        print("\n" + "=" * 60)
+        print("/api/feedback called")
+        data = request.get_json()
+        if not data:
+            return jsonify({"error": "Invalid JSON"}), 400
+
+        feedback_type = data.get("feedback_type")
+        if feedback_type not in ["positive", "negative"]:
+            return jsonify({"error": "Invalid feedback_type"}), 400
+
+        client_ip = request.remote_addr
+        request_headers = dict(request.headers)
+
+        LogManager.log_feedback(
+            ip=client_ip, headers=request_headers, feedback_data=data
+        )
+
+        print(f"  Feedback Type: {feedback_type}")
+        print(f"  Query: {data.get('query', 'N/A')}")
+        print("Feedback logged successfully")
+        print("=" * 60 + "\n")
+
+        return jsonify({"status": "success"})
+
+    except Exception as e:
+        print_red(f"Feedback Endpoint Error: {e}")
+        import traceback
+
+        traceback.print_exc()
+        return jsonify({"error": str(e)}), 500
 
 
 # ============================================================================

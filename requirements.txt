@@ -10,3 +10,4 @@ grpcio>=1.62,<1.64
 # sqlite-utils==3.36
 # jieba==0.42.1
 # qdrant-client
+# schedule==1.2.2 排程器使用

@@ -8,14 +8,12 @@ import { searchConfig } from './config.js';
 /**
  * Perform search with streaming response
  * @param {string} query - Search query
- * @param {Array<string>} websites - List of selected websites (filters)
  * @param {Array<string>} selectedWebsites - Selected website filters
  * @returns {Promise<Response>} - Fetch response object (for streaming)
  */
-export async function performSearchStream(query, websites = [], selectedWebsites = []) {
+export async function performSearchStream(query, selectedWebsites = []) {
     console.log('Starting search stream...');
     console.log('  Query:', query);
-    console.log('  Filters:', websites);
     console.log('  Config:', searchConfig);
 
     if (!query) {
@@ -24,9 +22,6 @@ export async function performSearchStream(query, websites = [], selectedWebsites
 
     const requestBody = {
         query: query,
-        filters: {
-            website: websites 
-        },
         limit: searchConfig.limit,
         semantic_ratio: searchConfig.semanticRatio,
         enable_llm: searchConfig.enableLlm,
@@ -54,16 +49,58 @@ export async function performSearchStream(query, websites = [], selectedWebsites
         const errorText = await response.text();
         console.error('Error Body:', errorText);
 
-        let errorMessage;
         try {
-            const error = JSON.parse(errorText);
-            errorMessage = error.error || `HTTP error! status: ${response.status}`;
-        } catch {
-            errorMessage = errorText || `HTTP error! status: ${response.status}`;
+            const errorData = JSON.parse(errorText);
+            if (errorData.status === "failed" && errorData.error_stage) {
+                const error = new Error(errorData.error || `HTTP error! status: ${response.status}`);
+                error.errorData = errorData;
+                throw error;
+            }
+            throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+        } catch (parseError) {
+            if (parseError.errorData) {
+                throw parseError;
+            }
+            throw new Error(errorText || `HTTP error! status: ${response.status}`);
         }
-        throw new Error(errorMessage);
     }
 
     return response;
+}
+
+/**
+ * Send user feedback (positive/negative)
+ * @param {string} feedbackType - "positive" or "negative"
+ * @param {string} query - User's search query
+ * @param {Object} searchParams - Search parameters used
+ * @returns {Promise<Object>} - Response data
+ */
+export async function sendFeedback(feedbackType, query, searchParams = {}) {
+    console.log('Sending feedback...');
+    console.log('  Type:', feedbackType);
+    console.log('  Query:', query);
+    console.log('  Params:', searchParams);
+
+    const requestBody = {
+        feedback_type: feedbackType,
+        query: query,
+        search_params: searchParams
+    };
+
+    const response = await fetch('/api/feedback', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(requestBody)
+    });
+
+    if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Feedback API Error:', errorText);
+        throw new Error('反饋提交失敗');
+    }
+
+    return await response.json();
 }
 
