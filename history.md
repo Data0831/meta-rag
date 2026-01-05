@@ -31,4 +31,7 @@
 ### 2026-01-02 向量生成效能優化 (Vectorization Performance Optimization)
 - **非同步批次處理 (Async Batch Embedding)**：優化 `src/database/vector_utils.py`，新增 `get_embeddings_batch` 函數，結合 Ollama AsyncClient 與 `asyncio.gather` 實作並行批次向量生成，顯著提升 ETL 資料處理量。
 - **錯誤紀錄機制 (Error Logging)**：實作向量生成錯誤持久化邏輯，自動紀錄失敗資訊於 `src/error_log/` 目錄下之 JSON 檔案，確保資料處理過程具備可追溯性。
-- **ETL 流程加速**：升級 `data/vectorPreprocessing.py`，全面改用批次處理替代逐條生成，優化全庫索引重構之效率。
+
+### 2026-01-05 硬體感知向量生成優化 (Hardware-Aware Vectorization Optimization)
+- **硬體配置管理 (Dynamic Hardware Profiles)**：新增 `src/database/vector_config.py`，定義三套針對不同硬體環境（RTX 4050、16核 CPU、2c4t 低階設備）的向量生成參數模組。透過精確控制 `sub_batch_size` 與 `max_concurrency`，在高效能 GPU 上壓榨矩陣運算潛力，並在極低階設備上採取保守策略以防止記憶體溢出，兼顧效能與系統穩定性。
+- **ETL 流程場景化切換**：重構 `data_update/vectorPreprocessing.py`，實作互動式硬體 Profile 選擇機制。在 `VectorPreProcessor` 中注入硬體感知參數，讓資料預處理流程能根據運算資源動態調整 Batch 大小與併發數。此優化大幅提升了系統在不同開發環境下的適配彈性，確保資料重構任務能以最優化路徑執行。
