@@ -2,12 +2,20 @@ from typing import List, Dict, Any
 from src.services.search_service import SearchService
 from src.llm.client import LLMClient
 from src.llm.prompts.summary import SUMMARY_SYSTEM_PROMPT
-
+import re
 
 class SearchTool:
     def __init__(self):
         self.search_service = SearchService()
         self.llm_client = LLMClient()
+
+    def _clean_citation_format(self, text: str) -> str:
+            """將全角括號 【n】 或 ［n］ 統一轉換為半角 [n]"""
+            if not text:
+                return ""
+            # 修正 【1】 -> [1] 以及 ［1］ -> [1]
+            text = re.sub(r'[【［](\d+)[】］]', r'[\1]', text)
+            return text
 
     def search(
         self,
@@ -89,9 +97,9 @@ class SearchTool:
             return {
                 "status": "success",
                 "summary": {
-                    "brief_answer": validated_result.brief_answer,
-                    "detailed_answer": validated_result.detailed_answer,
-                    "general_summary": validated_result.general_summary,
+                    "brief_answer": self._clean_citation_format(validated_result.brief_answer),
+                    "detailed_answer": self._clean_citation_format(validated_result.detailed_answer),
+                    "general_summary": self._clean_citation_format(validated_result.general_summary),
                 },
                 "link_mapping": link_mapping,
             }

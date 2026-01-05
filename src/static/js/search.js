@@ -71,46 +71,83 @@ function setupSearchConfig() {
         });
     }
 
-    // Semantic ratio slider
+    // Semantic ratio slider 權重調整邏輯
     const semanticRatioSlider = document.getElementById('semanticRatioSlider');
-    const manualRatioCheckbox = document.getElementById('manualRatioCheckbox');
-    const semanticRatioValue = document.getElementById('semanticRatioValue');
+    const keywordLabel = document.getElementById('keywordWeightLabel');
+    const semanticLabel = document.getElementById('semanticWeightLabel');
+    const keywordPercentLabel = document.getElementById('keywordPercent');
+    const semanticPercentLabel = document.getElementById('semanticPercent');
+    const manualCheckbox = document.getElementById('manualRatioCheckbox');
+    const statusText = document.getElementById('semanticRatioValue');
 
-    if (semanticRatioSlider && manualRatioCheckbox) {
-        // Init state
-        semanticRatioSlider.disabled = !manualRatioCheckbox.checked;
-        if (!manualRatioCheckbox.checked) {
-            if (semanticRatioValue) semanticRatioValue.textContent = "Auto";
-        }
+    if (semanticRatioSlider && manualCheckbox) {
+        const updateUI = (val) => {
+            const smVal = parseInt(val);
+            const kwVal = 100 - smVal;
 
-        // Checkbox listener
-        manualRatioCheckbox.addEventListener('change', (e) => {
-            const isManual = e.target.checked;
-            searchConfig.manualSemanticRatio = isManual;
-            semanticRatioSlider.disabled = !isManual;
+            if (typeof searchConfig !== 'undefined') {
+                searchConfig.semanticRatio = smVal / 100;
+            }
+            
+            if (keywordPercentLabel) keywordPercentLabel.textContent = `${kwVal}%`;
+            if (semanticPercentLabel) semanticPercentLabel.textContent = `${smVal}%`;
 
-            if (isManual) {
-                // Restore value from slider
-                const val = parseInt(semanticRatioSlider.value);
-                searchConfig.semanticRatio = val / 100;
-                if (semanticRatioValue) semanticRatioValue.textContent = val + '%';
+            // 標籤樣式處理
+            [keywordLabel, semanticLabel].forEach(l => {
+                if (!l) return;
+                l.classList.remove('bg-primary', 'text-white');
+                l.classList.add('bg-white', 'dark:bg-slate-700', 'text-slate-500', 'dark:text-slate-400');
+            });
+
+            if (smVal < 50) {
+                keywordLabel?.classList.add('bg-primary', 'text-white');
+                keywordLabel?.classList.remove('bg-white', 'text-slate-500');
+            } else if (smVal > 50) {
+                semanticLabel?.classList.add('bg-primary', 'text-white');
+                semanticLabel?.classList.remove('bg-white', 'text-slate-500');
+            }
+        };
+
+        const handleModeChange = () => {
+            // 勾選 = 自動 (Auto)
+            const isAuto = manualCheckbox.checked;
+            
+            if (isAuto) {
+                semanticRatioSlider.value = 50;
+                semanticRatioSlider.disabled = true;
+                if (statusText) statusText.textContent = 'Auto';
+                updateUI(50);
             } else {
-                // Set to Auto display
-                if (semanticRatioValue) semanticRatioValue.textContent = "Auto";
+                semanticRatioSlider.disabled = false;
+                if (statusText) statusText.textContent = 'Manual';
+                updateUI(semanticRatioSlider.value);
             }
-        });
+        };
 
-        // Slider listener
-        semanticRatioSlider.addEventListener('input', (e) => {
-            const val = parseInt(e.target.value);
-            searchConfig.semanticRatio = val / 100;
-            // Update label if it exists
-            if (semanticRatioValue) {
-                semanticRatioValue.textContent = val + '%';
-            }
+        manualCheckbox.addEventListener('change', handleModeChange);
+        semanticRatioSlider.addEventListener('input', (e) => updateUI(e.target.value));
+
+        // --- 強化版初始化：解決重新整理問題 ---
+        const initializeSearchUI = () => {
+            // A. 強制將狀態設為 Auto
+            manualCheckbox.checked = true; 
+            
+            // B. 直接執行 UI 更新邏輯
+            handleModeChange(); 
+        };
+
+        // 1. 立即執行 (針對一般載入)
+        initializeSearchUI();
+
+        // 2. DOMContentLoaded 時再確認一次
+        document.addEventListener('DOMContentLoaded', initializeSearchUI);
+
+        // 3. 針對瀏覽器重新整理 (BFCache) 的最有效解決方案
+        window.addEventListener('pageshow', (event) => {
+            initializeSearchUI();
         });
     }
-
+    
     // Limit input
     const limitInput = document.getElementById('limitInput');
     if (limitInput) {

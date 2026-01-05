@@ -361,6 +361,19 @@ table {
     letter-spacing: -0.01em;
 }
 
+.info-icon {
+    background-color: white;
+    color: #7facb6; 
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    font-size: 12px;
+    border: 1px solid #7facb6; 
+}
+
 html {
   scrollbar-gutter: stable;
 }
