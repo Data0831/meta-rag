@@ -153,6 +153,10 @@ export async function performSearch() {
                             };
 
                             renderResults(renderData, totalDuration, query);
+
+                            if (window.updateChatHeader) {
+                                window.updateChatHeader();
+                            }
                         } else {
                             if (DOM.resultsContainer) DOM.resultsContainer.classList.add('hidden');
                             if (!data.summary) {

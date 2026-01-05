@@ -7,7 +7,7 @@ from src.tool.ANSI import print_red
 from src.llm.prompts.check_retry_search import CHECK_RETRY_SEARCH_PROMPT
 from src.schema.schemas import RetrySearchDecision
 
-MAX_QUERY_LENGTH = 1000
+MAX_QUERY_LENGTH = 100
 
 
 class SrhSumAgent:

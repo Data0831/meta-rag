@@ -9,6 +9,7 @@ export function setupChatbot() {
     const chatInput = document.getElementById('chatInput');
     const sendBtn = document.getElementById('sendChatBtn');
     const messagesDiv = document.getElementById('chatMessages');
+    const headerStatus = document.getElementById('chatHeaderStatus');
 
     if (!container || !triggerBtn) return;
 
@@ -23,7 +24,7 @@ export function setupChatbot() {
 
     // --- [新增] 直接在 JS 設定輸入框最大長度，防止使用者輸入過多 ---
     if (chatInput) {
-        chatInput.setAttribute('maxlength', '1000');
+        chatInput.setAttribute('maxlength', '500');
     }
 
     let isOpen = false;
@@ -96,6 +97,7 @@ export function setupChatbot() {
             container.classList.remove('translate-x-[calc(100%-4rem)]');
             container.classList.add('translate-x-0');
             iconArrow.textContent = 'chevron_right';
+            updateHeaderStatus();
         } else {
             container.classList.add('translate-x-[calc(100%-4rem)]');
             container.classList.remove('translate-x-0');
@@ -133,12 +135,19 @@ export function setupChatbot() {
 
                 return (score * 100) >= thresholdPercent;
             });
+            // 1. 取得原始搜尋到的總篇數 (用於顯示 "參考前 ? 篇")
+            const totalScanned = currentResults.length;
             if (validResults.length === 0) {
                 removeMessage(loadingId);
 
-                appendMessage('bot', `目前的搜尋結果相似度皆低於 **${thresholdPercent}%**，已被全部過濾。請嘗試**調低相似度滑桿**，讓 AI 能參考更多資料。`);
+                // [修改] 這裡換成你截圖中要求的 "未符合" 提示文字
+                appendMessage('bot', `機器人提示：發現資料並未符合相似度，參考前 ${totalScanned} 篇，如果要參考更多篇請調低 相似閾值`);
                 return;
             }
+            // [新增] 這裡插入你截圖中要求的 "已載入" 提示文字
+            const validCount = validResults.length;
+            // appendMessage('bot', `機器人提示：目前已載入 no.1 - ${validCount} 總共 ${validCount} 篇，已隨著 SIMILAR 動態變化。`);
+
             const finalResults = validResults;
             console.log(`Chatbot Context: 使用了 ${finalResults.length} 筆資料 (門檻: ${thresholdPercent}%)`);
 
@@ -264,4 +273,62 @@ export function setupChatbot() {
         const el = document.getElementById(id);
         if (el) el.remove();
     }
+
+    function updateHeaderStatus() {
+        if (!headerStatus) return;
+
+        // 1. 嘗試抓取滑桿 DOM 元素 (為了做到拖拉時即時變動)
+        // 這裡預設 ID 為 'similarity-slider'，如果你的 HTML ID 不同請在此修改
+        const sliderEl = document.getElementById('similarity-slider') || document.querySelector('input[type="range"]');
+        
+        // 2. 決定當下的門檻值
+        let thresholdPercent = searchConfig.similarityThreshold || 0;
+        
+        // 如果抓得到滑桿，就直接用滑桿的值 (這樣拖曳時才會即時反應)
+        if (sliderEl) {
+            thresholdPercent = parseInt(sliderEl.value);
+        }
+
+        // 3. 檢查是否有資料
+        if (!currentResults || currentResults.length === 0) {
+            headerStatus.innerHTML = `<span class="text-slate-400">(等待搜尋...)</span>`;
+            return;
+        }
+
+        const totalScanned = currentResults.length;
+        
+        // 4. 計算符合門檻的數量
+        const validResults = currentResults.filter(item => {
+            const score = item._rankingScore ?? item.similarity ?? item.score ?? 0;
+            return (score * 100) >= thresholdPercent;
+        });
+        const validCount = validResults.length;
+
+        // 5. 根據結果顯示不同顏色與文字
+        if (validCount === 0) {
+            // [紅色] 全部反灰
+            headerStatus.innerHTML = `<span style="color: #ffffff; font-size: 15px; font-weight: bold;">(未符合門檻)</span>`;
+        } else {
+            // [綠色] 有資料 (字體顏色依照你原本設定的 #ffffff 或 #10b981 調整)
+            headerStatus.innerHTML = `<span style="color: #ffffff; font-size: 15px; font-weight: bold;">(已載入 ${validCount}/${totalScanned} 篇)</span>`;
+        }
+    }
+
+    // --- [新增] 將函式公開到全域，讓搜尋結束後 (main.js) 可以呼叫 ---
+    window.updateChatHeader = updateHeaderStatus;
+
+    // --- [新增] 綁定滑桿事件：一拉動就更新 Header ---
+    const sliderInput = document.getElementById('similarity-slider') || document.querySelector('input[type="range"]');
+    if (sliderInput) {
+        sliderInput.addEventListener('input', () => {
+            // 1. 同步全域設定 (確保按送出時是對的)
+            searchConfig.similarityThreshold = parseInt(sliderInput.value);
+            // 2. 即時更新 Header UI (視覺回饋)
+            updateHeaderStatus();
+        });
+    }
+
+    // 初始化時先執行一次，確保狀態正確
+    // (稍微延遲一下確保 currentResults 已經載入)
+    setTimeout(updateHeaderStatus, 500);
 }

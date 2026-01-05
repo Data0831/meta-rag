@@ -5,7 +5,7 @@ Web interface for the Microsoft RAG system using Meilisearch
 
 import sys
 from pathlib import Path
-MAX_CHAT_INPUT_LENGTH = 1000
+MAX_CHAT_INPUT_LENGTH = 500
 
 # Add project root to Python path
 project_root = Path(__file__).parent.parent
