@@ -6,13 +6,14 @@ from src.llm.client import LLMClient
 from src.tool.ANSI import print_red
 from src.llm.prompts.check_retry_search import CHECK_RETRY_SEARCH_PROMPT
 from src.schema.schemas import RetrySearchDecision
+from src.config import SEARCH_MAX_RETRIES
 
 
 class SrhSumAgent:
     def __init__(self):
         self.tool = SearchTool()
         self.llm_client = LLMClient()
-        self.max_retries = 1
+        self.max_retries = SEARCH_MAX_RETRIES
 
     def _check_retry_search(self, query: str, results: List[Dict]) -> Dict[str, Any]:
         if not results:
@@ -50,6 +51,67 @@ class SrhSumAgent:
                 "search_direction": "",
                 "decision": "評估失敗，採用現有內容",
             }
+
+    def _add_results(
+        self,
+        collected_results: Dict[str, Any],
+        all_seen_ids: set,
+        new_results: List[Dict],
+    ):
+        from src.config import SCORE_PASS_THRESHOLD
+
+        for r in new_results:
+            # 1. 記錄所有看到的片段 ID，用於下一次搜尋的 exclude_ids
+            ids_to_record = (
+                r.get("all_ids", [r.get("id")])
+                if r.get("id") or r.get("all_ids")
+                else []
+            )
+            for rid in ids_to_record:
+                if rid:
+                    all_seen_ids.add(rid)
+
+            # 2. 決定合併的 Key (優先用 link，無 link 用 id)
+            link = r.get("link")
+            primary_id = r.get("id")
+            key = link if link else primary_id
+            if not key:
+                continue
+
+            # 3. 執行合併邏輯
+            if key in collected_results:
+                existing = collected_results[key]
+
+                # 合併 all_ids
+                if "all_ids" not in existing:
+                    existing["all_ids"] = (
+                        [existing.get("id")] if existing.get("id") else []
+                    )
+                for rid in ids_to_record:
+                    if rid and rid not in existing["all_ids"]:
+                        existing["all_ids"].append(rid)
+
+                # 合併內容 (檢查內容是否重複)
+                new_content = r.get("content", "")
+                existing_content = existing.get("content", "")
+                if new_content and new_content not in existing_content:
+                    existing["content"] = (
+                        f"{existing_content}\n\n --- \n\n{new_content}"
+                    )
+
+                # 保留最高分
+                new_score = r.get("_rankingScore", 0)
+                if new_score > existing.get("_rankingScore", 0):
+                    existing["_rankingScore"] = new_score
+                    if "_rerank_score" in r:
+                        existing["_rerank_score"] = r["_rerank_score"]
+            else:
+                # 新結果：初始化
+                if "all_ids" not in r:
+                    r["all_ids"] = ids_to_record
+                score = r.get("_rankingScore", 0)
+                r["score_pass"] = score >= SCORE_PASS_THRESHOLD
+                collected_results[key] = r
 
     def run(
         self,
@@ -107,16 +169,11 @@ class SrhSumAgent:
             "stage": "search_result",
             "results": initial_results,
             "intent": final_intent,
+            "link_mapping": search_response.get("link_mapping"),
             "meili_filter": search_response.get("meili_filter"),
         }
 
-        for r in initial_results:
-            rid = r.get("id")
-            if rid:
-                all_seen_ids.add(rid)
-                score = r.get("_rankingScore")
-                r["score_pass"] = score is not None and score >= SCORE_PASS_THRESHOLD
-                collected_results[rid] = r
+        self._add_results(collected_results, all_seen_ids, initial_results)
 
         yield {
             "status": "success",
@@ -262,16 +319,8 @@ class SrhSumAgent:
                         "message": "未找到結果，嘗試再次調整...",
                     }
                 continue
-            for r in new_results:
-                rid = r.get("id")
-                if rid:
-                    all_seen_ids.add(rid)
-                    if rid not in collected_results:
-                        score = r.get("_rankingScore")
-                        r["score_pass"] = (
-                            score is not None and score >= SCORE_PASS_THRESHOLD
-                        )
-                        collected_results[rid] = r
+
+            self._add_results(collected_results, all_seen_ids, new_results)
 
             yield {
                 "status": "success",

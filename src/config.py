@@ -10,6 +10,8 @@ LOG_BASE_DIR = os.getenv("LOG_BASE_DIR", "data_logs")
 
 # Data subdirectories
 DATA_JSON = os.path.join(DATA_DIR, "data.json")
+ANNOUNCEMENT_JSON = os.path.join("src", "datas", "announcement.json")
+WEBSITE_JSON = os.path.join("src", "datas", "website.json")
 
 # Meilisearch Settings
 MEILISEARCH_HOST = os.getenv("MEILISEARCH_HOST", "http://localhost:7700")
@@ -36,10 +38,9 @@ NO_HIT_PENALTY_FACTOR = 0.15
 KEYWORD_HIT_BOOST_FACTOR = 0.60
 MAX_SEARCH_INPUT_LENGTH = 100
 MAX_CHAT_INPUT_LENGTH = 500
+FALLBACK_RESULT_COUNT = 2
+SEARCH_MAX_RETRIES = 1
 
 
 def get_score_min_threshold():
     return max(0, SCORE_PASS_THRESHOLD - 0.2)
-
-
-FALLBACK_RESULT_COUNT = 2

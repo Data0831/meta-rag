@@ -76,20 +76,20 @@ async function loadData() {
     const announcementGridContainer = document.getElementById('announcementGrid');
 
     try {
-        const resAnn = await fetch('/static/data/announcement.json');
-        if (resAnn.ok) {
-            latestAnnouncements = await resAnn.json();
+        const res = await fetch('/api/config');
+        if (res.ok) {
+            const configData = await res.json();
+
+            latestAnnouncements = configData.announcements || [];
+            const webData = configData.websites || [];
+
             latestSideMenu.innerHTML = latestAnnouncements.map((item, index) => `
                 <div onclick="window.renderArticle(${index})" class="side-menu-item p-4 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800 transition-all border-b border-slate-100 dark:border-slate-800 text-sm font-medium text-slate-600 dark:text-slate-400">
                     ${item.main_title}
                 </div>
             `).join('');
             if (latestAnnouncements.length > 0) renderArticle(0);
-        }
 
-        const resWeb = await fetch('/static/data/website.json');
-        if (resWeb.ok) {
-            const webData = await resWeb.json();
             announcementGridContainer.innerHTML = webData.map(item => {
                 const updateInfoHtml = getUpdateStatusHtml(item.update_date, item.update_count);
 

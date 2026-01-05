@@ -12,3 +12,5 @@ docs/vault
 .venv
 GEMINI.md
 CLAUDE.md
+
+!src/datas/*.json

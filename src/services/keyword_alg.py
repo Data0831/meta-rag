@@ -69,11 +69,16 @@ class ResultReranker:
             self.results.sort(key=lambda x: x["_rerank_score"], reverse=True)
             return self.results[:top_k] if top_k else self.results
 
-        total_keywords = len(self.keywords)
+        # Deduplicate keywords to avoid counting the same concept multiple times
+        unique_keywords = []
+        for kw in self.keywords:
+            if kw not in unique_keywords:
+                unique_keywords.append(kw)
 
-        if not self.keywords:
+        total_keywords = len(unique_keywords)
+
+        if not unique_keywords:
             # If no keywords provided, just return original results sorted by ranking score
-            # But we already set the default _rerank_score above.
             self.results.sort(key=lambda x: x.get("_rankingScore", 1.0), reverse=True)
             return self.results[:top_k] if top_k else self.results
 
@@ -83,27 +88,21 @@ class ResultReranker:
             content_text = doc.get("content", "") or ""
             title_text = doc.get("title", "") or ""
 
-            hits = 0
             matched_keywords_count = 0
-            for kw in self.keywords:
-                title_match = self._check_match(title_text, kw)
-                content_match = self._check_match(content_text, kw)
-
-                if title_match:
-                    hits += 1.5  # Keep slightly higher weight for title but normalize later if needed
-                    matched_keywords_count += 1
-                elif content_match:
-                    hits += 1.0
+            for kw in unique_keywords:
+                # Check if keyword exists in title or content
+                if self._check_match(title_text, kw) or self._check_match(
+                    content_text, kw
+                ):
                     matched_keywords_count += 1
 
-            max_possible_hits = len(self.keywords)
+            # User suggested formula: matched / total
             hit_ratio = (
-                min(hits / max_possible_hits, 1.0) if max_possible_hits > 0 else 0
+                matched_keywords_count / total_keywords if total_keywords > 0 else 0
             )
 
             original_score = doc.get("_rankingScore", 1.0)
             # Ensure original score is within 0-1 for the formula to work predictably
-            # Meilisearch _rankingScore is typically 0-1, but just in case.
             original_score = min(max(original_score, 0.0), 1.0)
 
             new_score = self._calculate_score(original_score, hit_ratio)

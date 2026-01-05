@@ -7,30 +7,11 @@
 - **日誌開發**：全面導入 ANSI 彩色日誌，提升後端解析與 API 異常除錯的可辨識度。
   
 
-## 2025-12-29
-- **系統架構優化與功能增強**：統一全域錯誤處理機制與配置管理系統，實作 ID-based 文檔異動與分批預處理以提升效能，優化非對稱關鍵字加權演算法與意圖匹配邏輯，並重構前端 UI 與錯誤處理流程。
+## 2025-12-29 ~ 2026-01-02 代理式檢索開發與核心架構重構
+- **Agentic RAG 核心**：實作 `SrhSumAgent` 達成「搜尋-判定-重寫-摘要」迭代流程，支援多階段流式輸出與歷史意識查詢改寫。
+- **結構化摘要與 UI**：開發三段式摘要與引用超連結系統，完成前後端關鍵服務（`search.js` / `search_service.py`）之模組化拆解重構。
+- **搜尋與效能優化**：精確化 `ResultReranker` 權重邏輯，實作非同步批次向量生成（Async Batch Embedding）與 ID-based 文檔異動優化，提升 ETL 與檢索穩定性。
 
-## 2025-12-30 代理式檢索與結構化摘要 (Agentic RAG & Structured Summary)
-- **Agentic RAG 核心實作**：推出 `SrhSumAgent` 實作「搜尋 -> 判定 -> 重寫 -> 摘要」迭代流程，支援歷史意識查詢改寫與文檔排除，提升檢索覆蓋率與精準度。
-- **架構與 API 重構**：整合搜尋邏輯至 Agent 主導，統一端點為 `/api/search` 並導入多階段狀態回傳（Stage-based streaming），提升系統反饋的透明度。
-- **評分與過濾優化**：統一 Match 分數顯示邏輯，實作 `SCORE_PASS_THRESHOLD` 品質門檻與智慧篩選機制，並修正 Meilisearch 語法錯誤以確保檢索強健性。
-- **結構化摘要與 UI 適配**：實作三段式摘要（簡答/詳答/總結）與引用超連結系統，優化檢索耗時計算視覺提示，提供層次分明且具備可信度的資訊呈現。
-
-### 2026-01-02 搜尋檢索邏輯調整 (Search Logic Adjustment)
-- **移除查詢字串加成 (Remove Query Augmentation)**：修改 `src/services/search_service.py`，移除在 Meilisearch 初步檢索階段將 `must_have_keywords` 重複附加於查詢字串後方的邏輯。此舉旨在簡化原始查詢，避免 Meilisearch 內建評分過度受到關鍵字重複出現的干擾。關鍵字的加權功能現在完全由服務層的 `ResultReranker` 負責，透過 `hit_ratio` 實現更精確且可控的二次分數加成，確保最終排名能真實反映文件與關鍵字的相關性。
-
-### 2026-01-02 引用連結轉換修復 (Citation Link Conversion Fix)
-- **修復內容總結引用連結 (Fix General Summary Citations)**：修正 `src/static/js/search.js` 的 `renderStructuredSummary` 函數，在處理「內容總結」(general_summary) 時補上遺漏的 `convertCitationsToLinks()` 調用。現在三段式摘要中的「詳細說明」與「內容總結」區塊都能正確將引用標記 `[1]`, `[2]` 等轉換為藍色上標超連結，點擊後於新標籤頁開啟來源文件，提升使用者體驗一致性與資訊可信度。
-
-### 2026-01-02 前端模組化重構 (Frontend Modularization)
-- **JavaScript 模組化架構**：將 `src/static/js/search.js` (778 行) 重構為模組化架構，拆分為 5 個獨立模組：`alert.js` (通知功能)、`citation.js` (引用轉換與摘要渲染)、`search-config.js` (搜尋配置 UI)、`search-logic.js` (搜尋執行邏輯)、`chatbot.js` (聊天機器人)。主檔案精簡為 18 行作為入口點，採用 ES6 import/export 模組系統，提升程式碼可維護性與可讀性。所有原有功能保持不變，同步更新 `CLAUDE.md` 專案文件以反映新架構。
-
-### 2026-01-02 搜尋服務模組化重構 (Search Service Modularization)
-- **搜尋服務層重構**：將 `src/services/search_service.py` 的 `search()` 方法（234 行）重構為模組化架構，拆分為 8 個職責單一的內部方法：服務初始化檢查、意圖解析、查詢候選構建、過濾器表達式構建、單查詢參數構建、結果去重、重排與合併、響應構建。主方法精簡至 72 行，採用異常拋出策略由主函數統一處理，對外 API 契約完全不變。提升程式碼可讀性、可測試性與可維護性，向後兼容現有測試。
-
-### 2026-01-02 向量生成效能優化 (Vectorization Performance Optimization)
-- **非同步批次處理 (Async Batch Embedding)**：優化 `src/database/vector_utils.py`，新增 `get_embeddings_batch` 函數，結合 Ollama AsyncClient 與 `asyncio.gather` 實作並行批次向量生成，顯著提升 ETL 資料處理量。
-- **錯誤紀錄機制 (Error Logging)**：實作向量生成錯誤持久化邏輯，自動紀錄失敗資訊於 `src/error_log/` 目錄下之 JSON 檔案，確保資料處理過程具備可追溯性。
 
 ### 2026-01-05 硬體感知向量生成優化 (Hardware-Aware Vectorization Optimization)
 - **硬體配置管理 (Dynamic Hardware Profiles)**：新增 `src/database/vector_config.py`，定義三套針對不同硬體環境（RTX 4050、16核 CPU、2c4t 低階設備）的向量生成參數模組。透過精確控制 `sub_batch_size` 與 `max_concurrency`，在高效能 GPU 上壓榨矩陣運算潛力，並在極低階設備上採取保守策略以防止記憶體溢出，兼顧效能與系統穩定性。
@@ -58,3 +39,17 @@
 
 ### 2026-01-05 引用格式強制規範 (Citation Format Enforcement)
 - **多重中括號標準化**：修正 LLM 摘要偶爾出現全形引用的問題。在 Prompt 中明確禁止全形中括號 `【】`，並在後端 `LLMClient` 解析 JSON 前與前端 `citation.js` 渲染前，同步實作 `replace()` 強制將所有全形標記轉換為標準半形 `[]`。這確保了引用超連結系統的穩定性與視覺一致性，徹底解決標籤解析失敗的問題。
+
+### 2026-01-05 跨回合檢索合併與多樣性優化 (Cross-Round Merging & Diversity Optimization)
+- **多階段去重合併**：實作 `SrhSumAgent._add_results` 統一入口，將初始與重試搜尋結果按 Link 進行終極合併。透過 `all_ids` 列表化追蹤所有採納片段，確保最終摘要包含最完整上下文，同時徹底解決跨回合網址重複問題。
+- **檢索多樣性保障**：保留 `SearchService` 單次搜尋內的 Link 合併機制，確保 20 筆結果涵蓋最大化來源。Agent 改為僅排除已見片段 ID 而非整個 Link，兼顧「多樣性佔位」與「防止區塊遺漏」的召回平衡。
+
+### 2026-01-05 公告資料 API 集中化 (Announcement Data API Centralization)
+- **前端資料來源遷移**：重構 `announcement.js` 的 `loadData()` 函數，從原本直接 fetch 靜態 JSON 檔案改為統一從 `/api/config` 端點獲取 `announcements` 與 `websites` 資料，實現前後端資料流一致性。
+- **後端讀取邏輯整合**：於 `app.py` 的 `/api/config` 路由中新增讀取 `announcement.json` 和 `website.json` 的邏輯，使用 `os.path.join` 構建跨平台路徑，檔案不存在或讀取失敗時回傳空陣列並透過 `print_red` 記錄錯誤。
+- **配置集中管理**：在 `config.py` 新增 `ANNOUNCEMENT_JSON` 與 `WEBSITE_JSON` 路徑常數（指向 `src/datas/`），並於 `app.py` import 使用，確保所有資料來源路徑統一由配置檔管理，提升系統可維護性與配置一致性。
+
+### 2026-01-05 關鍵字重排演算法優化 (Keyword Reranking Algorithm Optimization)
+- **精確命中比例計算**：修正 `ResultReranker` 重複計分問題，將演算法優化為「唯一關鍵字命中數 / 總關鍵字數」比例模型。透過預先去重關鍵字清單並整合標題與內文命中判定，確保單一概念不因多次出現或欄位重複而過度加分，提升搜尋結果排序的穩定性與合理性。
+- **測試驅動驗證**：建立 `test/test_keyword_rerank.py` 單元測試集，涵蓋關鍵字去重、部分命中、標題/內容單次計分及分數梯級加權等核心邏輯，確保加權機制在各種搜尋情境下均符合預期。
+

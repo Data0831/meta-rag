@@ -329,17 +329,30 @@ class SearchService:
         merged_results = []
         for doc in results:
             link = doc.get("link")
+            doc_id = doc.get("id")
+
+            # 初始化 all_ids 欄位
+            if "all_ids" not in doc:
+                doc["all_ids"] = [doc_id] if doc_id else []
+
             if not link:
                 merged_results.append(doc)
                 continue
+
             if link not in link_to_doc:
                 link_to_doc[link] = doc
                 merged_results.append(doc)
             else:
                 existing_doc = link_to_doc[link]
+
+                # 合併 ID 列表
+                if doc_id and doc_id not in existing_doc["all_ids"]:
+                    existing_doc["all_ids"].append(doc_id)
+
+                # 合併內容
                 existing_content = existing_doc.get("content", "")
                 new_content = doc.get("content", "")
-                if new_content not in existing_content:
+                if new_content and new_content not in existing_content:
                     existing_doc["content"] = (
                         f"{existing_content}\n\n --- \n\n{new_content}"
                     )

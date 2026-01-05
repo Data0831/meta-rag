@@ -35,6 +35,8 @@ from src.config import (
     ENABLE_KEYWORD_WEIGHT_RERANK,
     MAX_SEARCH_INPUT_LENGTH,
     MAX_CHAT_INPUT_LENGTH,
+    ANNOUNCEMENT_JSON,
+    WEBSITE_JSON,
 )
 from src.tool.ANSI import print_red
 from src.services.rag_service import RAGService
@@ -81,6 +83,26 @@ def get_config():
     Returns:
         JSON response with config values
     """
+    announcements = []
+    websites = []
+
+    announcement_path = os.path.join(str(project_root), ANNOUNCEMENT_JSON)
+    website_path = os.path.join(str(project_root), WEBSITE_JSON)
+
+    try:
+        if os.path.exists(announcement_path):
+            with open(announcement_path, "r", encoding="utf-8") as f:
+                announcements = json.load(f)
+    except Exception as e:
+        print_red(f"Failed to load announcement.json: {e}")
+
+    try:
+        if os.path.exists(website_path):
+            with open(website_path, "r", encoding="utf-8") as f:
+                websites = json.load(f)
+    except Exception as e:
+        print_red(f"Failed to load website.json: {e}")
+
     return jsonify(
         {
             "default_limit": DEFAULT_SEARCH_LIMIT,
@@ -90,6 +112,8 @@ def get_config():
             "enable_llm": ENABLE_LLM,
             "manual_semantic_ratio": MANUAL_SEMANTIC_RATIO,
             "enable_rerank": ENABLE_KEYWORD_WEIGHT_RERANK,
+            "announcements": announcements,
+            "websites": websites,
         }
     )
 
