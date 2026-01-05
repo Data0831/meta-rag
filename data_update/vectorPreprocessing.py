@@ -264,10 +264,13 @@ def main():
     hw_choice = input("Enter choice (1-3, default 1): ").strip()
 
     hw_config = RTX_4050_6G
+    hw_name = "RTX 4050 6GB VRAM"
     if hw_choice == "2":
         hw_config = CPU_16C_64G
+        hw_name = "16 Core CPU + 64GB RAM"
     elif hw_choice == "3":
         hw_config = LOW_END_2C4T
+        hw_name = "LOW END 2C4T + 4GB RAM"
 
     processor = VectorPreProcessor(
         host=MEILISEARCH_HOST,
@@ -280,11 +283,15 @@ def main():
     )
 
     while True:
+        print("\n" + "=" * 40)
+        print_red(f"HARDWARE PROFILE: {hw_name}")
+        print_red(f"MEILISEARCH INDEX: {processor.index_name}")
+        print("=" * 40)
+
         choice = (
             str(
                 input(
                     """
-        === Meilisearch Vector Preprocessing ===
         1. Clear Meilisearch index
         2. Process and Write (Load data.json -> Embed -> Write to Meilisearch)
         3. Auto Sync (Delete from remove.json -> Add new from data.json)
@@ -297,6 +304,14 @@ def main():
             .strip()
             .upper()
         )
+        if choice in ["1", "2", "3", "4"]:
+            confirm = (
+                input(f"Confirm executing Option [{choice}]? (y/N): ").strip().lower()
+            )
+            if confirm != "y":
+                print_yellow("Action cancelled by user.")
+                continue
+
         if choice == "1":
             processor.clear_all()
         elif choice == "2":

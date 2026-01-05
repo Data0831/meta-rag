@@ -4,7 +4,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Base directories
-DATA_DIR = "data"
+DATA_DIR = "data_update"
 DATABASE_DIR = "database"
 
 # Data subdirectories
@@ -13,7 +13,8 @@ DATA_JSON = os.path.join(DATA_DIR, "data.json")
 # Meilisearch Settings
 MEILISEARCH_HOST = os.getenv("MEILISEARCH_HOST", "http://localhost:7700")
 MEILISEARCH_API_KEY = os.getenv("MEILISEARCH_API_KEY", "masterKey")
-MEILISEARCH_INDEX = "announcements_v4"
+# MEILISEARCH_INDEX = "announcements_v4"
+MEILISEARCH_INDEX = "announcements_deploy"
 
 # ============================================================================
 # Frontend Configurable Variables (exposed via /api/config)
