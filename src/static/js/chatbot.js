@@ -74,6 +74,9 @@ export function setupChatbot() {
         clearBtn.addEventListener('click', () => {
             chatHistory = [];
             messagesDiv.innerHTML = '';
+            
+            if (suggestionsContainer) suggestionsContainer.innerHTML = '';
+            if (headerStatus) headerStatus.innerHTML = '';
 
             const welcomeDiv = document.createElement('div');
             welcomeDiv.className = 'flex items-start gap-2 animate-fade-in-up';
@@ -82,12 +85,12 @@ export function setupChatbot() {
                     <span class="material-icons-round text-sm">smart_toy</span>
                 </div>
                 <div class="bg-white dark:bg-slate-700 p-3 rounded-2xl rounded-tl-none shadow-sm text-sm text-slate-700 dark:text-slate-200 border border-slate-100 dark:border-slate-600">
-                    您好！我是您的搜尋助手。關於目前的搜尋結果或 Microsoft 合作夥伴計畫，有什麼想問的嗎？
+                    您好！我是您的搜尋助手。關於目前的搜尋結果，有什麼想問的嗎？
                 </div>
             `;
             messagesDiv.appendChild(welcomeDiv);
 
-            fetchInitialSuggestions();
+            // fetchInitialSuggestions();
         });
     }
 
