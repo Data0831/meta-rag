@@ -1,7 +1,7 @@
 import os
 import json
 import datetime
-from typing import Any, Dict
+from typing import Any, Dict, List
 from src.config import LOG_BASE_DIR
 from src.tool.ANSI import print_red
 
@@ -11,7 +11,8 @@ class LogManager:
         "client": "client",
         "search": "search",
         "chat": "chat",
-        "feedback": "feedback"
+        "feedback": "feedback",
+        "embedding": "embedding"
     }
 
     @staticmethod
@@ -104,3 +105,46 @@ class LogManager:
             "search_params": feedback_data.get("search_params", {}),
         }
         LogManager._write_log("feedback", log_entry)
+
+    @staticmethod
+    def _write_log_batch(log_type: str, log_entries: List[Dict[str, Any]]):
+        if not log_entries:
+            return
+
+        try:
+            log_file = LogManager._get_log_file_path(log_type)
+            logs = []
+
+            if os.path.exists(log_file):
+                try:
+                    with open(log_file, "r", encoding="utf-8") as f:
+                        logs = json.load(f)
+                        if not isinstance(logs, list):
+                            logs = []
+                except:
+                    logs = []
+
+            logs.extend(log_entries)
+
+            with open(log_file, "w", encoding="utf-8") as f:
+                json.dump(logs, f, indent=2, ensure_ascii=False)
+
+        except Exception as e:
+            print_red(f"Warning: Failed to write {log_type} log batch: {e}")
+
+    @staticmethod
+    def log_embedding(text: str, error: str, model: str, index: int = None):
+        log_entry = {
+            "timestamp": datetime.datetime.now().isoformat(),
+            "text": text,
+            "error": error,
+            "model": model,
+        }
+        if index is not None:
+            log_entry["index"] = index
+
+        LogManager._write_log("embedding", log_entry)
+
+    @staticmethod
+    def log_embedding_batch(errors: List[Dict[str, Any]]):
+        LogManager._write_log_batch("embedding", errors)
