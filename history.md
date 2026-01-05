@@ -49,3 +49,9 @@
 ### 2026-01-05 向量生成日誌整合 (Embedding Log Integration)
 - **LogManager 擴展**：新增第五類日誌 `embedding`，實作 `log_embedding()` 單筆記錄與 `log_embedding_batch()` 批次記錄方法，支援向量生成錯誤的完整上下文（text/error/model/index）。新增內部方法 `_write_log_batch()` 提供批次寫入能力，日誌儲存至 `data_logs/embedding/log_YYYYMMDD_HH.json`。
 - **向量工具重構**：移除 `src/database/vector_utils.py` 中的獨立日誌系統（`ERROR_LOG_DIR` 常數與 `log_embedding_error()` 函數），改用 `LogManager.log_embedding()` 統一管理。在 `get_embeddings_batch()` 與 `get_embedding()` 兩處錯誤處理邏輯中整合新日誌方法，確保向量生成失敗時自動記錄至統一日誌系統，提升系統可追溯性與維護性。
+
+### 2026-01-05 前端錯誤處理優化 (Frontend Error Handling Enhancement)
+- **錯誤顯示模組化**：於 `src/static/js/search-logic.js` 新增 `error_display()` 函數，封裝錯誤標題映射與 HTML 生成邏輯，接收 `error_stage` 和 `error` 參數，返回結構化的 `{title, content}` 物件，取代原本 36 行內嵌邏輯。
+- **統一錯誤格式**：修改 `src/app.py` 的 `/api/chat` 與 `/api/search` 端點字數限制錯誤返回，統一為 `{status: "failed", error_stage: "input_validation", error: "..."}`，並於前端 `error_display()` 新增 `input_validation` 類型映射為「輸入驗證失敗」，確保後端錯誤與前端顯示格式一致。
+- **HTTP 錯誤處理升級**：重構 `src/static/js/api.js` 的 `performSearchStream()` 錯誤捕獲邏輯，解析 HTTP 400 錯誤的 JSON 內容，將完整錯誤資訊附加至 `Error.errorData`，使 `search-logic.js` 能透過 `error_display()` 統一處理流式錯誤與 HTTP 錯誤，提升錯誤顯示一致性。
+- **反饋按鈕條件顯示**：為 `src/templates/index.html` 的反饋容器添加 `feedbackContainer` ID，於 `search-logic.js` 實作條件控制邏輯：搜尋成功完成（`stage: "complete"`）時顯示，任何錯誤發生時（流式錯誤或 catch 錯誤）隱藏，確保用戶僅能對成功的搜尋結果提供反饋，避免對錯誤狀態誤操作。
