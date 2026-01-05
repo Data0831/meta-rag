@@ -27,3 +27,8 @@
 
 ### 2026-01-02 搜尋服務模組化重構 (Search Service Modularization)
 - **搜尋服務層重構**：將 `src/services/search_service.py` 的 `search()` 方法（234 行）重構為模組化架構，拆分為 8 個職責單一的內部方法：服務初始化檢查、意圖解析、查詢候選構建、過濾器表達式構建、單查詢參數構建、結果去重、重排與合併、響應構建。主方法精簡至 72 行，採用異常拋出策略由主函數統一處理，對外 API 契約完全不變。提升程式碼可讀性、可測試性與可維護性，向後兼容現有測試。
+
+### 2026-01-02 向量生成效能優化 (Vectorization Performance Optimization)
+- **非同步批次處理 (Async Batch Embedding)**：優化 `src/database/vector_utils.py`，新增 `get_embeddings_batch` 函數，結合 Ollama AsyncClient 與 `asyncio.gather` 實作並行批次向量生成，顯著提升 ETL 資料處理量。
+- **錯誤紀錄機制 (Error Logging)**：實作向量生成錯誤持久化邏輯，自動紀錄失敗資訊於 `src/error_log/` 目錄下之 JSON 檔案，確保資料處理過程具備可追溯性。
+- **ETL 流程加速**：升級 `data/vectorPreprocessing.py`，全面改用批次處理替代逐條生成，優化全庫索引重構之效率。

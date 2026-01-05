@@ -1,6 +1,7 @@
 import os
 import sys
 import json
+import asyncio
 from typing import List
 from dotenv import load_dotenv
 
@@ -21,7 +22,7 @@ from src.database.db_adapter_meili import (
     transform_doc_for_meilisearch,
     transform_doc_metadata_only,
 )
-from src.database.vector_utils import get_embedding
+from src.database.vector_utils import get_embedding, get_embeddings_batch
 from src.tool.ANSI import print_red, print_green, print_yellow
 
 load_dotenv()
@@ -29,7 +30,7 @@ load_dotenv()
 REMOVE_JSON = os.path.join(os.path.dirname(__file__), "remove.json")
 BATCH_SIZE = 100
 
-MEILISEARCH_INDEX = "announcements_v4"
+MEILISEARCH_INDEX = "announcements"
 
 
 def load_processed_data() -> List[AnnouncementDoc]:
@@ -92,15 +93,14 @@ def clear_all():
     print("✓ Meilisearch index cleared.")
 
 
-def process_and_write():
+async def async_process_and_write():
     """
-    Process documents and write to Meilisearch.
+    Process documents and write to Meilisearch with async pipeline.
     - Load parse.json
-    - Generate embeddings
-    - Transform to Meilisearch format
-    - Upsert to Meilisearch
+    - Generate embeddings in batches
+    - Transform and Upsert concurrently
     """
-    print("\n--- Processing and Writing Data ---")
+    print("\n--- Processing and Writing Data (Async Pipeline) ---")
     docs = load_processed_data()
     if not docs:
         print("No documents to process.")
@@ -108,47 +108,55 @@ def process_and_write():
 
     print(f"Loaded {len(docs)} documents.")
 
-    # Initialize Meilisearch adapter
     adapter = MeiliAdapter(
         host=MEILISEARCH_HOST,
         api_key=MEILISEARCH_API_KEY,
         collection_name=MEILISEARCH_INDEX,
     )
 
-    # 1. Generate Embeddings and Transform Documents
-    print("Generating embeddings and transforming documents...")
-    meili_docs = []
+    # Use a larger batch for better GPU utilization
+    PROCESS_BATCH_SIZE = 200
+    print(
+        f"Generating embeddings and transforming documents (Batch size: {PROCESS_BATCH_SIZE})..."
+    )
 
-    for i, doc in enumerate(docs):
-        text = doc.cleaned_content
-        embedding_result = get_embedding(text)
+    # This queue-like logic allows starting next embedding while Meilisearch is working
+    for i in range(0, len(docs), PROCESS_BATCH_SIZE):
+        batch_docs = docs[i : i + PROCESS_BATCH_SIZE]
+        texts = [doc.cleaned_content for doc in batch_docs]
 
-        if embedding_result.get("status") == "success":
-            vector = embedding_result.get("result")
-            meili_doc = transform_doc_for_meilisearch(doc, vector)
-            meili_docs.append(meili_doc)
-        else:
-            error_msg = embedding_result.get("error", "Unknown error")
-            print(f"⚠ Failed to generate embedding for doc: {doc.title}")
-            print(f"  Error: {error_msg}")
+        print(
+            f"  Batch {i//PROCESS_BATCH_SIZE + 1}: Generating embeddings for {len(texts)} docs..."
+        )
 
-        if (i + 1) % 10 == 0:
-            print(f"  Processed {i + 1}/{len(docs)}")
+        # We use high concurrency to hammer the GPU
+        embedding_results = await get_embeddings_batch(
+            texts, sub_batch_size=10, max_concurrency=10
+        )
 
-        # Batch upsert to save memory
-        if len(meili_docs) >= BATCH_SIZE:
-            print(f"  Sending batch of {len(meili_docs)} documents to Meilisearch...")
+        meili_docs = []
+        for j, res in enumerate(embedding_results):
+            doc = batch_docs[j]
+            if res.get("status") == "success":
+                vector = res.get("result")
+                meili_doc = transform_doc_for_meilisearch(doc, vector)
+                meili_docs.append(meili_doc)
+            else:
+                error_msg = res.get("error", "Unknown error")
+                print_red(
+                    f"⚠ Failed to generate embedding for doc index {i+j}: {doc.title}"
+                )
+                print_red(f"  Error: {error_msg}")
+
+        if meili_docs:
+            print(
+                f"  Batch {i//PROCESS_BATCH_SIZE + 1}: Syncing {len(meili_docs)} docs to Meilisearch..."
+            )
+            # Meilisearch upsert is fast but we call it synchronously through adapter for safety
+            # If we wanted to go faster, we could wrap this in a thread or task
             adapter.upsert_documents(meili_docs)
-            meili_docs = []
 
-    # Final upsert for remaining documents
-    if meili_docs:
-        print(f"  Sending final batch of {len(meili_docs)} documents to Meilisearch...")
-        adapter.upsert_documents(meili_docs)
-    else:
-        if not docs:
-            print("No documents to process.")
-            return
+        print(f"  Processed {min(i + PROCESS_BATCH_SIZE, len(docs))}/{len(docs)}")
 
     # 3. Show index stats
     print("\n--- Index Statistics ---")
@@ -160,6 +168,11 @@ def process_and_write():
         )
 
     print("\n✓ Done.")
+
+
+def process_and_write():
+    """Wrapper to run the async version."""
+    asyncio.run(async_process_and_write())
 
 
 def delete_by_ids():
@@ -187,8 +200,8 @@ def delete_by_ids():
             print_yellow(f"  - ID: {doc_id}")
 
 
-def add_new_documents():
-    print("\n--- Adding New Documents ---")
+async def async_add_new_documents():
+    print("\n--- Adding New Documents (Async Pipeline) ---")
     docs = load_processed_data()
     if not docs:
         print_yellow("No documents to process.")
@@ -209,36 +222,55 @@ def add_new_documents():
     print(f"Found {len(new_docs)} new documents to add")
     if len(docs) - len(new_docs) > 0:
         print_yellow(f"Skipping {len(docs) - len(new_docs)} existing documents")
-    print("Generating embeddings and transforming new documents...")
-    meili_docs = []
-    for i, doc in enumerate(new_docs):
-        text = doc.cleaned_content
-        embedding_result = get_embedding(text)
-        if embedding_result.get("status") == "success":
-            vector = embedding_result.get("result")
-            meili_doc = transform_doc_for_meilisearch(doc, vector)
-            meili_docs.append(meili_doc)
-        else:
-            error_msg = embedding_result.get("error", "Unknown error")
-            print_red(f"⚠ Failed to generate embedding for doc: {doc.title}")
-            print_red(f"  Error: {error_msg}")
-        if (i + 1) % 10 == 0:
-            print(f"  Processed {i + 1}/{len(new_docs)}")
 
-        # Batch upsert to save memory
-        if len(meili_docs) >= BATCH_SIZE:
-            print(f"  Sending batch of {len(meili_docs)} documents to Meilisearch...")
+    PROCESS_BATCH_SIZE = 200
+    print(
+        f"Generating embeddings and transforming new documents (Batch size: {PROCESS_BATCH_SIZE})..."
+    )
+
+    for i in range(0, len(new_docs), PROCESS_BATCH_SIZE):
+        batch_docs = new_docs[i : i + PROCESS_BATCH_SIZE]
+        texts = [doc.cleaned_content for doc in batch_docs]
+
+        print(
+            f"  Batch {i//PROCESS_BATCH_SIZE + 1}: Generating embeddings for {len(texts)} docs..."
+        )
+
+        # High concurrency to hammer GPU
+        embedding_results = await get_embeddings_batch(
+            texts, sub_batch_size=10, max_concurrency=10
+        )
+
+        meili_docs = []
+        for j, res in enumerate(embedding_results):
+            doc = batch_docs[j]
+            if res.get("status") == "success":
+                vector = res.get("result")
+                meili_doc = transform_doc_for_meilisearch(doc, vector)
+                meili_docs.append(meili_doc)
+            else:
+                error_msg = res.get("error", "Unknown error")
+                print_red(
+                    f"⚠ Failed to generate embedding for doc index {i+j}: {doc.title}"
+                )
+                print_red(f"  Error: {error_msg}")
+
+        if meili_docs:
+            print(
+                f"  Batch {i//PROCESS_BATCH_SIZE + 1}: Syncing {len(meili_docs)} docs to Meilisearch..."
+            )
             adapter.upsert_documents(meili_docs)
-            meili_docs = []
 
-    # Final upsert for remaining documents
-    if meili_docs:
-        print(f"  Sending final batch of {len(meili_docs)} documents to Meilisearch...")
-        adapter.upsert_documents(meili_docs)
-        print_green(f"\n✓ Successfully added documents.")
-    else:
-        print_yellow("No valid documents with embeddings to insert.")
-        return
+        print(
+            f"  Processed {min(i + PROCESS_BATCH_SIZE, len(new_docs))}/{len(new_docs)}"
+        )
+
+    print_green("\n✓ Successfully added documents.")
+
+
+def add_new_documents():
+    """Wrapper to run the async version."""
+    asyncio.run(async_add_new_documents())
 
 
 def auto_sync():
