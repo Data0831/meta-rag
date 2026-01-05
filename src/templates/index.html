@@ -151,6 +151,42 @@
           max="100" min="0" type="range" value="0" />
         <p class="text-xs text-slate-500 dark:text-slate-400">相似度低於此值結果將以暗淡效果顯示</p>
       </div>
+
+      <div class="bg-card-light dark:bg-card-dark rounded-xl p-5 shadow-sm transition-colors duration-300 space-y-3">
+        <div class="flex items-center justify-between mb-2">
+          <div class="flex items-center space-x-2 text-slate-700 dark:text-slate-200">
+            <span class="material-icons-round text-xl">library_books</span>
+            <h3 class="font-bold">資料來源</h3>
+          </div>
+          <div class="flex items-center space-x-2">
+            <label class="text-xs text-slate-500 dark:text-slate-400 cursor-pointer select-none"
+              for="selectAllSources">全選</label>
+            <input id="selectAllSources" type="checkbox" checked
+              class="w-4 h-4 text-primary bg-white dark:bg-slate-700 border-slate-300 dark:border-slate-500 rounded focus:ring-primary transition-colors cursor-pointer" />
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 gap-3" id="sourceCheckboxList">
+        </div>
+      </div>
+      <div class="bg-card-light dark:bg-card-dark rounded-xl p-5 shadow-sm transition-colors duration-300 space-y-4">
+        <div class="flex items-center space-x-2 text-slate-700 dark:text-slate-200 mb-2">
+          <span class="material-icons-round text-xl">schedule</span>
+          <h3 class="font-bold">時間範圍</h3>
+        </div>
+        <div>
+          <p class="text-xs font-medium text-slate-600 dark:text-slate-300 mb-2">開始月份</p>
+          <input id="startDateInput" min="2023-01"
+            class="w-full bg-white dark:bg-slate-700 border-none rounded-lg py-2 px-3 text-sm text-slate-600 dark:text-slate-200 focus:ring-2 focus:ring-primary shadow-sm"
+            type="month" />
+        </div>
+        <div>
+          <p class="text-xs font-medium text-slate-600 dark:text-slate-300 mb-2">結束月份</p>
+          <input id="endDateInput" min="2023-01"
+            class="w-full bg-white dark:bg-slate-700 border-none rounded-lg py-2 px-3 text-sm text-slate-600 dark:text-slate-200 focus:ring-2 focus:ring-primary shadow-sm"
+            type="month" />
+        </div>
+      </div>
       <div class="bg-card-light dark:bg-card-dark rounded-xl p-5 shadow-sm transition-colors duration-300 space-y-4">
         <div class="flex items-center space-x-2 text-slate-700 dark:text-slate-200 mb-2">
           <span class="material-icons-round text-xl">settings</span>
@@ -195,75 +231,6 @@
             for="enableKeywordWeightRerankCheckbox">啟用關鍵字加權算法</label>
         </div>
       </div>
-      <div class="bg-card-light dark:bg-card-dark rounded-xl p-5 shadow-sm transition-colors duration-300 space-y-3">
-        <div class="flex items-center justify-between mb-2">
-          <div class="flex items-center space-x-2 text-slate-700 dark:text-slate-200">
-            <span class="material-icons-round text-xl">library_books</span>
-            <h3 class="font-bold">資料來源</h3>
-          </div>
-          <div class="flex items-center space-x-2">
-            <label class="text-xs text-slate-500 dark:text-slate-400 cursor-pointer select-none"
-              for="selectAllSources">全選</label>
-            <input id="selectAllSources" type="checkbox" checked
-              class="w-4 h-4 text-primary bg-white dark:bg-slate-700 border-slate-300 dark:border-slate-500 rounded focus:ring-primary transition-colors cursor-pointer" />
-          </div>
-        </div>
-
-        <div class="grid grid-cols-1 gap-3" id="sourceCheckboxList">
-          <label class="flex items-center space-x-3 cursor-pointer group">
-            <input type="checkbox" name="source_checkbox" value="partner_center" checked
-              class="source-item w-4 h-4 text-primary bg-white dark:bg-slate-700 border-slate-300 dark:border-slate-500 rounded focus:ring-primary transition-colors group-hover:border-primary" />
-            <span class="text-sm text-slate-600 dark:text-slate-300 group-hover:text-primary transition-colors">Partner
-              Center</span>
-          </label>
-
-          <label class="flex items-center space-x-3 cursor-pointer group">
-            <input type="checkbox" name="source_checkbox" value="azure_update" checked
-              class="source-item w-4 h-4 text-primary bg-white dark:bg-slate-700 border-slate-300 dark:border-slate-500 rounded focus:ring-primary transition-colors group-hover:border-primary" />
-            <span class="text-sm text-slate-600 dark:text-slate-300 group-hover:text-primary transition-colors">Azure
-              Updates</span>
-          </label>
-
-          <label class="flex items-center space-x-3 cursor-pointer group">
-            <input type="checkbox" name="source_checkbox" value="m365_roadmap" checked
-              class="source-item w-4 h-4 text-primary bg-white dark:bg-slate-700 border-slate-300 dark:border-slate-500 rounded focus:ring-primary transition-colors group-hover:border-primary" />
-            <span class="text-sm text-slate-600 dark:text-slate-300 group-hover:text-primary transition-colors">M365
-              Roadmap</span>
-          </label>
-
-          <label class="flex items-center space-x-3 cursor-pointer group">
-            <input type="checkbox" name="source_checkbox" value="windows_message_center" checked
-              class="source-item w-4 h-4 text-primary bg-white dark:bg-slate-700 border-slate-300 dark:border-slate-500 rounded focus:ring-primary transition-colors group-hover:border-primary" />
-            <span class="text-sm text-slate-600 dark:text-slate-300 group-hover:text-primary transition-colors">Windows
-              Message</span>
-          </label>
-
-          <label class="flex items-center space-x-3 cursor-pointer group">
-            <input type="checkbox" name="source_checkbox" value="powerbi_blog" checked
-              class="source-item w-4 h-4 text-primary bg-white dark:bg-slate-700 border-slate-300 dark:border-slate-500 rounded focus:ring-primary transition-colors group-hover:border-primary" />
-            <span class="text-sm text-slate-600 dark:text-slate-300 group-hover:text-primary transition-colors">PowerBI
-              Blog</span>
-          </label>
-        </div>
-      </div>
-      <div class="bg-card-light dark:bg-card-dark rounded-xl p-5 shadow-sm transition-colors duration-300 space-y-4">
-        <div class="flex items-center space-x-2 text-slate-700 dark:text-slate-200 mb-2">
-          <span class="material-icons-round text-xl">schedule</span>
-          <h3 class="font-bold">時間範圍</h3>
-        </div>
-        <div>
-          <p class="text-xs font-medium text-slate-600 dark:text-slate-300 mb-2">開始月份</p>
-          <input id="startDateInput" min="2023-01"
-            class="w-full bg-white dark:bg-slate-700 border-none rounded-lg py-2 px-3 text-sm text-slate-600 dark:text-slate-200 focus:ring-2 focus:ring-primary shadow-sm"
-            type="month" />
-        </div>
-        <div>
-          <p class="text-xs font-medium text-slate-600 dark:text-slate-300 mb-2">結束月份</p>
-          <input id="endDateInput" min="2023-01"
-            class="w-full bg-white dark:bg-slate-700 border-none rounded-lg py-2 px-3 text-sm text-slate-600 dark:text-slate-200 focus:ring-2 focus:ring-primary shadow-sm"
-            type="month" />
-        </div>
-      </div>
     </div>
   </aside>
 
@@ -287,8 +254,11 @@
               <span
                 class="material-icons-round text-3xl text-slate-400 group-focus-within:text-primary transition-colors">search</span>
             </div>
-            <input id="searchInput" class="w-full pl-14 pr-6 py-4 rounded-full border-2 border-primary/30 dark:border-primary/50 bg-white dark:bg-slate-800 text-lg shadow-soft focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all dark:text-white 
+            <input id="searchInput" class="w-full pl-14 pr-24 py-4 rounded-full border-2 border-primary/30 dark:border-primary/50 bg-white dark:bg-slate-800 text-lg shadow-soft focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all dark:text-white
                    placeholder-slate-400 dark:placeholder-slate-800" placeholder="例如：2025 年 4 月份價格相關公告" type="text" />
+            <div id="searchCharCount" class="absolute inset-y-0 right-0 pr-6 flex items-center pointer-events-none">
+              <span class="text-xs text-slate-400 dark:text-slate-500">0/100</span>
+            </div>
           </div>
           <button id="infoBtn"
             class="flex items-center justify-center w-10 h-10 rounded-full text-[#5f8595] hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors flex-shrink-0"
@@ -504,6 +474,9 @@
           </div>
 
           <div class="p-4 bg-white dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700">
+            <div class="mb-1 px-1 flex justify-end">
+              <span id="chatCharCount" class="text-xs text-slate-400 dark:text-slate-500">0/500</span>
+            </div>
             <div class="flex gap-2">
               <input id="chatInput" type="text"
                 class="flex-1 bg-slate-100 dark:bg-slate-700 border-none rounded-lg py-2 px-3 text-sm focus:ring-2 focus:ring-primary shadow-inner dark:text-white"

@@ -4,6 +4,8 @@ import { showLoading, showError, hideAllStates } from './ui.js';
 import { renderResults } from './render.js';
 import { renderStructuredSummary } from './citation.js';
 import { getSelectedSources } from './search-config.js';
+import { appConfig } from './config.js';
+import { showAlert } from './alert.js';
 
 export function setupEventListeners(performSearchCallback) {
     DOM.searchIconBtn.addEventListener('click', performSearchCallback);
@@ -12,6 +14,27 @@ export function setupEventListeners(performSearchCallback) {
             performSearchCallback();
         }
     });
+
+    const searchCharCount = document.getElementById('searchCharCount');
+    if (searchCharCount && DOM.searchInput) {
+        DOM.searchInput.addEventListener('input', () => {
+            const currentLength = DOM.searchInput.value.length;
+            const maxLength = appConfig.maxSearchInputLength;
+            const countSpan = searchCharCount.querySelector('span');
+
+            if (countSpan) {
+                countSpan.textContent = `${currentLength}/${maxLength}`;
+
+                if (currentLength > maxLength) {
+                    countSpan.classList.add('text-red-500', 'font-bold');
+                    countSpan.classList.remove('text-slate-400', 'dark:text-slate-500');
+                } else {
+                    countSpan.classList.remove('text-red-500', 'font-bold');
+                    countSpan.classList.add('text-slate-400', 'dark:text-slate-500');
+                }
+            }
+        });
+    }
 }
 
 function error_display(error_stage, error) {
@@ -59,6 +82,11 @@ export async function performSearch() {
     if (!query) {
         console.warn('⚠️ Empty query');
         showError('請輸入搜尋查詢');
+        return;
+    }
+
+    if (query.length > appConfig.maxSearchInputLength) {
+        showAlert(`搜尋字數超過 ${appConfig.maxSearchInputLength} 字限制，請縮短查詢`, 'warning');
         return;
     }
 

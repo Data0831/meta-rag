@@ -5,11 +5,12 @@ import { setupEventListeners, performSearch } from './search-logic.js';
 import { setupChatbot } from './chatbot.js';
 import { setupSidebar, setupChatbotToggle } from './sidebar.js';
 import { setupAnnouncement } from './announcement.js';
+import { setupSources } from './sources.js';
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
     console.log('Collection Search initialized');
 
-    loadBackendConfig();
+    await loadBackendConfig();
 
     setupEventListeners(performSearch);
     setupSearchConfig();
@@ -17,6 +18,7 @@ document.addEventListener('DOMContentLoaded', () => {
     setupFeedbackButtons();
     setupSidebar();
     setupChatbotToggle();
+    setupSources();
 });
 
 window.addEventListener('load', () => {

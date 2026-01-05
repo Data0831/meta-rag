@@ -53,3 +53,16 @@
 - **精確命中比例計算**：修正 `ResultReranker` 重複計分問題，將演算法優化為「唯一關鍵字命中數 / 總關鍵字數」比例模型。透過預先去重關鍵字清單並整合標題與內文命中判定，確保單一概念不因多次出現或欄位重複而過度加分，提升搜尋結果排序的穩定性與合理性。
 - **測試驅動驗證**：建立 `test/test_keyword_rerank.py` 單元測試集，涵蓋關鍵字去重、部分命中、標題/內容單次計分及分數梯級加權等核心邏輯，確保加權機制在各種搜尋情境下均符合預期。
 
+### 2026-01-05 資料來源配置動態化 (Data Source Configuration Dynamization)
+- **後端配置定義**：於 `config.py` 新增 `AVAILABLE_SOURCES` 列表，將資料來源（Partner Center / Azure Updates / M365 Roadmap / Windows Message / PowerBI Blog）集中定義為結構化資料（value / label / default_checked），透過 `/api/config` 端點傳送至前端。
+- **前端動態渲染**：建立 `sources.js` 模組實作 `setupSources()` 函數，從 `appConfig.sources` 動態生成資料來源 checkbox，取代 `index.html` 中硬編碼的 36 行靜態 HTML。擴充 `config.js` 的 `appConfig` 物件支援 sources / announcements / websites 配置，並在 `search.js` 主入口以 async/await 確保配置載入完成後再渲染。
+- **配置集中管理**：實現資料來源完全由後端 `AVAILABLE_SOURCES` 控制，新增或調整來源僅需修改配置檔無需變動前端程式碼，提升系統配置靈活性與維護效率。
+
+### 2026-01-05 輸入長度限制與即時字數顯示 (Input Length Validation & Real-time Character Counter)
+- **後端配置傳遞**：在 `/api/config` 端點新增 `max_search_input_length` (100) 與 `max_chat_input_length` (500) 兩項配置，供前端動態接收。於 `config.js` 的 `appConfig` 擴充對應欄位並在 `loadBackendConfig()` 中同步更新。
+- **即時字數顯示**：於 `index.html` 搜尋框與聊天框新增字數顯示元素（`searchCharCount` / `chatCharCount`），在 `search-logic.js` 與 `chatbot.js` 中綁定 `input` 事件監聽，即時更新顯示格式（例如 `85/100`），超過限制時文字變為紅色加粗。
+- **送出前驗證與攔截**：於 `performSearch()` 與 `sendMessage()` 函數開頭檢查輸入長度，超過閾值時使用 `alert.js` 模組顯示友善提示（「搜尋字數超過 100 字限制，請縮短查詢」/ 「訊息字數超過 500 字限制，請縮短內容」）並阻止 API 請求發送，確保輸入合規性與後端穩定性。
+
+### 2026-01-05 搜尋精確度與 Agent 溝通優化 (Search Precision & Agent Communication Optimization)
+- **檢索與排序優化**：提升重試搜尋限額至 1.5 倍提高召回率；精確化關鍵字重排演算法為「唯一命中比例模型」，防止重複計分並提升排序穩定性。
+- **搜尋歷程紀錄**：實作子查詢全流程累計與排序回傳機制，確保前端能完整回溯包含重試階段的所有 AI 搜尋方向，提升思考歷程的一致性與透明度。

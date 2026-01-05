@@ -13,6 +13,14 @@ export const searchConfig = {
     endDate: null
 };
 
+export const appConfig = {
+    sources: [],
+    announcements: [],
+    websites: [],
+    maxSearchInputLength: 100,
+    maxChatInputLength: 500
+};
+
 /**
  * Fetch configuration from backend and update searchConfig
  */
@@ -77,7 +85,25 @@ export async function loadBackendConfig() {
             if (rerankCheckbox) rerankCheckbox.checked = config.enable_rerank;
         }
 
+        // Update App Config (sources, announcements, websites)
+        if (config.sources !== undefined) {
+            appConfig.sources = config.sources;
+        }
+        if (config.announcements !== undefined) {
+            appConfig.announcements = config.announcements;
+        }
+        if (config.websites !== undefined) {
+            appConfig.websites = config.websites;
+        }
+        if (config.max_search_input_length !== undefined) {
+            appConfig.maxSearchInputLength = config.max_search_input_length;
+        }
+        if (config.max_chat_input_length !== undefined) {
+            appConfig.maxChatInputLength = config.max_chat_input_length;
+        }
+
         console.log('Final Config:', searchConfig);
+        console.log('App Config:', appConfig);
     } catch (error) {
         console.error('Failed to load config:', error);
         console.log('Using default Config:', searchConfig);

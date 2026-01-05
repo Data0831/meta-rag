@@ -37,6 +37,7 @@ from src.config import (
     MAX_CHAT_INPUT_LENGTH,
     ANNOUNCEMENT_JSON,
     WEBSITE_JSON,
+    AVAILABLE_SOURCES,
 )
 from src.tool.ANSI import print_red
 from src.services.rag_service import RAGService
@@ -114,6 +115,9 @@ def get_config():
             "enable_rerank": ENABLE_KEYWORD_WEIGHT_RERANK,
             "announcements": announcements,
             "websites": websites,
+            "sources": AVAILABLE_SOURCES,
+            "max_search_input_length": MAX_SEARCH_INPUT_LENGTH,
+            "max_chat_input_length": MAX_CHAT_INPUT_LENGTH,
         }
     )
 

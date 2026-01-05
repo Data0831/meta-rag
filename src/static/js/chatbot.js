@@ -1,5 +1,6 @@
 import { currentResults } from './render.js';
-import { searchConfig } from './config.js';
+import { searchConfig, appConfig } from './config.js';
+import { showAlert } from './alert.js';
 
 export function setupChatbot() {
     const container = document.getElementById('chatbotContainer');
@@ -22,13 +23,26 @@ export function setupChatbot() {
         inputArea.insertBefore(suggestionsContainer, inputArea.firstChild);
     }
 
-    // --- [新增] 直接在 JS 設定輸入框最大長度，防止使用者輸入過多 ---
-    if (chatInput) {
-        chatInput.setAttribute('maxlength', '500');
-    }
-
     let isOpen = false;
     let chatHistory = [];
+
+    const chatCharCount = document.getElementById('chatCharCount');
+    if (chatCharCount && chatInput) {
+        chatInput.addEventListener('input', () => {
+            const currentLength = chatInput.value.length;
+            const maxLength = appConfig.maxChatInputLength;
+
+            chatCharCount.textContent = `${currentLength}/${maxLength}`;
+
+            if (currentLength > maxLength) {
+                chatCharCount.classList.add('text-red-500', 'font-bold');
+                chatCharCount.classList.remove('text-slate-400', 'dark:text-slate-500');
+            } else {
+                chatCharCount.classList.remove('text-red-500', 'font-bold');
+                chatCharCount.classList.add('text-slate-400', 'dark:text-slate-500');
+            }
+        });
+    }
 
     fetchInitialSuggestions();
 
@@ -110,6 +124,11 @@ export function setupChatbot() {
     async function sendMessage() {
         const text = chatInput.value.trim();
         if (!text) return;
+
+        if (text.length > appConfig.maxChatInputLength) {
+            showAlert(`訊息字數超過 ${appConfig.maxChatInputLength} 字限制，請縮短內容`, 'warning');
+            return;
+        }
 
         suggestionsContainer.innerHTML = '';
 

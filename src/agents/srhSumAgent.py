@@ -129,6 +129,7 @@ class SrhSumAgent:
             SCORE_PASS_THRESHOLD,
             get_score_min_threshold,
             FALLBACK_RESULT_COUNT,
+            MAX_SEARCH_LIMIT,
         )
 
         score_min = get_score_min_threshold()
@@ -137,6 +138,7 @@ class SrhSumAgent:
         collected_results = {}
         all_seen_ids = set()
         query_history = [query]
+        all_sub_queries = []
         yield {
             "status": "success",
             "stage": "searching",
@@ -163,6 +165,17 @@ class SrhSumAgent:
         initial_results = search_response.get("results", [])
 
         final_intent = search_response.get("intent", {})
+        if final_intent:
+            initial_sq = final_intent.get("sub_queries", [])
+            initial_kw = final_intent.get("keyword_query")
+            if initial_kw and initial_kw not in query_history:
+                query_history.append(initial_kw)
+            for sq in initial_sq:
+                if sq and sq not in all_sub_queries:
+                    all_sub_queries.append(sq)
+                if sq and sq not in query_history:
+                    query_history.append(sq)
+            final_intent["sub_queries"] = sorted(all_sub_queries)
 
         yield {
             "status": "success",
@@ -267,10 +280,12 @@ class SrhSumAgent:
                 "original_query": query,
             }
         retry_count = 0
+        current_limit = limit
         while retry_count < self.max_retries:
+            current_limit = min(int(limit * 1.5), MAX_SEARCH_LIMIT)
             search_response = self.tool.search(
                 query=query,
-                limit=limit,
+                limit=current_limit,
                 semantic_ratio=semantic_ratio,
                 enable_llm=enable_llm,
                 manual_semantic_ratio=manual_semantic_ratio,
@@ -282,14 +297,6 @@ class SrhSumAgent:
                 end_date=end_date,
             )
 
-            yield {
-                "status": "success",
-                "stage": "search_result",
-                "results": search_response.get("results", []),
-                "intent": search_response.get("intent", {}),
-                "meili_filter": search_response.get("meili_filter"),
-            }
-
             if search_response.get("status") == "success":
                 intent = search_response.get("intent", {})
                 final_intent = intent
@@ -298,8 +305,21 @@ class SrhSumAgent:
                 if kw and kw not in query_history:
                     query_history.append(kw)
                 for q in sq:
+                    if q and q not in all_sub_queries:
+                        all_sub_queries.append(q)
                     if q and q not in query_history:
                         query_history.append(q)
+                final_intent["sub_queries"] = sorted(all_sub_queries)
+
+            yield {
+                "status": "success",
+                "stage": "search_result",
+                "results": search_response.get("results", []),
+                "intent": final_intent,
+                "meili_filter": search_response.get("meili_filter"),
+            }
+
+            if search_response.get("status") == "success":
                 new_results = search_response.get("results", [])
                 if kw:
                     yield {
@@ -379,7 +399,7 @@ class SrhSumAgent:
                     list(collected_results.values()),
                     key=lambda x: x.get("_rerank_score", x.get("_rankingScore", 0)),
                     reverse=True,
-                )[:limit]
+                )[:current_limit]
                 summary_response = self.tool.summarize(query, final_results)
                 if summary_response.get("status") == "success":
                     yield {
@@ -409,7 +429,7 @@ class SrhSumAgent:
             list(collected_results.values()),
             key=lambda x: x.get("_rerank_score", x.get("_rankingScore", 0)),
             reverse=True,
-        )[:limit]
+        )[:current_limit]
         if final_results:
             summary_response = self.tool.summarize(query, final_results)
             if summary_response.get("status") == "success":
@@ -438,4 +458,5 @@ class SrhSumAgent:
                 },
                 "link_mapping": {},
                 "results": [],
+                "intent": final_intent,
             }

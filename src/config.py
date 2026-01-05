@@ -29,6 +29,20 @@ DEFAULT_SEMANTIC_RATIO = 0.5
 ENABLE_LLM = True
 MANUAL_SEMANTIC_RATIO = False
 ENABLE_KEYWORD_WEIGHT_RERANK = True
+MAX_SEARCH_INPUT_LENGTH = 100
+MAX_CHAT_INPUT_LENGTH = 500
+
+AVAILABLE_SOURCES = [
+    {"value": "partner_center", "label": "Partner Center", "default_checked": True},
+    {"value": "azure_update", "label": "Azure Updates", "default_checked": True},
+    {"value": "m365_roadmap", "label": "M365 Roadmap", "default_checked": True},
+    {
+        "value": "windows_message_center",
+        "label": "Windows Message",
+        "default_checked": True,
+    },
+    {"value": "powerbi_blog", "label": "PowerBI Blog", "default_checked": True},
+]
 
 # ============================================================================
 # Backend-only Configuration (not exposed to frontend)
@@ -36,8 +50,7 @@ ENABLE_KEYWORD_WEIGHT_RERANK = True
 PRE_SEARCH_LIMIT = 50
 NO_HIT_PENALTY_FACTOR = 0.15
 KEYWORD_HIT_BOOST_FACTOR = 0.60
-MAX_SEARCH_INPUT_LENGTH = 100
-MAX_CHAT_INPUT_LENGTH = 500
+
 FALLBACK_RESULT_COUNT = 2
 SEARCH_MAX_RETRIES = 1
 

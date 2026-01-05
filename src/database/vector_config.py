@@ -11,8 +11,8 @@ RTX_4050_6G: Dict[str, Any] = {
 # 2. 高核心 CPU 組: 16 實體線程 + 64GB RAM
 # 核心策略: 頻率較低但核心數多且記憶體充足，以高併發 (High Concurrency) 為主，並降低單次 Batch 大小以減少 CPU 壓力
 CPU_16C_64G: Dict[str, Any] = {
-    "sub_batch_size": 4,
-    "max_concurrency": 8,
+    "sub_batch_size": 8,
+    "max_concurrency": 12,
     "force_gpu": False,
 }
 
