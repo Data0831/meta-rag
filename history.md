@@ -66,3 +66,7 @@
 ### 2026-01-05 搜尋精確度與 Agent 溝通優化 (Search Precision & Agent Communication Optimization)
 - **檢索與排序優化**：提升重試搜尋限額至 1.5 倍提高召回率；精確化關鍵字重排演算法為「唯一命中比例模型」，防止重複計分並提升排序穩定性。
 - **搜尋歷程紀錄**：實作子查詢全流程累計與排序回傳機制，確保前端能完整回溯包含重試階段的所有 AI 搜尋方向，提升思考歷程的一致性與透明度。
+
+### 2026-01-05 版本號與日期範圍配置動態化 (Version & Date Range Configuration Dynamization)
+- **版本號動態化**：於 `config.py` 新增 `APP_VERSION` 常數，透過 `/api/config` 端點傳送至前端，`config.js` 自動更新 `index.html` 側邊欄版本顯示，實現版本號統一管理。
+- **日期範圍配置**：新增 `DATE_RANGE_MIN` 配置項控制最小可選月份，後端 `app.py` 動態計算當前年月作為 `date_range_max`，前端 `config.js` 接收後自動設置日期輸入框的 `min`/`max` 屬性，移除 `index.html` 硬編碼值。兩項配置均實現集中管理，未來僅需修改 `config.py` 即可全系統同步。
