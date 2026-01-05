@@ -1,5 +1,5 @@
 import { loadBackendConfig } from './config.js';
-import { toggleResult, toggleIntentDetails } from './render.js';
+import { toggleResult, toggleIntentDetails, setupFeedbackButtons } from './render.js';
 import { setupSearchConfig } from './search-config.js';
 import { setupEventListeners, performSearch } from './search-logic.js';
 import { setupChatbot } from './chatbot.js';
@@ -12,6 +12,7 @@ document.addEventListener('DOMContentLoaded', () => {
     setupEventListeners(performSearch);
     setupSearchConfig();
     setupChatbot();
+    setupFeedbackButtons();
 });
 
 window.toggleResult = toggleResult;

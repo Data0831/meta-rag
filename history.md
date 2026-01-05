@@ -35,3 +35,8 @@
 ### 2026-01-05 硬體感知向量生成優化 (Hardware-Aware Vectorization Optimization)
 - **硬體配置管理 (Dynamic Hardware Profiles)**：新增 `src/database/vector_config.py`，定義三套針對不同硬體環境（RTX 4050、16核 CPU、2c4t 低階設備）的向量生成參數模組。透過精確控制 `sub_batch_size` 與 `max_concurrency`，在高效能 GPU 上壓榨矩陣運算潛力，並在極低階設備上採取保守策略以防止記憶體溢出，兼顧效能與系統穩定性。
 - **ETL 流程場景化切換**：重構 `data_update/vectorPreprocessing.py`，實作互動式硬體 Profile 選擇機制。在 `VectorPreProcessor` 中注入硬體感知參數，讓資料預處理流程能根據運算資源動態調整 Batch 大小與併發數。此優化大幅提升了系統在不同開發環境下的適配彈性，確保資料重構任務能以最優化路徑執行。
+
+### 2026-01-05 統一日誌管理系統 (Unified Logging System)
+- **LogManager 核心實作**：建立 `src/log/logManager.py` 統一管理三類日誌（client/search/chat），採用 JSON 格式與按小時分檔機制（`log_{YYYYMMDD_HH}.json`），日誌主目錄 `LOG_BASE_DIR` 可透過 `config.py` 環境變數配置（預設 `data_logs`），子目錄（client/search/chat）寫死於系統架構。
+- **LLM 日誌遷移**：重構 `src/llm/client.py` 的 `_log_request()` 方法，移除手動日誌寫入邏輯，改為呼叫 `LogManager.log_client()`，簡化程式碼並確保日誌格式一致性。
+- **API 端點日誌整合**：在 `src/app.py` 的 `/api/search` 與 `/api/chat` endpoint 整合日誌記錄，收集請求 IP（`request.remote_addr`）、完整 Headers、請求參數與回應結果。對於 streaming response，實作累積機制確保完整記錄所有階段回應。所有日誌寫入失敗僅透過 `print_red` 發出警告，不影響主流程，確保系統可追溯性與穩定性。

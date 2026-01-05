@@ -10,3 +10,5 @@ src/src/logs/*
 task/*
 docs/vault
 .venv
+GEMINI.md
+CLAUDE.md

@@ -6,6 +6,7 @@ load_dotenv()
 # Base directories
 DATA_DIR = "data_update"
 DATABASE_DIR = "database"
+LOG_BASE_DIR = os.getenv("LOG_BASE_DIR", "data_logs")
 
 # Data subdirectories
 DATA_JSON = os.path.join(DATA_DIR, "data.json")

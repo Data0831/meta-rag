@@ -62,3 +62,39 @@ export async function performSearchStream(query, selectedWebsites = []) {
     return response;
 }
 
+/**
+ * Send user feedback (positive/negative)
+ * @param {string} feedbackType - "positive" or "negative"
+ * @param {string} query - User's search query
+ * @param {Object} searchParams - Search parameters used
+ * @returns {Promise<Object>} - Response data
+ */
+export async function sendFeedback(feedbackType, query, searchParams = {}) {
+    console.log('Sending feedback...');
+    console.log('  Type:', feedbackType);
+    console.log('  Query:', query);
+    console.log('  Params:', searchParams);
+
+    const requestBody = {
+        feedback_type: feedbackType,
+        query: query,
+        search_params: searchParams
+    };
+
+    const response = await fetch('/api/feedback', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(requestBody)
+    });
+
+    if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Feedback API Error:', errorText);
+        throw new Error('反饋提交失敗');
+    }
+
+    return await response.json();
+}
+

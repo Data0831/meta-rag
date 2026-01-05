@@ -7,6 +7,7 @@ from openai import AzureOpenAI, APIError, APIStatusError
 from dotenv import load_dotenv
 from pydantic import BaseModel, ValidationError
 from src.tool.ANSI import print_red
+from src.log.logManager import LogManager
 
 load_dotenv()
 
@@ -67,41 +68,13 @@ class LLMClient:
         response_format: dict,
         model: str,
     ):
-        try:
-            log_dir = os.path.join(project_root, "logs")
-            if not os.path.exists(log_dir):
-                os.makedirs(log_dir)
-
-            log_entry = {
-                "timestamp": datetime.datetime.now().isoformat(),
-                "model": model or self.model,
-                "temperature": temperature,
-                "messages": messages,
-                "response_format": response_format,
-                "response": response_content,
-            }
-
-            log_file = os.path.join(
-                log_dir,
-                "log_{}.json".format(datetime.datetime.now().strftime("%Y%m%d_%H")),
-            )
-            logs = []
-            if os.path.exists(log_file):
-                try:
-                    with open(log_file, "r", encoding="utf-8") as f:
-                        logs = json.load(f)
-                        if not isinstance(logs, list):
-                            logs = []
-                except:
-                    logs = []
-
-            logs.append(log_entry)
-
-            with open(log_file, "w", encoding="utf-8") as f:
-                json.dump(logs, f, indent=2, ensure_ascii=False)
-
-        except Exception as log_error:
-            print_red(f"Warning: Failed to write LLM logs: {log_error}")
+        LogManager.log_client(
+            messages=messages,
+            response_content=response_content,
+            temperature=temperature,
+            response_format=response_format,
+            model=model or self.model
+        )
 
     def call_gemini(
         self,

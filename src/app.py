@@ -41,6 +41,7 @@ from src.config import (
 )
 from src.tool.ANSI import print_red
 from src.services.rag_service import RAGService
+from src.log.logManager import LogManager
 
 # Load environment variables
 load_dotenv()
@@ -123,13 +124,25 @@ def chat_endpoint():
         print(f"  History items: {len(chat_history)}")
         if not user_message:
             return jsonify({"error": "Message is required"}), 400
-        # 初始化 RAG Service 並執行
+
+        client_ip = request.remote_addr
+        request_headers = dict(request.headers)
+        request_data = data.copy()
+
         rag_service = RAGService()
         response = rag_service.chat(
             user_query=user_message,
             provided_context=provided_context,
             history=chat_history,
         )
+
+        LogManager.log_chat(
+            ip=client_ip,
+            headers=request_headers,
+            request_data=request_data,
+            response_data=response
+        )
+
         print("Chat response generated")
         print("=" * 60 + "\n")
         return jsonify(response)
@@ -198,6 +211,12 @@ def search_endpoint():
                 400,
             )
 
+        client_ip = request.remote_addr
+        request_headers = dict(request.headers)
+        request_data = data.copy()
+
+        response_steps = []
+
         def generate():
             agent = SrhSumAgent()
             for step in agent.run(
@@ -210,7 +229,15 @@ def search_endpoint():
                 start_date=start_date,
                 end_date=end_date,
             ):
+                response_steps.append(step)
                 yield json.dumps(step, ensure_ascii=False) + "\n"
+
+            LogManager.log_search(
+                ip=client_ip,
+                headers=request_headers,
+                request_data=request_data,
+                response_data=response_steps
+            )
 
         return Response(
             stream_with_context(generate()), mimetype="application/x-ndjson"
@@ -255,6 +282,51 @@ def health_check():
         )
     except Exception as e:
         return jsonify({"status": "unhealthy", "error": str(e)}), 503
+
+
+@app.route("/api/feedback", methods=["POST"])
+def feedback_endpoint():
+    """
+    User Feedback Endpoint
+    記錄用戶對搜尋結果摘要的反饋（讚/倒讚）
+    Request JSON: {
+        "feedback_type": "positive" | "negative",
+        "query": "user query",
+        "search_params": {...}
+    }
+    """
+    try:
+        print("\n" + "=" * 60)
+        print("/api/feedback called")
+        data = request.get_json()
+        if not data:
+            return jsonify({"error": "Invalid JSON"}), 400
+
+        feedback_type = data.get("feedback_type")
+        if feedback_type not in ["positive", "negative"]:
+            return jsonify({"error": "Invalid feedback_type"}), 400
+
+        client_ip = request.remote_addr
+        request_headers = dict(request.headers)
+
+        LogManager.log_feedback(
+            ip=client_ip,
+            headers=request_headers,
+            feedback_data=data
+        )
+
+        print(f"  Feedback Type: {feedback_type}")
+        print(f"  Query: {data.get('query', 'N/A')}")
+        print("Feedback logged successfully")
+        print("=" * 60 + "\n")
+
+        return jsonify({"status": "success"})
+
+    except Exception as e:
+        print_red(f"Feedback Endpoint Error: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({"error": str(e)}), 500
 
 
 # ============================================================================
