@@ -61,21 +61,21 @@ export function setupSearchConfig() {
         };
 
         const handleModeChange = () => {
-            // Checkbox checked means Manual mode in the logic, but the user UI says checked = Auto?
-            // Re-checking index.html: <input type="checkbox" id="manualRatioCheckbox" ... checked>
-            // And Step 2809 says Span says "Auto" when checked is true.
-            // So Checked = Auto.
-            const isAuto = manualRatioCheckbox.checked;
+            // 修正邏輯：Checkbox 勾選代表進入「手動模式」(Manual)
+            const isManual = manualRatioCheckbox.checked;
 
-            if (isAuto) {
-                semanticRatioSlider.value = 50;
+            if (isManual) {
+                // 手動模式：啟用滑桿，允許手動調整
                 semanticRatioSlider.disabled = false;
                 searchConfig.manualSemanticRatio = true;
-                updateUI(50);
+                // 使用滑桿目前的數值更新 UI 與配置
+                updateUI(semanticRatioSlider.value);
             } else {
+                // 自動模式：停用滑桿、數值歸位 (50%)、關閉手動配置
                 semanticRatioSlider.disabled = true;
                 searchConfig.manualSemanticRatio = false;
-                updateUI(semanticRatioSlider.value);
+                semanticRatioSlider.value = 50;
+                updateUI(50);
             }
         };
 

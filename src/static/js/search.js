@@ -3,7 +3,7 @@ import { toggleResult, toggleIntentDetails, setupFeedbackButtons } from './rende
 import { setupSearchConfig } from './search-config.js';
 import { setupEventListeners, performSearch } from './search-logic.js';
 import { setupChatbot } from './chatbot.js';
-import { setupSidebar, setupChatbotToggle } from './sidebar.js';
+import { setupSidebar } from './sidebar.js';
 import { setupAnnouncement } from './announcement.js';
 import { setupSources } from './sources.js';
 
@@ -18,7 +18,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     setupChatbot();
     setupFeedbackButtons();
     setupSidebar();
-    setupChatbotToggle();
 });
 
 window.addEventListener('load', () => {
