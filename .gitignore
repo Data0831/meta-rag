@@ -14,3 +14,4 @@ GEMINI.md
 CLAUDE.md
 
 !src/datas/*.json
+*.log

@@ -13,8 +13,14 @@ from src.tool.ANSI import print_red
 
 
 class MeiliAdapter:
-    def __init__(self, host, api_key, collection_name):
-        self.client = meilisearch.Client(host, api_key)
+    def __init__(
+        self,
+        host: str,
+        api_key: str,
+        collection_name: str,
+        timeout: Optional[int] = None,
+    ):
+        self.client = meilisearch.Client(host, api_key, timeout=timeout)
         self.collection_name = collection_name
         self.index = self.client.index(collection_name)
         self._configure_index()
@@ -65,14 +71,14 @@ class MeiliAdapter:
         if website and len(website) > 0:
             # 建立網站過濾字串: website IN ["Azure Updates", "Partner Center"]
             site_list_str = ", ".join([f'"{w}"' for w in website])
-            website_filter = f'website IN [{site_list_str}]'
+            website_filter = f"website IN [{site_list_str}]"
 
             # 如果原本已經有 filters (例如年份)，就用 AND 連接
             if final_filter:
                 final_filter = f"({final_filter}) AND {website_filter}"
             else:
                 final_filter = website_filter
-        
+
         if final_filter:
             search_params["filter"] = final_filter
         if vector:

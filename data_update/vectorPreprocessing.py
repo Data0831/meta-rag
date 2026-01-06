@@ -14,6 +14,7 @@ from src.config import (
     MEILISEARCH_HOST,
     MEILISEARCH_API_KEY,
     MEILISEARCH_INDEX,
+    MEILISEARCH_TIMEOUT,
 )
 from src.schema.schemas import AnnouncementDoc
 from src.database.db_adapter_meili import (
@@ -41,6 +42,7 @@ class VectorPreProcessor:
         sub_batch_size: int = 10,
         max_concurrency: int = 10,
         force_gpu: bool = True,
+        timeout: int = MEILISEARCH_TIMEOUT,
     ):
         self.host = host
         self.api_key = api_key
@@ -60,6 +62,7 @@ class VectorPreProcessor:
             host=self.host,
             api_key=self.api_key,
             collection_name=self.index_name,
+            timeout=timeout,
         )
 
     def load_processed_data(self) -> List[AnnouncementDoc]:
@@ -255,6 +258,74 @@ class VectorPreProcessor:
 
         print_green("\n✓ Metadata update completed.")
 
+    async def async_sync_from_files(
+        self, upsert_path: str = None, delete_path: str = None
+    ):
+        """外部自動化介面：根據傳入的檔案路徑執行資料庫同步，成功後刪除原始檔案"""
+        print("\n--- 🔗 Triggered by RAG Sync System ---")
+
+        # 1. 執行刪除 (Delete Flow)
+        if delete_path and os.path.exists(delete_path):
+            print(f"📉 Processing delete list: {delete_path}")
+            try:
+                with open(delete_path, "r", encoding="utf-8") as f:
+                    ids_to_remove = json.load(f)
+
+                if ids_to_remove:
+                    # 呼叫既有的 adapter 刪除功能
+                    self.adapter.delete_documents_by_ids(ids_to_remove)
+                    print_green(f"  ✓ Deleted {len(ids_to_remove)} docs.")
+
+                    # 【新增】確認刪除動作成功沒報錯，才刪除實體檔案
+                    f.close()  # 確保檔案釋放
+                    os.remove(delete_path)
+                    print_green(f"  🗑️  File removed: {delete_path}")
+                else:
+                    # 檔案是空的或是空List，也視為處理完畢，刪除之
+                    print_yellow("  ⚠ Empty delete list, removing file.")
+                    os.remove(delete_path)
+
+            except Exception as e:
+                print_red(f"  ❌ Error processing delete file: {e}")
+                # 發生錯誤時，不執行 os.remove，檔案保留
+
+        # 2. 執行新增/更新 (Upsert Flow)
+        if upsert_path and os.path.exists(upsert_path):
+            print(f"📈 Processing upsert list: {upsert_path}")
+            try:
+                with open(upsert_path, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+
+                docs = []
+                for item in data:
+                    try:
+                        # 轉換為 AnnouncementDoc 物件
+                        docs.append(AnnouncementDoc(**item))
+                    except Exception as e:
+                        print_red(f"  ⚠ Skipped invalid doc: {e}")
+
+                if docs:
+                    # 呼叫既有的 Embedding 處理流程
+                    await self._process_and_sync_embeddings(docs)
+                    print_green(f"  ✓ Upserted {len(docs)} docs.")
+
+                    # 【新增】確認 Embedding 與 Upsert 成功，才刪除實體檔案
+                    f.close()  # 確保檔案釋放
+                    os.remove(upsert_path)
+                    print_green(f"  🗑️  File removed: {upsert_path}")
+                else:
+                    # 檔案內容無效，視為處理完畢，刪除之以免卡住
+                    print_yellow("  ⚠ No valid docs found, removing file.")
+                    os.remove(upsert_path)
+
+            except Exception as e:
+                print_red(f"  ❌ Error processing upsert file: {e}")
+                # 發生錯誤時，不執行 os.remove，檔案保留
+
+    def run_dynamic_sync(self, upsert_path: str = None, delete_path: str = None):
+        """同步執行入口 (Wrapper)"""
+        asyncio.run(self.async_sync_from_files(upsert_path, delete_path))
+
 
 def main():
     print("=== Select Hardware Profile ===")
@@ -275,7 +346,8 @@ def main():
     processor = VectorPreProcessor(
         host=MEILISEARCH_HOST,
         api_key=MEILISEARCH_API_KEY,
-        index_name=MEILISEARCH_INDEX,
+        # index_name=MEILISEARCH_INDEX,
+        index_name="announcements_test",
         data_json=DATA_JSON,
         metadata_batch_size=100,
         vector_batch_size=200,

@@ -24,6 +24,7 @@ from src.database.db_adapter_meili import MeiliAdapter
 from src.agents.srhSumAgent import SrhSumAgent
 from src.config import (
     APP_VERSION,
+    ANNOUNCEMENT_JSON,
     DATE_RANGE_MIN,
     MEILISEARCH_HOST,
     MEILISEARCH_API_KEY,
@@ -37,9 +38,9 @@ from src.config import (
     ENABLE_KEYWORD_WEIGHT_RERANK,
     MAX_SEARCH_INPUT_LENGTH,
     MAX_CHAT_INPUT_LENGTH,
-    ANNOUNCEMENT_JSON,
     WEBSITE_JSON,
     AVAILABLE_SOURCES,
+    MEILISEARCH_TIMEOUT,
 )
 from src.tool.ANSI import print_red
 from src.services.rag_service import RAGService
@@ -58,6 +59,7 @@ def get_meili_adapter() -> MeiliAdapter:
         host=MEILISEARCH_HOST,
         api_key=MEILISEARCH_API_KEY,
         collection_name=MEILISEARCH_INDEX,
+        timeout=MEILISEARCH_TIMEOUT,
     )
 
 

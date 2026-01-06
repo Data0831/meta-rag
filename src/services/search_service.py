@@ -10,6 +10,7 @@ from src.config import (
     MEILISEARCH_INDEX,
     PRE_SEARCH_LIMIT,
     MAX_SEARCH_LIMIT,
+    MEILISEARCH_TIMEOUT,
 )
 from meilisearch_config import DEFAULT_SEMANTIC_RATIO
 from datetime import datetime
@@ -36,6 +37,7 @@ class SearchService:
                     host=MEILISEARCH_HOST,
                     api_key=MEILISEARCH_API_KEY,
                     collection_name=MEILISEARCH_INDEX,
+                    timeout=MEILISEARCH_TIMEOUT,
                 )
             self.meili_adapter.client.health()
             return None
@@ -68,7 +70,11 @@ class SearchService:
             return msg
 
     def parse_intent(
-        self, user_query: str, history: List[str] = None, direction: str = "", website: List[str] = None
+        self,
+        user_query: str,
+        history: List[str] = None,
+        direction: str = "",
+        website: List[str] = None,
     ) -> Dict[str, Any]:
         try:
             previous_queries_str = str(history) if history else "None"
@@ -77,7 +83,7 @@ class SearchService:
                 current_date=datetime.now().strftime("%Y-%m-%d"),
                 previous_queries=previous_queries_str,
                 direction=direction or "",
-                website=website_str
+                website=website_str,
             )
 
             if website:
@@ -210,18 +216,18 @@ class SearchService:
                     meili_filter = f"({meili_filter}) AND ({manual_date_filter})"
                 else:
                     meili_filter = manual_date_filter
-        
+
         if manual_website and len(manual_website) > 0:
             # 轉換為 Meilisearch 語法: website IN ["Site A", "Site B"]
             website_str = ", ".join([f'"{w}"' for w in manual_website])
-            website_filter = f'website IN [{website_str}]'
-            
+            website_filter = f"website IN [{website_str}]"
+
             # 將新的條件用 AND 接在現有的 filter 後面
             if meili_filter:
                 meili_filter = f"({meili_filter}) AND ({website_filter})"
             else:
                 meili_filter = website_filter
-                
+
             traces.append(f"Applied manual website filter: {manual_website}")
 
         if exclude_ids:
@@ -405,7 +411,13 @@ class SearchService:
             )
 
             intent, llm_error = self._parse_search_intent(
-                user_query, enable_llm, fall_back, history, direction, traces, website=website
+                user_query,
+                enable_llm,
+                fall_back,
+                history,
+                direction,
+                traces,
+                website=website,
             )
 
             if intent.limit is not None:
@@ -418,7 +430,12 @@ class SearchService:
 
             query_candidates = self._build_query_candidates(intent, traces)
             meili_filter = self._build_filter_expression(
-                intent, start_date, end_date, exclude_ids or [], traces, manual_website=website
+                intent,
+                start_date,
+                end_date,
+                exclude_ids or [],
+                traces,
+                manual_website=website,
             )
 
             multi_search_queries = [
