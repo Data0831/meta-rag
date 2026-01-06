@@ -4,7 +4,10 @@ from typing import Dict, Any, List
 from src.agents.tool import SearchTool
 from src.llm.client import LLMClient
 from src.tool.ANSI import print_red
-from src.llm.prompts.check_retry_search import CHECK_RETRY_SEARCH_PROMPT
+from src.llm.prompts.check_retry_search import (
+    CHECK_RETRY_SEARCH_SYSTEM_INSTRUCTION,
+    CHECK_RETRY_SEARCH_USER_TEMPLATE,
+)
 from src.schema.schemas import RetrySearchDecision
 from src.config import SEARCH_MAX_RETRIES
 
@@ -27,12 +30,16 @@ class SrhSumAgent:
         for doc in results[:5]:
             context_preview += f"ID: {doc.get('id')}\nTitle: {doc.get('title')}\nContent: {str(doc.get('content'))[:200]}...\n\n"
 
-        prompt = CHECK_RETRY_SEARCH_PROMPT.format(
+        system_msg = CHECK_RETRY_SEARCH_SYSTEM_INSTRUCTION
+        user_msg = CHECK_RETRY_SEARCH_USER_TEMPLATE.format(
             query=query, documents=context_preview
         )
 
         llm_response = self.llm_client.call_with_schema(
-            messages=[{"role": "user", "content": prompt}],
+            messages=[
+                {"role": "system", "content": system_msg},
+                {"role": "user", "content": user_msg},
+            ],
             response_model=RetrySearchDecision,
             temperature=0.0,
         )
