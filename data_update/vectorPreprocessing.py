@@ -406,6 +406,8 @@ def main():
         print_red(f"MEILISEARCH HOST: {os.getenv('MEILISEARCH_HOST', 'unknown')}")
         print_red(f"MEILISEARCH INDEX: {processor.index_name}")
         print_red(f"OLLAMA HOST: {os.getenv('OLLAMA_HOST', 'unknown')}")
+        print_red(f"CONCURRENCY: {processor.max_concurrency}")
+        print_red(f"BATCH SIZE: {processor.sub_batch_size}")
         print("=" * 40)
 
         choice = (
