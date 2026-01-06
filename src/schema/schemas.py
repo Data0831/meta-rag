@@ -99,7 +99,7 @@ class StructuredSummary(BaseModel):
 
     brief_answer: str = Field(
         ...,
-        description="Brief answer to the query (max 20 characters). Return '沒有參考資料' if no results, or '從內容 search 不到' if results exist but are irrelevant.",
+        description="Brief answer to the query (max 20 characters). Return '沒有參考資料' if no results, or '從內容搜索不到' if results exist but are irrelevant.",
     )
     detailed_answer: str = Field(
         default="",
