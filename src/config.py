@@ -4,7 +4,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Application Version
-APP_VERSION = "v0.0.1"
+APP_VERSION = "v0.0.2"
 
 # Date Range Configuration
 DATE_RANGE_MIN = "2023-01"

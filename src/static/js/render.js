@@ -10,6 +10,8 @@ import { showAlert } from './alert.js';
 
 // Current Results Storage
 export let currentResults = [];
+//「目前沒反灰」的結果
+export let activeResults = [];
 
 // Current Search Context (for feedback logging)
 let currentSearchQuery = '';
@@ -270,6 +272,7 @@ function renderResultCard(result, rank, searchConfig, finalSemanticRatio) {
     const date = result.year_month || 'N/A';
     const link = result.link || '#';
     const content = result.content ? marked.parse(result.content) : '';
+    const website = result.website || '來源未知';
 
     // Truncate title for card header (h4) to 15 characters
     const truncatedTitle = title.length > 15 ? title.substring(0, 15) + '...' : title;
@@ -320,6 +323,9 @@ function renderResultCard(result, rank, searchConfig, finalSemanticRatio) {
                 <h4 class="font-bold text-lg text-slate-800 dark:text-white">${truncatedTitle}</h4>
             </div>
             <div class="flex items-center gap-2">
+                <span class="px-2 py-1 rounded border text-xs font-medium bg-indigo-100 dark:bg-indigo-900 text-indigo-800 dark:text-indigo-300 border-indigo-200 dark:border-indigo-700">
+                    ${website}
+                </span>
                 ${(result.has_keyword && result.has_keyword !== '0/0' && result.has_keyword !== 'disabled' && result.has_keyword !== 'unknown') ? `<span class="px-2 py-1 rounded border text-xs font-bold bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-300 border-green-200 dark:border-green-700">Keyword Hit: ${result.has_keyword}</span>` : ''}
                 <span class="px-2 py-1 rounded border text-xs font-medium ${searchTypeClass}">${searchTypeLabel}</span>
                 <span id="result-badge-${id}" class="${badgeClass}">Match: ${displayScore}</span>
@@ -330,6 +336,9 @@ function renderResultCard(result, rank, searchConfig, finalSemanticRatio) {
             <h2 class="text-3xl font-bold text-slate-900 dark:text-white mb-6">${title}</h2>
             <div class="space-y-4 text-base text-slate-700 dark:text-slate-300">
                 <div class="flex items-start gap-2">
+                    <span class="font-bold min-w-[150px] text-slate-900 dark:text-white">• 來源 (Website) :</span>
+                    <span>${website}</span>
+                </div>
                     <span class="font-bold min-w-[150px] text-slate-900 dark:text-white">• 類別 (Workspace) :</span>
                     <span>${workspace}</span>
                 </div>
@@ -415,6 +424,8 @@ export function applyThresholdToResults() {
     const resultCards = DOM.resultsContainer.querySelectorAll('.result-card-container');
     let dimmedCount = 0;
 
+    let validList = [];
+
     resultCards.forEach((card, index) => {
         if (index < currentResults.length) {
             const result = currentResults[index];
@@ -427,9 +438,12 @@ export function applyThresholdToResults() {
                 dimmedCount++;
             } else {
                 card.classList.remove('dimmed-result');
+                validList.push(result);
             }
         }
     });
+    activeResults = validList;
+    console.log(`[Context Update] Active results: ${activeResults.length} / ${currentResults.length}`);
 
     console.log(`[Threshold] ${dimmedCount}/${resultCards.length} cards dimmed (threshold: ${searchConfig.similarityThreshold}%)`);
 }

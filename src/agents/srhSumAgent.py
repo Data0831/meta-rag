@@ -123,6 +123,7 @@ class SrhSumAgent:
         enable_keyword_weight_rerank: bool = True,
         start_date: str = None,
         end_date: str = None,
+        website: List[str] = None,
     ):
 
         from src.config import (
@@ -153,6 +154,7 @@ class SrhSumAgent:
             enable_keyword_weight_rerank=enable_keyword_weight_rerank,
             start_date=start_date,
             end_date=end_date,
+            website=website,
         )
         if search_response.get("status") == "failed":
             yield {
@@ -295,6 +297,7 @@ class SrhSumAgent:
                 direction=search_direction,
                 start_date=start_date,
                 end_date=end_date,
+                website=website,
             )
 
             if search_response.get("status") == "success":

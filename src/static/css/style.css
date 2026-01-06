@@ -363,7 +363,7 @@ table {
 
 .info-icon {
     background-color: white;
-    color: #7facb6; 
+    color: #7facb6;
     border-radius: 50%;
     display: inline-flex;
     align-items: center;
@@ -371,7 +371,7 @@ table {
     width: 18px;
     height: 18px;
     font-size: 12px;
-    border: 1px solid #7facb6; 
+    border: 1px solid #7facb6;
 }
 
 html {
@@ -433,4 +433,17 @@ body {
 
 .lock-scroll {
     overflow: hidden !important;
+}
+
+.website-tag {
+    font-size: 0.8rem;
+    padding: 4px 8px;
+    border-radius: 4px;
+    background-color: #e7f1ff;
+    /* 淺藍色背景 */
+    color: #0d6efd;
+    /* 深藍色文字 */
+    font-weight: 600;
+    display: inline-block;
+    margin-bottom: 5px;
 }

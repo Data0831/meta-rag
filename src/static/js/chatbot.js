@@ -1,4 +1,4 @@
-import { currentResults } from './render.js';
+import { currentResults, activeResults, applyThresholdToResults } from './render.js';
 import { searchConfig, appConfig } from './config.js';
 import { showAlert } from './alert.js';
 
@@ -89,6 +89,9 @@ export function setupChatbot() {
             chatHistory = [];
             messagesDiv.innerHTML = '';
 
+            if (suggestionsContainer) suggestionsContainer.innerHTML = '';
+            if (headerStatus) headerStatus.innerHTML = '';
+
             const welcomeDiv = document.createElement('div');
             welcomeDiv.className = 'flex items-start gap-2 animate-fade-in-up';
             welcomeDiv.innerHTML = `
@@ -96,12 +99,12 @@ export function setupChatbot() {
                     <span class="material-icons-round text-sm">smart_toy</span>
                 </div>
                 <div class="bg-white dark:bg-slate-700 p-3 rounded-2xl rounded-tl-none shadow-sm text-sm text-slate-700 dark:text-slate-200 border border-slate-100 dark:border-slate-600">
-                    您好！我是您的搜尋助手。關於目前的搜尋結果或 Microsoft 合作夥伴計畫，有什麼想問的嗎？
+                    您好！我是您的搜尋助手。關於目前的搜尋結果，有什麼想問的嗎？
                 </div>
             `;
             messagesDiv.appendChild(welcomeDiv);
 
-            fetchInitialSuggestions();
+            // fetchInitialSuggestions();
         });
     }
 
@@ -149,11 +152,11 @@ export function setupChatbot() {
 
         try {
             const thresholdPercent = searchConfig.similarityThreshold || 0;
-            const validResults = currentResults.filter(item => {
-                const score = item._rankingScore ?? item.similarity ?? item.score ?? 0;
+            const isAnyDimmed = document.querySelector('.dimmed-result');
+            const validResults = (activeResults && activeResults.length > 0)
+                ? activeResults
+                : (isAnyDimmed ? [] : currentResults);
 
-                return (score * 100) >= thresholdPercent;
-            });
             // 1. 取得原始搜尋到的總篇數 (用於顯示 "參考前 ? 篇")
             const totalScanned = currentResults.length;
             if (validResults.length === 0) {
@@ -178,10 +181,10 @@ export function setupChatbot() {
                 // 2. 再明確 return 物件
                 return {
                     // 把編號直接寫進 title 裡
-                    title: `[No.${rank}] ${item.title}`, 
-                    
+                    title: `[No.${rank}] ${item.title}`,
+
                     // 確保內容不為空
-                    content: item.content || item.cleaned_content || item.body || item.text || "", 
+                    content: item.content || item.cleaned_content || item.body || item.text || "",
                     link: item.link,
                     year_month: item.year_month
                 };
@@ -299,10 +302,10 @@ export function setupChatbot() {
         // 1. 嘗試抓取滑桿 DOM 元素 (為了做到拖拉時即時變動)
         // 這裡預設 ID 為 'similarity-slider'，如果你的 HTML ID 不同請在此修改
         const sliderEl = document.getElementById('similarity-slider') || document.querySelector('input[type="range"]');
-        
+
         // 2. 決定當下的門檻值
         let thresholdPercent = searchConfig.similarityThreshold || 0;
-        
+
         // 如果抓得到滑桿，就直接用滑桿的值 (這樣拖曳時才會即時反應)
         if (sliderEl) {
             thresholdPercent = parseInt(sliderEl.value);
@@ -315,11 +318,14 @@ export function setupChatbot() {
         }
 
         const totalScanned = currentResults.length;
-        
+
         // 4. 計算符合門檻的數量
         const validResults = currentResults.filter(item => {
-            const score = item._rankingScore ?? item.similarity ?? item.score ?? 0;
-            return (score * 100) >= thresholdPercent;
+            const rawScore = item._rerank_score !== undefined ? item._rerank_score : (item._rankingScore || 0);
+
+            const scorePercent = Math.round(rawScore * 100);
+
+            return scorePercent >= thresholdPercent;
         });
         const validCount = validResults.length;
 
@@ -342,7 +348,9 @@ export function setupChatbot() {
         sliderInput.addEventListener('input', () => {
             // 1. 同步全域設定 (確保按送出時是對的)
             searchConfig.similarityThreshold = parseInt(sliderInput.value);
-            // 2. 即時更新 Header UI (視覺回饋)
+            // 2. 呼叫 render.js 的函式，讓卡片變灰，並更新 activeResults
+            applyThresholdToResults();
+            // 3. 即時更新 Header UI (視覺回饋)
             updateHeaderStatus();
         });
     }
