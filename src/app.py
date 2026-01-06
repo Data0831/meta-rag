@@ -24,6 +24,7 @@ from src.database.db_adapter_meili import MeiliAdapter
 from src.agents.srhSumAgent import SrhSumAgent
 from src.config import (
     APP_VERSION,
+    ADMIN_TOKEN,
     ANNOUNCEMENT_JSON,
     DATE_RANGE_MIN,
     MEILISEARCH_HOST,
@@ -410,6 +411,47 @@ def not_found(e):
 def internal_error(e):
     """Handle 500 errors"""
     return jsonify({"error": "Internal Server Error", "message": str(e)}), 500
+
+
+# ============================================================================
+# Data Update API (Supports website and announcement)
+# ============================================================================
+
+@app.route("/api/admin/update-json/<target>", methods=["POST"])
+def update_json_data(target):
+    """
+    通用遠端更新 API
+    URL 範例: /api/admin/update-json/website 或 /api/admin/update-json/announcement
+    """
+    try:
+        # 1. 驗證權限
+        token = request.headers.get("X-Admin-Token")
+        if token != ADMIN_TOKEN:
+            return jsonify({"error": "Unauthorized"}), 401
+
+        # 2. 決定目標檔案路徑
+        if target == "website":
+            file_path = os.path.join(str(project_root), WEBSITE_JSON)
+        elif target == "announcement":
+            file_path = os.path.join(str(project_root), ANNOUNCEMENT_JSON)
+        else:
+            return jsonify({"error": f"Invalid target: {target}"}), 400
+
+        # 3. 獲取 JSON 資料並驗證
+        new_data = request.get_json()
+        if not isinstance(new_data, list):
+            return jsonify({"error": "Invalid format, must be a list"}), 400
+
+        # 4. 寫入檔案
+        with open(file_path, "w", encoding="utf-8") as f:
+            json.dump(new_data, f, ensure_ascii=False, indent=4)
+
+        print(f"Successfully updated {target}.json via API")
+        return jsonify({"status": "success", "message": f"{target}.json updated."})
+
+    except Exception as e:
+        print_red(f"Update API Error ({target}): {e}")
+        return jsonify({"error": str(e)}), 500
 
 
 # ============================================================================
