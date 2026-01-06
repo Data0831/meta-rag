@@ -13,12 +13,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     await loadBackendConfig();
 
     setupEventListeners(performSearch);
+    setupSources();
     setupSearchConfig();
     setupChatbot();
     setupFeedbackButtons();
     setupSidebar();
     setupChatbotToggle();
-    setupSources();
 });
 
 window.addEventListener('load', () => {

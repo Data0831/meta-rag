@@ -7,6 +7,8 @@ export function setupSources() {
         return;
     }
 
+    sourceCheckboxList.innerHTML = '';
+
     const sources = appConfig.sources;
     if (!sources || !Array.isArray(sources)) {
         console.error('No sources configuration found');

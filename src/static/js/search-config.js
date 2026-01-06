@@ -3,6 +3,7 @@ import { applyThresholdToResults } from './render.js';
 import { showAlert } from './alert.js';
 
 export function setupSearchConfig() {
+    // 1. Similarity threshold slider
     const similarityThresholdEl = document.getElementById('similarityThreshold');
     const thresholdValue = document.getElementById('thresholdValue');
     if (similarityThresholdEl && thresholdValue) {
@@ -14,65 +15,103 @@ export function setupSearchConfig() {
         });
     }
 
+    // 2. Semantic ratio slider & Mode toggle
     const semanticRatioSlider = document.getElementById('semanticRatioSlider');
     const manualRatioCheckbox = document.getElementById('manualRatioCheckbox');
     const semanticRatioValue = document.getElementById('semanticRatioValue');
+    const keywordPercentLabel = document.getElementById('keywordPercent');
+    const semanticPercentLabel = document.getElementById('semanticPercent');
+    const keywordLabel = document.getElementById('keywordWeightLabel');
+    const semanticLabel = document.getElementById('semanticWeightLabel');
 
     if (semanticRatioSlider && manualRatioCheckbox) {
-        semanticRatioSlider.disabled = !manualRatioCheckbox.checked;
-        if (!manualRatioCheckbox.checked) {
-            if (semanticRatioValue) semanticRatioValue.textContent = "Auto";
-        }
+        const updateUI = (val) => {
+            const smVal = parseInt(val);
+            const kwVal = 100 - smVal;
 
-        manualRatioCheckbox.addEventListener('change', (e) => {
-            const isManual = e.target.checked;
-            searchConfig.manualSemanticRatio = isManual;
-            semanticRatioSlider.disabled = !isManual;
+            // Update configuration object
+            searchConfig.semanticRatio = smVal / 100;
 
-            if (isManual) {
-                const val = parseInt(semanticRatioSlider.value);
-                searchConfig.semanticRatio = val / 100;
-                if (semanticRatioValue) semanticRatioValue.textContent = val + '%';
-            } else {
-                if (semanticRatioValue) semanticRatioValue.textContent = "Auto";
-            }
-        });
+            // Update percentage text
+            if (keywordPercentLabel) keywordPercentLabel.textContent = `${kwVal}%`;
+            if (semanticPercentLabel) semanticPercentLabel.textContent = `${smVal}%`;
 
-        semanticRatioSlider.addEventListener('input', (e) => {
-            const val = parseInt(e.target.value);
-            searchConfig.semanticRatio = val / 100;
+            // Update the main "Ratio Value" label (e.g. "Auto" or "50%")
             if (semanticRatioValue) {
-                semanticRatioValue.textContent = val + '%';
+                semanticRatioValue.textContent = manualRatioCheckbox.checked ? "Manual" : "Auto";
+                // If you prefer showing the number even in Manual mode, use:
+                // semanticRatioValue.textContent = manualRatioCheckbox.checked ? `${smVal}%` : "Auto";
             }
-        });
+
+            // Highlighting effect for labels
+            if (keywordLabel && semanticLabel) {
+                [keywordLabel, semanticLabel].forEach(l => {
+                    l.classList.remove('bg-primary', 'text-white');
+                    l.classList.add('bg-white', 'dark:bg-slate-700', 'text-slate-500', 'dark:text-slate-400');
+                });
+
+                if (smVal < 50) {
+                    keywordLabel.classList.add('bg-primary', 'text-white');
+                    keywordLabel.classList.remove('bg-white', 'dark:bg-slate-700', 'text-slate-500', 'dark:text-slate-400');
+                } else if (smVal > 50) {
+                    semanticLabel.classList.add('bg-primary', 'text-white');
+                    semanticLabel.classList.remove('bg-white', 'dark:bg-slate-700', 'text-slate-500', 'dark:text-slate-400');
+                }
+            }
+        };
+
+        const handleModeChange = () => {
+            // Checkbox checked means Manual mode in the logic, but the user UI says checked = Auto?
+            // Re-checking index.html: <input type="checkbox" id="manualRatioCheckbox" ... checked>
+            // And Step 2809 says Span says "Auto" when checked is true.
+            // So Checked = Auto.
+            const isAuto = manualRatioCheckbox.checked;
+
+            if (isAuto) {
+                semanticRatioSlider.value = 50;
+                semanticRatioSlider.disabled = false;
+                searchConfig.manualSemanticRatio = true;
+                updateUI(50);
+            } else {
+                semanticRatioSlider.disabled = true;
+                searchConfig.manualSemanticRatio = false;
+                updateUI(semanticRatioSlider.value);
+            }
+        };
+
+        manualRatioCheckbox.addEventListener('change', handleModeChange);
+        semanticRatioSlider.addEventListener('input', (e) => updateUI(e.target.value));
+
+        // Initialization
+        handleModeChange();
+
+        // Handle BFCache/Refresh
+        window.addEventListener('pageshow', handleModeChange);
     }
 
+    // 3. Search Results Limit
     const limitInput = document.getElementById('limitInput');
     if (limitInput) {
         limitInput.addEventListener('change', (e) => {
             let value = parseInt(e.target.value);
-            const maxLimit = searchConfig.maxLimit;
-            let corrected = false;
+            const maxLimit = searchConfig.maxLimit || 50;
             let correctedValue = value;
 
             if (isNaN(value) || value < 1) {
                 correctedValue = 1;
-                corrected = true;
             } else if (value > maxLimit) {
                 correctedValue = maxLimit;
-                corrected = true;
             }
 
-            if (corrected) {
+            if (correctedValue !== value) {
                 e.target.value = correctedValue;
-                searchConfig.limit = correctedValue;
                 showAlert(`您輸入的數量超出範圍，已自動調整為 ${correctedValue}`, 'warning');
-            } else {
-                searchConfig.limit = value;
             }
+            searchConfig.limit = correctedValue;
         });
     }
 
+    // 4. Feature Toggles
     const llmRewriteCheckbox = document.getElementById('llmRewriteCheckbox');
     if (llmRewriteCheckbox) {
         llmRewriteCheckbox.addEventListener('change', (e) => {
@@ -87,11 +126,11 @@ export function setupSearchConfig() {
         });
     }
 
+    // 5. Date Range
     const startDateInput = document.getElementById('startDateInput');
     if (startDateInput) {
         startDateInput.addEventListener('change', (e) => {
             searchConfig.startDate = e.target.value;
-            console.log('開始日期已更新:', searchConfig.startDate);
         });
     }
 
@@ -99,10 +138,10 @@ export function setupSearchConfig() {
     if (endDateInput) {
         endDateInput.addEventListener('change', (e) => {
             searchConfig.endDate = e.target.value;
-            console.log('結束日期已更新:', searchConfig.endDate);
         });
     }
 
+    // 6. Data Source Selection
     const selectAllCheckbox = document.getElementById('selectAllSources');
     const sourceCheckboxes = document.querySelectorAll('input[name="source_checkbox"]');
 
@@ -123,13 +162,10 @@ export function setupSearchConfig() {
     }
 }
 
+/**
+ * Get current selected data source values
+ */
 export function getSelectedSources() {
-    const selected = [];
     const sourceCheckboxes = document.querySelectorAll('input[name="source_checkbox"]:checked');
-
-    sourceCheckboxes.forEach(cb => {
-        selected.push(cb.value);
-    });
-
-    return selected;
+    return Array.from(sourceCheckboxes).map(cb => cb.value);
 }
