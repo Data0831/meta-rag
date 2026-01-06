@@ -39,15 +39,16 @@ MAX_SEARCH_INPUT_LENGTH = 100
 MAX_CHAT_INPUT_LENGTH = 500
 
 AVAILABLE_SOURCES = [
-    {"value": "partner_center", "label": "Partner Center", "default_checked": True},
-    {"value": "azure_update", "label": "Azure Updates", "default_checked": True},
-    {"value": "m365_roadmap", "label": "M365 Roadmap", "default_checked": True},
+    {"value": "partner_center", "label": "Microsoft 合作夥伴中心公告", "default_checked": True},
+    {"value": "azure_update", "label": "Azure 更新", "default_checked": True},
+    {"value": "m365_roadmap", "label": "Microsoft 365 藍圖", "default_checked": True},
     {
         "value": "windows_message_center",
-        "label": "Windows Message",
+        "label": "Windows 訊息中心",
         "default_checked": True,
     },
-    {"value": "powerbi_blog", "label": "PowerBI Blog", "default_checked": True},
+    {"value": "powerbi_blog", "label": "Power BI 部落格", "default_checked": True},
+    {"value": "msrc_blog", "label": "MSRC Blog", "default_checked": True},
 ]
 
 # ============================================================================
