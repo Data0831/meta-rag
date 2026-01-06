@@ -6,6 +6,9 @@ load_dotenv()
 # Application Version
 APP_VERSION = "v0.0.2"
 
+# API Password
+ADMIN_TOKEN = "msanmsan001"
+
 # Date Range Configuration
 DATE_RANGE_MIN = "2023-01"
 
