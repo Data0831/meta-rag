@@ -43,10 +43,10 @@ class VectorPreProcessor:
         max_concurrency: int = 10,
         force_gpu: bool = True,
         timeout: int = MEILISEARCH_TIMEOUT,
+        final_retry_count: int = 3,
     ):
         self.host = host
         self.api_key = api_key
-        # Use provided index_name or fallback to config
         self.index_name = index_name or "announcements"
         self.data_json = data_json
         self.remove_json = remove_json or os.path.join(
@@ -57,6 +57,7 @@ class VectorPreProcessor:
         self.sub_batch_size = sub_batch_size
         self.max_concurrency = max_concurrency
         self.force_gpu = force_gpu
+        self.final_retry_count = final_retry_count
 
         self.adapter = MeiliAdapter(
             host=self.host,
@@ -65,56 +66,113 @@ class VectorPreProcessor:
             timeout=timeout,
         )
 
-    def load_processed_data(self) -> List[AnnouncementDoc]:
-        if not os.path.exists(self.data_json):
-            print(f"File not found: {self.data_json}")
-            return []
+    # --- Data Loading Helpers ---
 
+    def _load_json(self, file_path: str, default_val=None) -> any:
+        """Generic JSON loader with error handling."""
+        if not os.path.exists(file_path):
+            print_yellow(f"File not found: {file_path}")
+            return default_val if default_val is not None else []
         try:
-            with open(self.data_json, "r", encoding="utf-8") as f:
-                data = json.load(f)
-        except json.JSONDecodeError as e:
-            print(f"Error decoding JSON: {e}")
+            with open(file_path, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except (json.JSONDecodeError, Exception) as e:
+            print_red(f"Error loading JSON from {file_path}: {e}")
+            return default_val if default_val is not None else []
+
+    def _parse_items_to_docs(self, data: List[dict]) -> List[AnnouncementDoc]:
+        """Convert a list of dictionaries to AnnouncementDoc objects."""
+        if not isinstance(data, list):
+            print_red(f"Error: Expected a list of items, got {type(data)}")
             return []
 
         docs = []
-        if not isinstance(data, list):
-            print(f"Error: Expected a list, got {type(data)}")
-            return []
-
         for i, item in enumerate(data):
             try:
                 docs.append(AnnouncementDoc(**item))
             except Exception as e:
-                print(f"Error parsing document at index {i}: {e}")
+                print_red(f"Error parsing document at index {i}: {e}")
         return docs
 
+    def load_processed_data(self) -> List[AnnouncementDoc]:
+        """Public interface: Load and parse documents from the main data source."""
+        data = self._load_json(self.data_json)
+        return self._parse_items_to_docs(data)
+
     def load_remove_list(self) -> List[str]:
-        if not os.path.exists(self.remove_json):
-            print_yellow(f"File not found: {self.remove_json}")
-            return []
-        try:
-            with open(self.remove_json, "r", encoding="utf-8") as f:
-                data = json.load(f)
-            if not isinstance(data, list):
-                print_red(
-                    f"Error: Expected a list in {self.remove_json}, got {type(data)}"
-                )
-                return []
-            return data
-        except json.JSONDecodeError as e:
-            print_red(f"Error decoding JSON from {self.remove_json}: {e}")
+        """Public interface: Load ID list for removal."""
+        return self._load_json(self.remove_json)
+
+    # --- Core Pipeline logic ---
+
+    def _display_error_report(self, failed_docs_info: List[dict]):
+        """Prints a formatted table of documents that failed after all retries."""
+        if not failed_docs_info:
+            return
+
+        print_red("\n" + "=" * 100)
+        print_red(f"{'INDEX':<8} | {'ERROR':<30} | {'CONTENT SNIPPET':<100}")
+        print_red("-" * 100)
+        for info in failed_docs_info:
+            idx = info.get("index", "N/A")
+            orig_err = str(info.get("error", "Unknown")).replace("\n", " ")
+            err = (orig_err[:27] + "...") if len(orig_err) > 27 else orig_err
+
+            orig_content = info["doc"].cleaned_content.replace("\n", " ")
+            content = (
+                (orig_content[:47] + "...") if len(orig_content) > 47 else orig_content
+            )
+            print_red(f"{idx:<8} | {err:<30} | {content:<50}")
+        print_red("=" * 100 + "\n")
+
+    async def _handle_retry_logic(self, failed_docs_info: List[dict]) -> List[dict]:
+        """Performs retries for documents that failed embedding generation."""
+        if not failed_docs_info:
             return []
 
-    def clear_all(self):
-        print("\n--- Clearing Data ---")
-        print(f"Clearing Meilisearch index '{self.index_name}'...")
-        self.adapter.reset_index()
-        print("✓ Meilisearch index cleared.")
+        print_yellow(
+            f"\n--- Final Retry Stage: Retrying {len(failed_docs_info)} failed items (Max {self.final_retry_count} retries) ---"
+        )
+
+        for attempt in range(1, self.final_retry_count + 1):
+            if not failed_docs_info:
+                break
+
+            print(f"  Final Retry Attempt {attempt}/{self.final_retry_count}...")
+            still_failed = []
+            meili_docs = []
+
+            for info in failed_docs_info:
+                # Remove specific punctuation and whitespace to try and recover
+                chars_to_remove = ",. '’\"，。"
+                retry_content = info["doc"].cleaned_content.translate(
+                    str.maketrans("", "", chars_to_remove)
+                )
+
+                res = get_embedding(retry_content)
+                if res.get("status") == "success":
+                    vector = res.get("result")
+                    meili_doc = transform_doc_for_meilisearch(info["doc"], vector)
+                    meili_docs.append(meili_doc)
+                else:
+                    info["error"] = res.get("error", "Unknown error")
+                    still_failed.append(info)
+
+            if meili_docs:
+                print_green(
+                    f"    ✓ Recovered {len(meili_docs)} items in attempt {attempt}"
+                )
+                self.adapter.upsert_documents(meili_docs)
+
+            failed_docs_info = still_failed
+
+        return failed_docs_info
 
     async def _process_and_sync_embeddings(self, docs: List[AnnouncementDoc]):
-        """Helper to process a list of docs in batches, generating embeddings and syncing to Meili."""
+        """Internal Pipeline: Batches docs, gets embeddings, and syncs to Meilisearch."""
         total = len(docs)
+        failed_docs_info = []
+
         print(
             f"Generating embeddings and transforming documents (Batch size: {self.vector_batch_size})..."
         )
@@ -139,14 +197,18 @@ class VectorPreProcessor:
                 doc = batch_docs[j]
                 if res.get("status") == "success":
                     vector = res.get("result")
-                    meili_doc = transform_doc_for_meilisearch(doc, vector)
-                    meili_docs.append(meili_doc)
+                    meili_docs.append(transform_doc_for_meilisearch(doc, vector))
                 else:
-                    error_msg = res.get("error", "Unknown error")
-                    print_red(
-                        f"⚠ Failed to generate embedding for doc index {i+j}: {doc.title}"
+                    failed_docs_info.append(
+                        {
+                            "index": i + j,
+                            "doc": doc,
+                            "error": res.get("error", "Unknown error"),
+                        }
                     )
-                    print_red(f"  Error: {error_msg}")
+                    print_yellow(
+                        f"  ⚠ Failed embedding for index {i+j}, queued for retry."
+                    )
 
             if meili_docs:
                 print(
@@ -155,6 +217,21 @@ class VectorPreProcessor:
                 self.adapter.upsert_documents(meili_docs)
 
             print(f"  Processed {min(i + self.vector_batch_size, total)}/{total}")
+
+        # Final retry stage
+        failed_docs_info = await self._handle_retry_logic(failed_docs_info)
+
+        # Display final errors if any
+        self._display_error_report(failed_docs_info)
+
+    # --- Public API Methods ---
+
+    def clear_all(self):
+        """Reset the index."""
+        print("\n--- Clearing Data ---")
+        print(f"Clearing Meilisearch index '{self.index_name}'...")
+        self.adapter.reset_index()
+        print("✓ Meilisearch index cleared.")
 
     async def async_process_and_write(self):
         print("\n--- Processing and Writing Data (Async Pipeline) ---")
@@ -203,7 +280,6 @@ class VectorPreProcessor:
         if not docs:
             print_yellow("No documents to process.")
             return
-        print(f"Loaded {len(docs)} documents from {self.data_json}")
 
         doc_ids = [doc.id for doc in docs]
         existing_docs = self.adapter.get_documents_by_ids(doc_ids)
@@ -214,10 +290,7 @@ class VectorPreProcessor:
             print_yellow("No new documents to add (all already exist in Meilisearch).")
             return
 
-        print(f"Found {len(new_docs)} new documents to add")
-        if len(docs) - len(new_docs) > 0:
-            print_yellow(f"Skipping {len(docs) - len(new_docs)} existing documents")
-
+        print(f"Found {len(new_docs)} new documents (out of {len(docs)})")
         await self._process_and_sync_embeddings(new_docs)
         print_green("\n✓ Successfully added documents.")
 
@@ -236,7 +309,6 @@ class VectorPreProcessor:
         if not docs:
             print_yellow("No documents to process.")
             return
-        print(f"Loaded {len(docs)} documents from {self.data_json}")
 
         meili_docs = []
         for i, doc in enumerate(docs):
@@ -261,69 +333,43 @@ class VectorPreProcessor:
     async def async_sync_from_files(
         self, upsert_path: str = None, delete_path: str = None
     ):
-        """外部自動化介面：根據傳入的檔案路徑執行資料庫同步，成功後刪除原始檔案"""
+        """Triggered by RAG Sync System. Processes files and deletes them on success."""
         print("\n--- 🔗 Triggered by RAG Sync System ---")
 
-        # 1. 執行刪除 (Delete Flow)
+        # 1. Delete Flow
         if delete_path and os.path.exists(delete_path):
             print(f"📉 Processing delete list: {delete_path}")
-            try:
-                with open(delete_path, "r", encoding="utf-8") as f:
-                    ids_to_remove = json.load(f)
-
-                if ids_to_remove:
-                    # 呼叫既有的 adapter 刪除功能
+            ids_to_remove = self._load_json(delete_path)
+            if ids_to_remove:
+                try:
                     self.adapter.delete_documents_by_ids(ids_to_remove)
-                    print_green(f"  ✓ Deleted {len(ids_to_remove)} docs.")
-
-                    # 【新增】確認刪除動作成功沒報錯，才刪除實體檔案
-                    f.close()  # 確保檔案釋放
                     os.remove(delete_path)
-                    print_green(f"  🗑️  File removed: {delete_path}")
-                else:
-                    # 檔案是空的或是空List，也視為處理完畢，刪除之
-                    print_yellow("  ⚠ Empty delete list, removing file.")
-                    os.remove(delete_path)
+                    print_green(
+                        f"  ✓ Deleted {len(ids_to_remove)} docs and removed file."
+                    )
+                except Exception as e:
+                    print_red(f"  ❌ Error deleting docs: {e}")
+            else:
+                os.remove(delete_path)
+                print_yellow("  ⚠ Empty delete list, file removed.")
 
-            except Exception as e:
-                print_red(f"  ❌ Error processing delete file: {e}")
-                # 發生錯誤時，不執行 os.remove，檔案保留
-
-        # 2. 執行新增/更新 (Upsert Flow)
+        # 2. Upsert Flow
         if upsert_path and os.path.exists(upsert_path):
             print(f"📈 Processing upsert list: {upsert_path}")
-            try:
-                with open(upsert_path, "r", encoding="utf-8") as f:
-                    data = json.load(f)
-
-                docs = []
-                for item in data:
-                    try:
-                        # 轉換為 AnnouncementDoc 物件
-                        docs.append(AnnouncementDoc(**item))
-                    except Exception as e:
-                        print_red(f"  ⚠ Skipped invalid doc: {e}")
-
-                if docs:
-                    # 呼叫既有的 Embedding 處理流程
+            raw_data = self._load_json(upsert_path)
+            docs = self._parse_items_to_docs(raw_data)
+            if docs:
+                try:
                     await self._process_and_sync_embeddings(docs)
-                    print_green(f"  ✓ Upserted {len(docs)} docs.")
-
-                    # 【新增】確認 Embedding 與 Upsert 成功，才刪除實體檔案
-                    f.close()  # 確保檔案釋放
                     os.remove(upsert_path)
-                    print_green(f"  🗑️  File removed: {upsert_path}")
-                else:
-                    # 檔案內容無效，視為處理完畢，刪除之以免卡住
-                    print_yellow("  ⚠ No valid docs found, removing file.")
-                    os.remove(upsert_path)
-
-            except Exception as e:
-                print_red(f"  ❌ Error processing upsert file: {e}")
-                # 發生錯誤時，不執行 os.remove，檔案保留
+                    print_green(f"  ✓ Upserted {len(docs)} docs and removed file.")
+                except Exception as e:
+                    print_red(f"  ❌ Error upserting docs: {e}")
+            else:
+                os.remove(upsert_path)
+                print_yellow("  ⚠ No valid docs found, file removed.")
 
     def run_dynamic_sync(self, upsert_path: str = None, delete_path: str = None):
-        """同步執行入口 (Wrapper)"""
         asyncio.run(self.async_sync_from_files(upsert_path, delete_path))
 
 
@@ -346,8 +392,8 @@ def main():
     processor = VectorPreProcessor(
         host=MEILISEARCH_HOST,
         api_key=MEILISEARCH_API_KEY,
-        # index_name=MEILISEARCH_INDEX,
-        index_name="announcements_test",
+        index_name=MEILISEARCH_INDEX,
+        # index_name="announcements_test",
         data_json=DATA_JSON,
         metadata_batch_size=100,
         vector_batch_size=200,
@@ -357,7 +403,11 @@ def main():
     while True:
         print("\n" + "=" * 40)
         print_red(f"HARDWARE PROFILE: {hw_name}")
+        print_red(f"MEILISEARCH HOST: {os.getenv('MEILISEARCH_HOST', 'unknown')}")
         print_red(f"MEILISEARCH INDEX: {processor.index_name}")
+        print_red(f"OLLAMA HOST: {os.getenv('OLLAMA_HOST', 'unknown')}")
+        print_red(f"CONCURRENCY: {processor.max_concurrency}")
+        print_red(f"BATCH SIZE: {processor.sub_batch_size}")
         print("=" * 40)
 
         choice = (
