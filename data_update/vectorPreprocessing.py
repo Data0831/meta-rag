@@ -417,8 +417,8 @@ def main():
     processor = VectorPreProcessor(
         host=MEILISEARCH_HOST,
         api_key=MEILISEARCH_API_KEY,
-        # index_name=MEILISEARCH_INDEX,
-        index_name="announcements_test",
+        index_name=MEILISEARCH_INDEX,
+        # index_name="announcements_test",
         data_json=DATA_JSON,
         metadata_batch_size=100,
         vector_batch_size=200,
