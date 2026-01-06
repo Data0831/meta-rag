@@ -224,6 +224,7 @@ def search_endpoint():
         )
         start_date = data.get("start_date")
         end_date = data.get("end_date")
+        selected_website = data.get("selected_website", [])
 
         if not query:
             return jsonify({"error": "Query is required"}), 400
@@ -249,6 +250,7 @@ def search_endpoint():
         print(f"  Enable Rerank: {enable_keyword_weight_rerank}")
         print(f"  Start Date: {start_date}")
         print(f"  End Date: {end_date}")
+        print(f"  Selected website: {selected_website}")
         # Validate parameters
         if not isinstance(limit, int) or limit < 1 or limit > MAX_SEARCH_LIMIT:
             return (
@@ -290,6 +292,7 @@ def search_endpoint():
                 enable_keyword_weight_rerank=enable_keyword_weight_rerank,
                 start_date=start_date,
                 end_date=end_date,
+                website=selected_website,
             ):
                 response_steps.append(step)
                 yield json.dumps(step, ensure_ascii=False) + "\n"

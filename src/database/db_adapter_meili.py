@@ -49,6 +49,7 @@ class MeiliAdapter:
         query: str,
         vector: Optional[List[float]] = None,
         filters: Optional[str] = None,
+        website: Optional[List[str]] = None,
         limit: int = 20,
         semantic_ratio: float = DEFAULT_SEMANTIC_RATIO,
     ) -> Dict[str, Any]:
@@ -58,8 +59,22 @@ class MeiliAdapter:
             "showRankingScore": True,
             "showRankingScoreDetails": True,
         }
-        if filters:
-            search_params["filter"] = filters
+        # === 新增：處理網站過濾邏輯 ===
+        final_filter = filters
+
+        if website and len(website) > 0:
+            # 建立網站過濾字串: website IN ["Azure Updates", "Partner Center"]
+            site_list_str = ", ".join([f'"{w}"' for w in website])
+            website_filter = f'website IN [{site_list_str}]'
+
+            # 如果原本已經有 filters (例如年份)，就用 AND 連接
+            if final_filter:
+                final_filter = f"({final_filter}) AND {website_filter}"
+            else:
+                final_filter = website_filter
+        
+        if final_filter:
+            search_params["filter"] = final_filter
         if vector:
             search_params["hybrid"] = {
                 "semanticRatio": semantic_ratio,
@@ -182,9 +197,9 @@ def build_meili_filter(intent) -> Optional[str]:
     if intent.links:
         links_str = ", ".join([f"'{l}'" for l in intent.links])
         conditions.append(f"link IN [{links_str}]")
-    if hasattr(intent, "websites") and intent.websites:
-        websites_str = ", ".join([f"'{w}'" for w in intent.websites])
-        conditions.append(f"website IN [{websites_str}]")
+    if hasattr(intent, "website") and intent.website:
+        website_str = ", ".join([f"'{w}'" for w in intent.website])
+        conditions.append(f"website IN [{website_str}]")
 
     return " AND ".join(conditions) if conditions else None
 
