@@ -1,7 +1,7 @@
 from typing import List, Dict, Any
 from src.services.search_service import SearchService
 from src.llm.client import LLMClient
-from src.llm.prompts.summary import SUMMARY_SYSTEM_PROMPT
+from src.llm.prompts.summary import SUMMARY_SYSTEM_INSTRUCTION, SUMMARY_USER_TEMPLATE
 import re
 
 
@@ -78,21 +78,35 @@ class SearchTool:
             title = doc.get("title", "No Title")
             link = doc.get("heading_link") or doc.get("link", "")
             content = doc.get("content") or doc.get("cleaned_content") or ""
-            if len(content) > 500:
-                content = content[:500] + "..."
+            year = doc.get("year", "")
+            year_month = doc.get("year_month", "")
+            website = doc.get("website", "")
 
-            context_text += f'<document index="{idx}">\n<title>{title}</title>\n<content>{content}</content>\n</document>\n\n'
+            # if len(content) > 1200:
+            #     content = content[:1200] + "..."
+
+            context_text += f'<document index="{idx}">\n'
+            context_text += f"<title>{title}</title>\n"
+            context_text += f"<year_month>{year_month}</year_month>\n"
+            context_text += f"<year>{year}</year>\n"
+            context_text += f"<website>{website}</website>\n"
+            context_text += f"<content>{content}</content>\n"
+            context_text += f"</document>\n\n"
             link_mapping[str(idx)] = link
 
         # 2. Build Prompt
-        prompt = SUMMARY_SYSTEM_PROMPT.format(context=context_text, query=user_query)
-        messages = [{"role": "user", "content": prompt}]
+        system_msg = SUMMARY_SYSTEM_INSTRUCTION
+        user_msg = SUMMARY_USER_TEMPLATE.format(context=context_text, query=user_query)
+        messages = [
+            {"role": "system", "content": system_msg},
+            {"role": "user", "content": user_msg},
+        ]
 
         # 3. Call LLM with schema
         llm_response = self.llm_client.call_with_schema(
             messages=messages,
             response_model=StructuredSummary,
-            temperature=0.3,
+            temperature=0.1,
         )
 
         if llm_response.get("status") == "success":
