@@ -1,4 +1,4 @@
-import { currentResults } from './render.js';
+import { currentResults, activeResults, applyThresholdToResults } from './render.js';
 import { searchConfig } from './config.js';
 
 export function setupChatbot() {
@@ -74,7 +74,7 @@ export function setupChatbot() {
         clearBtn.addEventListener('click', () => {
             chatHistory = [];
             messagesDiv.innerHTML = '';
-            
+
             if (suggestionsContainer) suggestionsContainer.innerHTML = '';
             if (headerStatus) headerStatus.innerHTML = '';
 
@@ -133,11 +133,11 @@ export function setupChatbot() {
 
         try {
             const thresholdPercent = searchConfig.similarityThreshold || 0;
-            const validResults = currentResults.filter(item => {
-                const score = item._rankingScore ?? item.similarity ?? item.score ?? 0;
-
-                return (score * 100) >= thresholdPercent;
-            });
+            const isAnyDimmed = document.querySelector('.dimmed-result');
+            const validResults = (activeResults && activeResults.length > 0) 
+                               ? activeResults 
+                               : (isAnyDimmed ? [] : currentResults);
+            
             // 1. 取得原始搜尋到的總篇數 (用於顯示 "參考前 ? 篇")
             const totalScanned = currentResults.length;
             if (validResults.length === 0) {
@@ -302,8 +302,11 @@ export function setupChatbot() {
         
         // 4. 計算符合門檻的數量
         const validResults = currentResults.filter(item => {
-            const score = item._rankingScore ?? item.similarity ?? item.score ?? 0;
-            return (score * 100) >= thresholdPercent;
+            const rawScore = item._rerank_score !== undefined ? item._rerank_score : (item._rankingScore || 0);
+
+            const scorePercent = Math.round(rawScore * 100);
+            
+            return scorePercent >= thresholdPercent;
         });
         const validCount = validResults.length;
 
@@ -326,7 +329,9 @@ export function setupChatbot() {
         sliderInput.addEventListener('input', () => {
             // 1. 同步全域設定 (確保按送出時是對的)
             searchConfig.similarityThreshold = parseInt(sliderInput.value);
-            // 2. 即時更新 Header UI (視覺回饋)
+            // 2. 呼叫 render.js 的函式，讓卡片變灰，並更新 activeResults
+            applyThresholdToResults();
+            // 3. 即時更新 Header UI (視覺回饋)
             updateHeaderStatus();
         });
     }

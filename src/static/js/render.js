@@ -10,6 +10,8 @@ import { showAlert } from './alert.js';
 
 // Current Results Storage
 export let currentResults = [];
+//「目前沒反灰」的結果
+export let activeResults = [];
 
 // Current Search Context (for feedback logging)
 let currentSearchQuery = '';
@@ -422,6 +424,8 @@ export function applyThresholdToResults() {
     const resultCards = DOM.resultsContainer.querySelectorAll('.result-card-container');
     let dimmedCount = 0;
 
+    let validList = [];
+
     resultCards.forEach((card, index) => {
         if (index < currentResults.length) {
             const result = currentResults[index];
@@ -434,9 +438,12 @@ export function applyThresholdToResults() {
                 dimmedCount++;
             } else {
                 card.classList.remove('dimmed-result');
+                validList.push(result);
             }
         }
     });
+    activeResults = validList;
+    console.log(`[Context Update] Active results: ${activeResults.length} / ${currentResults.length}`);
 
     console.log(`[Threshold] ${dimmedCount}/${resultCards.length} cards dimmed (threshold: ${searchConfig.similarityThreshold}%)`);
 }
