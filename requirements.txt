@@ -7,8 +7,6 @@ pydantic==2.7.1
 ollama==0.2.1
 meilisearch==0.31.0
 grpcio>=1.62,<1.64
-markdown==3.5.1
-beautifulsoup4==4.12.2
 # sqlite-utils==3.36
 # jieba==0.42.1
 # qdrant-client
