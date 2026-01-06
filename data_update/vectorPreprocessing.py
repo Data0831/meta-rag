@@ -180,7 +180,12 @@ class VectorPreProcessor:
                 meili_docs = []
 
                 for info in failed_docs_info:
-                    res = get_embedding(info["doc"].cleaned_content)
+                    # 移除內容中所有的特定標點符號與空白，以便重新嘗試 Embedding
+                    chars_to_remove = ",. '’\"，。"
+                    retry_content = info["doc"].cleaned_content.translate(
+                        str.maketrans("", "", chars_to_remove)
+                    )
+                    res = get_embedding(retry_content)
                     if res.get("status") == "success":
                         vector = res.get("result")
                         meili_doc = transform_doc_for_meilisearch(info["doc"], vector)
@@ -200,7 +205,7 @@ class VectorPreProcessor:
         # --- Final Error Table Display ---
         if failed_docs_info:
             print_red("\n" + "=" * 100)
-            print_red(f"{'INDEX':<8} | {'ERROR':<30} | {'CONTENT SNIPPET':<50}")
+            print_red(f"{'INDEX':<8} | {'ERROR':<30} | {'CONTENT SNIPPET':<100}")
             print_red("-" * 100)
             for info in failed_docs_info:
                 idx = info["index"]

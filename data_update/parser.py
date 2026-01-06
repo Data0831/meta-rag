@@ -56,15 +56,15 @@ class DataParser:
         text = re.sub(r"^(\*{3,}|-{3,}|_{3,})\s*$", "", text, flags=re.MULTILINE)
 
         # 6. Convert markdown to HTML, then extract plain text
-        html = markdown.markdown(text, extensions=['tables'])
-        soup = BeautifulSoup(html, 'html.parser')
+        html = markdown.markdown(text, extensions=["tables"])
+        soup = BeautifulSoup(html, "html.parser")
         plain_text = soup.get_text()
 
         # 7. Clean up whitespace: replace multiple spaces with single space
-        plain_text = re.sub(r' +', ' ', plain_text)
+        plain_text = re.sub(r" +", " ", plain_text)
 
         # 8. Replace newlines with space (preserve semantic separation)
-        plain_text = re.sub(r'\n+', ' ', plain_text)
+        plain_text = re.sub(r"\n+", " ", plain_text)
 
         # 9. Final cleanup: remove leading/trailing whitespace
         plain_text = plain_text.strip()
@@ -98,7 +98,6 @@ class DataParser:
                 logger.warning(f"Data in {filename} is not a list. Skipping.")
                 continue
 
-
             for item in data:
                 # Helper to check required fields
                 if not all(
@@ -110,9 +109,9 @@ class DataParser:
                 # Process Content
                 raw_content = item["content"]
 
-                # 1. Truncate if > 3000
-                if len(raw_content) > 3000:
-                    raw_content = raw_content[:3000]
+                # # 1. Truncate if > 3000
+                # if len(raw_content) > 3000:
+                #     raw_content = raw_content[:3000]
 
                 # 2. Clean content
                 cleaned_content = self.clean_content(raw_content)
@@ -124,7 +123,9 @@ class DataParser:
                 # Update existing item to preserve other keys
                 item["year"] = year
                 item["content"] = raw_content
-                item["cleaned_content"] = cleaned_content
+                item["cleaned_content"] = json.dumps(
+                    cleaned_content, ensure_ascii=False
+                )
 
                 aggregated_data.append(item)
 
@@ -137,14 +138,14 @@ class DataParser:
             )
         except Exception as e:
             logger.error(f"Error saving output file: {e}")
-    
+
     def process_item(self, item: Dict[str, Any]) -> Dict[str, Any]:
         """供外部呼叫：清洗單筆資料並補齊欄位"""
         raw_content = item.get("content", "")
-        
-        # 1. 截斷
-        if len(raw_content) > 3000:
-            raw_content = raw_content[:3000]
+
+        # # 1. 截斷
+        # if len(raw_content) > 3000:
+        #     raw_content = raw_content[:3000]
 
         # 2. 清洗 (呼叫既有的 clean_content)
         cleaned_content = self.clean_content(raw_content)
@@ -156,17 +157,19 @@ class DataParser:
         # 更新欄位
         item["year"] = year
         item["content"] = raw_content
-        item["cleaned_content"] = cleaned_content
-        
+        item["cleaned_content"] = json.dumps(cleaned_content, ensure_ascii=False)
+
         return item
 
 
 if __name__ == "__main__":
     FILES_TO_PROCESS = [
-        "fetch_result/partner_center_announcements.json",
-        "fetch_result/windows_message_center.json",
-        "fetch_result/m365_roadmap.json",
-        "fetch_result/powerbi_blog.json",
+        # "fetch_result/partner_center_announcements.json",
+        # "fetch_result/windows_message_center.json",
+        # "fetch_result/m365_roadmap.json",
+        # "fetch_result/powerbi_blog.json",
+        # "sync_output/data.json"
+        "data.json"
     ]
     OUTPUT_FILE = "data.json"
 
