@@ -4,7 +4,7 @@ from typing import Dict, Any
 # 核心策略: 壓榨 GPU 矩陣運算，使用較大的 Batch 和 適度併發
 RTX_4050_6G: Dict[str, Any] = {
     "sub_batch_size": 17,
-    "max_concurrency": 8,
+    "max_concurrency": 12,
     "force_gpu": True,
 }
 

@@ -176,21 +176,11 @@ class VectorPreProcessor:
 
                 print(f"  Final Retry Attempt {attempt}/{self.final_retry_count}...")
 
-                # Prepare batch for retry
-                retry_texts = [info["doc"].cleaned_content for info in failed_docs_info]
-                retry_results = await get_embeddings_batch(
-                    retry_texts,
-                    sub_batch_size=1,  # Individual retries
-                    max_concurrency=self.max_concurrency,
-                    force_gpu=self.force_gpu,
-                    max_retries=1,  # Internal retry is enough, we are doing outer loop
-                )
-
                 still_failed = []
                 meili_docs = []
 
-                for j, res in enumerate(retry_results):
-                    info = failed_docs_info[j]
+                for info in failed_docs_info:
+                    res = get_embedding(info["doc"].cleaned_content)
                     if res.get("status") == "success":
                         vector = res.get("result")
                         meili_doc = transform_doc_for_meilisearch(info["doc"], vector)
@@ -428,7 +418,9 @@ def main():
     while True:
         print("\n" + "=" * 40)
         print_red(f"HARDWARE PROFILE: {hw_name}")
+        print_red(f"MEILISEARCH HOST: {os.getenv('MEILISEARCH_HOST', 'unknown')}")
         print_red(f"MEILISEARCH INDEX: {processor.index_name}")
+        print_red(f"OLLAMA HOST: {os.getenv('OLLAMA_HOST', 'unknown')}")
         print("=" * 40)
 
         choice = (
