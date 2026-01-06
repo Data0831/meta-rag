@@ -23,7 +23,7 @@ WEBSITE_JSON = os.path.join("src", "datas", "website.json")
 MEILISEARCH_HOST = os.getenv("MEILISEARCH_HOST", "http://localhost:7700")
 MEILISEARCH_API_KEY = os.getenv("MEILISEARCH_API_KEY", "masterKey")
 # MEILISEARCH_INDEX = "announcements_v4"
-MEILISEARCH_INDEX = "announcements_deploy"
+MEILISEARCH_INDEX = "announcements_test"
 MEILISEARCH_TIMEOUT = int(os.getenv("MEILISEARCH_TIMEOUT", 15))
 
 # ============================================================================
@@ -40,7 +40,11 @@ MAX_SEARCH_INPUT_LENGTH = 100
 MAX_CHAT_INPUT_LENGTH = 500
 
 AVAILABLE_SOURCES = [
-    {"value": "partner_center", "label": "Microsoft 合作夥伴中心公告", "default_checked": True},
+    {
+        "value": "partner_center",
+        "label": "Microsoft 合作夥伴中心公告",
+        "default_checked": True,
+    },
     {"value": "azure_update", "label": "Azure 更新", "default_checked": True},
     {"value": "m365_roadmap", "label": "Microsoft 365 藍圖", "default_checked": True},
     {

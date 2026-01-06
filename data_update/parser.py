@@ -3,6 +3,8 @@ import logging
 import re
 from pathlib import Path
 from typing import Any, Dict, List
+import markdown
+from bs4 import BeautifulSoup
 
 # Configure logging
 logging.basicConfig(
@@ -22,35 +24,15 @@ class DataParser:
         self.base_dir = Path(__file__).parent
 
     def clean_content(self, content: str) -> str:
-        """
-        Clean the content by removing noise and keeping key information.
-
-        Cleaning steps:
-        1. Remove URLs (http/https)
-        2. Remove Markdown links (keep anchor text)
-        3. Remove template Markdown headers (#### 現已推出, etc.)
-        4. Remove metadata fields (日期, 工作區, 受影響的群體)
-        """
         if not content:
             return ""
 
         text = content
 
-        # 1. Remove URLs
+        # 1. Remove URLs (preserve original functionality)
         text = re.sub(r"https?://\S+", "", text)
 
-        # 2. Remove Markdown links but keep anchor text
-        text = re.sub(r"\[(.*?)\]\([^)]*?\)", r"\1", text)
-
-        # 3. Remove template Markdown headers (multiline mode)
-        text = re.sub(
-            r"^#{3,6}\s*(現已推出|即將到來的事項|提醒|後續步驟)\s*$",
-            "",
-            text,
-            flags=re.MULTILINE,
-        )
-
-        # 4. Remove metadata field lines
+        # 2. Remove metadata field lines before markdown conversion
         text = re.sub(r"^\*\s*\*\*日期\*\*[：:].*\r?\n?", "", text, flags=re.MULTILINE)
         text = re.sub(
             r"^\*\s*\*\*工作區\*\*[：:].*\r?\n?", "", text, flags=re.MULTILINE
@@ -59,11 +41,35 @@ class DataParser:
             r"^\*\s*\*\*受影響的群體\*\*[：:].*\r?\n?", "", text, flags=re.MULTILINE
         )
 
-        # 5. Clean up excessive whitespace and newlines
-        text = re.sub(r"\n{3,}", "\n\n", text)  # Replace 3+ newlines with 2
-        text = text.strip()
+        # 3. Remove template Markdown headers
+        text = re.sub(
+            r"^#{3,6}\s*(現已推出|即將到來的事項|提醒|後續步驟)\s*$",
+            "",
+            text,
+            flags=re.MULTILINE,
+        )
 
-        return text
+        # 4. Remove images ![alt](url) before markdown conversion
+        text = re.sub(r"!\[.*?\]\(.*?\)", "", text)
+
+        # 5. Remove horizontal lines
+        text = re.sub(r"^(\*{3,}|-{3,}|_{3,})\s*$", "", text, flags=re.MULTILINE)
+
+        # 6. Convert markdown to HTML, then extract plain text
+        html = markdown.markdown(text, extensions=['tables'])
+        soup = BeautifulSoup(html, 'html.parser')
+        plain_text = soup.get_text()
+
+        # 7. Clean up whitespace: replace multiple spaces with single space
+        plain_text = re.sub(r' +', ' ', plain_text)
+
+        # 8. Replace newlines with space (preserve semantic separation)
+        plain_text = re.sub(r'\n+', ' ', plain_text)
+
+        # 9. Final cleanup: remove leading/trailing whitespace
+        plain_text = plain_text.strip()
+
+        return plain_text
 
     def process_files(self):
         """

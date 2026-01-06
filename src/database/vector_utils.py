@@ -4,7 +4,6 @@ from typing import List, Dict, Any, Union
 import ollama
 from collections import deque
 from dotenv import load_dotenv
-from src.tool.ANSI import print_red
 from src.log.logManager import LogManager
 import logging
 
@@ -66,7 +65,8 @@ async def get_embeddings_batch(
 
                 for i, emb in enumerate(embeddings):
                     if i < len(chunk_texts):
-                        results[start_idx + i] = {"status": "success", "result": emb}
+                        idx = start_idx + i
+                        results[idx] = {"status": "success", "result": emb}
 
                 # Completion check
                 for i in range(len(chunk_texts)):
@@ -92,7 +92,6 @@ async def get_embeddings_batch(
                     text_preview = t[:50].replace("\n", " ")
                     error_msg = f"Embedding Failed at Index [{start_idx}] | Text: {text_preview}... | Error: {str(e)}"
 
-                    print_red(error_msg)
                     logger.error(error_msg)
 
                     results[start_idx] = {
@@ -102,10 +101,7 @@ async def get_embeddings_batch(
                         "stage": "embedding_generation",
                     }
                     LogManager.log_embedding(
-                        text=t,
-                        error=str(e),
-                        model=model,
-                        index=start_idx
+                        text=t, error=str(e), model=model, index=start_idx
                     )
 
     # Run loop until queue is empty
@@ -141,9 +137,5 @@ def get_embedding(text: str, model: str = "bge-m3") -> Dict[str, Any]:
             "error": f"Error generating embedding from {OLLAMA_HOST}: {str(e)}",
             "stage": "embedding_generation",
         }
-        LogManager.log_embedding(
-            text=text,
-            error=str(e),
-            model=model
-        )
+        LogManager.log_embedding(text=text, error=str(e), model=model)
         return error_info

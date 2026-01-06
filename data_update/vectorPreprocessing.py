@@ -43,6 +43,7 @@ class VectorPreProcessor:
         max_concurrency: int = 10,
         force_gpu: bool = True,
         timeout: int = MEILISEARCH_TIMEOUT,
+        final_retry_count: int = 3,
     ):
         self.host = host
         self.api_key = api_key
@@ -57,6 +58,7 @@ class VectorPreProcessor:
         self.sub_batch_size = sub_batch_size
         self.max_concurrency = max_concurrency
         self.force_gpu = force_gpu
+        self.final_retry_count = final_retry_count
 
         self.adapter = MeiliAdapter(
             host=self.host,
@@ -115,6 +117,9 @@ class VectorPreProcessor:
     async def _process_and_sync_embeddings(self, docs: List[AnnouncementDoc]):
         """Helper to process a list of docs in batches, generating embeddings and syncing to Meili."""
         total = len(docs)
+        failed_docs_info = (
+            []
+        )  # To collect failures: {'index': i, 'doc': doc, 'error': err}
         print(
             f"Generating embeddings and transforming documents (Batch size: {self.vector_batch_size})..."
         )
@@ -143,10 +148,13 @@ class VectorPreProcessor:
                     meili_docs.append(meili_doc)
                 else:
                     error_msg = res.get("error", "Unknown error")
-                    print_red(
-                        f"⚠ Failed to generate embedding for doc index {i+j}: {doc.title}"
+                    # Collect for final retry
+                    failed_docs_info.append(
+                        {"index": i + j, "doc": doc, "error": error_msg}
                     )
-                    print_red(f"  Error: {error_msg}")
+                    print_yellow(
+                        f"  ⚠ Failed to generate embedding for index {i+j}, added to final retry list."
+                    )
 
             if meili_docs:
                 print(
@@ -155,6 +163,69 @@ class VectorPreProcessor:
                 self.adapter.upsert_documents(meili_docs)
 
             print(f"  Processed {min(i + self.vector_batch_size, total)}/{total}")
+
+        # --- Final Retry Stage for Failed Items ---
+        if failed_docs_info:
+            print_yellow(
+                f"\n--- Final Retry Stage: Retrying {len(failed_docs_info)} failed items (Max {self.final_retry_count} retries) ---"
+            )
+
+            for attempt in range(1, self.final_retry_count + 1):
+                if not failed_docs_info:
+                    break
+
+                print(f"  Final Retry Attempt {attempt}/{self.final_retry_count}...")
+
+                # Prepare batch for retry
+                retry_texts = [info["doc"].cleaned_content for info in failed_docs_info]
+                retry_results = await get_embeddings_batch(
+                    retry_texts,
+                    sub_batch_size=1,  # Individual retries
+                    max_concurrency=self.max_concurrency,
+                    force_gpu=self.force_gpu,
+                    max_retries=1,  # Internal retry is enough, we are doing outer loop
+                )
+
+                still_failed = []
+                meili_docs = []
+
+                for j, res in enumerate(retry_results):
+                    info = failed_docs_info[j]
+                    if res.get("status") == "success":
+                        vector = res.get("result")
+                        meili_doc = transform_doc_for_meilisearch(info["doc"], vector)
+                        meili_docs.append(meili_doc)
+                    else:
+                        info["error"] = res.get("error", "Unknown error")
+                        still_failed.append(info)
+
+                if meili_docs:
+                    print_green(
+                        f"    ✓ Recovered {len(meili_docs)} items in attempt {attempt}"
+                    )
+                    self.adapter.upsert_documents(meili_docs)
+
+                failed_docs_info = still_failed
+
+        # --- Final Error Table Display ---
+        if failed_docs_info:
+            print_red("\n" + "=" * 100)
+            print_red(f"{'INDEX':<8} | {'ERROR':<30} | {'CONTENT SNIPPET':<50}")
+            print_red("-" * 100)
+            for info in failed_docs_info:
+                idx = info["index"]
+                orig_err = str(info["error"]).replace("\n", " ")
+                err = (orig_err[:27] + "...") if len(orig_err) > 27 else orig_err
+
+                orig_content = info["doc"].cleaned_content.replace("\n", " ")
+                content = (
+                    (orig_content[:47] + "...")
+                    if len(orig_content) > 47
+                    else orig_content
+                )
+
+                print_red(f"{idx:<8} | {err:<30} | {content:<50}")
+            print_red("=" * 100 + "\n")
 
     async def async_process_and_write(self):
         print("\n--- Processing and Writing Data (Async Pipeline) ---")
