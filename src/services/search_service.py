@@ -231,9 +231,8 @@ class SearchService:
             traces.append(f"Applied manual website filter: {manual_website}")
 
         if exclude_ids:
-            exclude_filter_safe = (
-                f"id NOT IN [{', '.join([f'\"{eid}\"' for eid in exclude_ids])}]"
-            )
+            exclude_ids_str = ", ".join([f'"{eid}"' for eid in exclude_ids])
+            exclude_filter_safe = f"id NOT IN [{exclude_ids_str}]"
 
             if meili_filter:
                 meili_filter = f"({meili_filter}) AND ({exclude_filter_safe})"
