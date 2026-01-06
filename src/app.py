@@ -24,6 +24,7 @@ from src.database.db_adapter_meili import MeiliAdapter
 from src.agents.srhSumAgent import SrhSumAgent
 from src.config import (
     APP_VERSION,
+    ANNOUNCEMENT_JSON,
     DATE_RANGE_MIN,
     MEILISEARCH_HOST,
     MEILISEARCH_API_KEY,
