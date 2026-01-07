@@ -8,7 +8,7 @@ tiktoken>=0.7.0
 meilisearch==0.31.0
 openai==1.30.0
 pydantic>=2.10.4
-ollama==0.2.1
+ollama==0.6.1
 langchain-text-splitters>=0.2.0
 torch>=2.0.0 --index-url https://download.pytorch.org/whl/cpu
 sentence-transformers>=2.2.2

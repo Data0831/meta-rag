@@ -26,7 +26,6 @@ export async function performSearchStream(query, selectedwebsite = []) {
         semantic_ratio: searchConfig.semanticRatio,
         enable_llm: searchConfig.enableLlm,
         manual_semantic_ratio: searchConfig.manualSemanticRatio,
-        enable_keyword_weight_rerank: searchConfig.enableKeywordWeightRerank,
         start_date: searchConfig.startDate,
         end_date: searchConfig.endDate,
         selected_website: selectedwebsite
