@@ -15,7 +15,12 @@ DATE_RANGE_MIN = "2023-01"
 # Base directories
 DATA_DIR = "data_update"
 DATABASE_DIR = "database"
-LOG_BASE_DIR = os.getenv("LOG_BASE_DIR", "data_logs")
+LOG_BASE_DIR = os.getenv("LOG_BASE_DIR")
+if not LOG_BASE_DIR:
+    if os.environ.get("WEBSITE_INSTANCE_ID"):
+        LOG_BASE_DIR = "/home/LogFiles"
+    else:
+        LOG_BASE_DIR = "data_logs"
 
 # Data subdirectories
 DATA_JSON = os.path.join(DATA_DIR, "data.json")
