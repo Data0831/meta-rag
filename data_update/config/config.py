@@ -28,8 +28,15 @@ class TokenConfig:
     TOLERANCE = 200
 
 
+# HARDWARE_CONFIG = LOW_END_2C4T
 HARDWARE_CONFIG = RTX_4050_6G
+# HARDWARE_CONFIG = CPU_16C_64G
+MEILISEARCH_INDEX = "announcements_2026_01_07" # 這邊要指定正確
 
+class TimeConfig:
+    """時間配置參數"""
+    run_time = ["06:00"]
+    loop_time = 360 # 360 秒 = 6 分鐘
 
 # 測試輸出
 if __name__ == "__main__":

@@ -7,6 +7,7 @@ import json
 import traceback
 import logging
 from datetime import datetime
+from config.config import TimeConfig
 
 # ==========================================
 # 📦 模組引用
@@ -186,14 +187,14 @@ if __name__ == "__main__":
     job() 
     logger.info("✅ 初次掃描完成，轉入排程待機模式。")
     # 設定每日固定排程
-    schedule.every().day.at("06:00").do(job) # 早上 6 點
+    schedule.every().day.at(TimeConfig.run_time[0]).do(job) # 早上 6 點
     
-    logger.info(f"\n⏳ 已設定每日排程：06:00 與 18:00 執行...")
+    logger.info(f"\n⏳ 已設定每日排程：{TimeConfig.run_time[0]} 執行...")
     
     while True:
         try:
             schedule.run_pending()
-            time.sleep(60) # 每分鐘檢查一次時間
+            time.sleep(TimeConfig.loop_time) # 每分鐘檢查一次時間
         except KeyboardInterrupt:
             logger.info("🛑 系統已手動停止。")
             break
