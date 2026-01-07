@@ -2,7 +2,13 @@
 測試腳本：比較原版與表格感知版的切分效果
 """
 
-from shared_splitter import UnifiedTokenSplitter
+import sys
+import os
+
+root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.append(root_dir)
+
+from core.shared_splitter import UnifiedTokenSplitter
 
 
 def generate_markdown_table(rows: int = 50, cols: int = 5) -> str:

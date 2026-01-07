@@ -1,9 +1,33 @@
 import os
 import sys
 
-root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+root_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.append(root_dir)
 
 from src.config import AVAILABLE_SOURCES
 
-print(AVAILABLE_SOURCES)
+
+class WebsiteKey:
+    """網站來源鍵值配置"""
+
+    PARTNER_CENTER = AVAILABLE_SOURCES[0]["value"]
+    AZURE_UPDATES = AVAILABLE_SOURCES[1]["value"]
+    M365_ROADMAP = AVAILABLE_SOURCES[2]["value"]
+    WINDOWS_MESSAGE_CENTER = AVAILABLE_SOURCES[3]["value"]
+    POWERBI_BLOG = AVAILABLE_SOURCES[4]["value"]
+    MSRC_BLOG = AVAILABLE_SOURCES[5]["value"]
+
+
+class TokenConfig:
+    """Token 配置參數"""
+
+    MODEL_NAME = "gpt-4o-mini"
+    CHUNK_SIZE = 1500
+    OVERLAP = 300
+    TOLERANCE = 200
+
+
+# 測試輸出
+if __name__ == "__main__":
+    print("WebsiteKey.PARTNER_CENTER:", WebsiteKey.AZURE_UPDATES)
+    print("TokenConfig.MODEL_NAME:", TokenConfig.MODEL_NAME)
