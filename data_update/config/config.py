@@ -5,6 +5,7 @@ root_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__fil
 sys.path.append(root_dir)
 
 from src.config import AVAILABLE_SOURCES
+from src.database.vector_config import *
 
 
 class WebsiteKey:
@@ -27,7 +28,11 @@ class TokenConfig:
     TOLERANCE = 200
 
 
+HARDWARE_CONFIG = RTX_4050_6G
+
+
 # 測試輸出
 if __name__ == "__main__":
     print("WebsiteKey.PARTNER_CENTER:", WebsiteKey.AZURE_UPDATES)
     print("TokenConfig.MODEL_NAME:", TokenConfig.MODEL_NAME)
+    print("HARDWARE_CONFIG:", HARDWARE_CONFIG)

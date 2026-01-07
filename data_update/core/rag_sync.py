@@ -15,7 +15,9 @@ try:
     from vectorPreprocessing import VectorPreProcessor
 
     # 這裡請確認您的 config 位置是否正確
-    from src.database.vector_config import RTX_4050_6G
+    root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    sys.path.append(root_dir)
+    from config.config import HARDWARE_CONFIG
 except ImportError:
     print("⚠️ 模組引用失敗，將只執行存檔，跳過清洗與資料庫同步。")
     DataParser = None
@@ -98,9 +100,9 @@ def notify_rag_system(diff_reports: list):
     if VectorPreProcessor and (upsert_filename or delete_filename):
         print("\n⚡ [Auto Sync] 呼叫向量處理器...")
         try:
-            # 這裡使用 RTX_4050_6G，請依實際硬體調整
+            # 這裡使用 HARDWARE_CONFIG 調整
             processor = VectorPreProcessor(
-                index_name="announcements_test", **RTX_4050_6G
+                index_name="announcements_test", **HARDWARE_CONFIG
             )
             processor.run_dynamic_sync(
                 upsert_path=upsert_filename, delete_path=delete_filename
