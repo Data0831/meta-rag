@@ -99,7 +99,7 @@ class StructuredSummary(BaseModel):
 
     brief_answer: str = Field(
         ...,
-        description="Brief answer to the query (max 20 characters). Return '沒有參考資料' if no results, or '從內容搜索不到' if results exist but are irrelevant.",
+        description="Brief answer to the query (max 40 characters). Return '沒有參考資料' if no results, or '從內容搜索不到' if results exist but are irrelevant.",
     )
     detailed_answer: str = Field(
         default="",
@@ -107,5 +107,5 @@ class StructuredSummary(BaseModel):
     )
     general_summary: str = Field(
         default="",
-        description="General summary of all search results (max 500 characters), independent of the query. Empty if no results.",
+        description="General summary of all search results (max 1000 characters), independent of the query. Empty if no results.",
     )
