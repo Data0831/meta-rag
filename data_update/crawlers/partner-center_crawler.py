@@ -8,6 +8,9 @@ import copy
 from sentence_transformers import SentenceTransformer, util
 from langchain_text_splitters import MarkdownHeaderTextSplitter
 
+import os
+import sys
+
 root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(root_dir)
 from config.config import WebsiteKey

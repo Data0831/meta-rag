@@ -6,6 +6,9 @@ from markdownify import markdownify as md_converter
 from langchain_text_splitters import MarkdownHeaderTextSplitter
 from playwright.sync_api import sync_playwright
 
+import os
+import sys
+
 root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(root_dir)
 from config.config import WebsiteKey
