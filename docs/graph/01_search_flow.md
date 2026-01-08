@@ -1,9 +1,9 @@
 sequenceDiagram
     participant FE as Frontend (Browser)
     participant API as app.py (/api/search)
-    participant Agent as srhSumAgent.py (Agent)
-    participant SVC as search_service.py (Search)
-    participant LLM as LLM (gpt-4o-mini)
+    participant Agent as 搜索工作流控制<br>srhSumAgent.py (Agent)
+    participant SVC as 搜索主邏輯<br>search_service.py (Search)
+    participant LLM as clinet.py <br>LLM (gpt-4o-mini)
 
     FE->>API: POST { query, limit, semantic_ratio, start_date, website... }
     Note over API: 驗證參數與字數限制

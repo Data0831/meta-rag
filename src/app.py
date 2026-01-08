@@ -38,6 +38,7 @@ from src.config import (
     MANUAL_SEMANTIC_RATIO,
     MAX_SEARCH_INPUT_LENGTH,
     MAX_CHAT_INPUT_LENGTH,
+    LLM_TOKEN_LIMIT,
     WEBSITE_JSON,
     AVAILABLE_SOURCES,
     MEILISEARCH_TIMEOUT,
@@ -126,6 +127,7 @@ def get_config():
             "sources": AVAILABLE_SOURCES,
             "max_search_input_length": MAX_SEARCH_INPUT_LENGTH,
             "max_chat_input_length": MAX_CHAT_INPUT_LENGTH,
+            "llm_token_limit": LLM_TOKEN_LIMIT,
             "date_range_min": DATE_RANGE_MIN,
             "date_range_max": date_range_max,
         }

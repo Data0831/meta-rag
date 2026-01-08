@@ -19,6 +19,7 @@ export const appConfig = {
     websites: [],
     maxSearchInputLength: 100,
     maxChatInputLength: 500,
+    llmTokenLimit: 100000,
     dateRangeMin: "2023-01",
     dateRangeMax: null
 };
@@ -102,6 +103,9 @@ export async function loadBackendConfig() {
         }
         if (config.max_chat_input_length !== undefined) {
             appConfig.maxChatInputLength = config.max_chat_input_length;
+        }
+        if (config.llm_token_limit !== undefined) {
+            appConfig.llmTokenLimit = config.llm_token_limit;
         }
 
         // Update Date Range
