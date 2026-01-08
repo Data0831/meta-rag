@@ -10,7 +10,6 @@ Analyze the user's input (comprising a `Current Date` and a `User Query`) and ma
 # Data
 - **current date:** {current_date}
 - **previous queries (HISTORY):** {previous_queries}
-- **limit scope (website):** {website}
 
 # Input Format
 You will receive input in the following format:
@@ -30,13 +29,7 @@ If `direction` is provided and not empty:
 - You MUST adjust your search strategy, keywords, and sub-queries to prioritize this **direction**.
 - This is the guidance from a relevance analyst who reviewed the previous failed search results.
 
-## 1. Website Scope Constraint 
-If `limit scope (website)` is provided and not empty/All:
-- The user is explicitly restricting the search to these website.
-- Optimize your `keyword_query` and `sub_queries` to be specific to these domains.
-- Example: If website is "Azure Updates", prefer "Azure Container" over just "Container".
-
-## 2. Date Resolution (CRITICAL)
+## 1. Date Resolution (CRITICAL)
 You must calculate the `year_month` list based on the provided **Current Date**.
 - **Format:** Output months strictly as `"YYYY-MM"`.
 - **Logic:**
@@ -46,7 +39,7 @@ You must calculate the `year_month` list based on the provided **Current Date**.
   - **Specific Month (e.g., "April 2025")**: ["2025-04"].
   - **No time constraint**: Return an empty list `[]`.
 
-## 3. Filter Extraction
+## 2. Filter Extraction
 - **year_month**: The list of target months resolved above.
 - **year**: Extract 4-digit years (e.g., "2024") ONLY if no specific month context is provided. Otherwise, return `[]`.
 - **links**:
@@ -54,7 +47,7 @@ You must calculate the `year_month` list based on the provided **Current Date**.
   - Format: A list of strings (e.g., `["https://example.com/article"]`).
   - If no link is provided, return an empty list `[]`.
 
-## 4. Keyword Query Strategy (Full-Text Search)
+## 3. Keyword Query Strategy (Full-Text Search)
 Construct a concise string of key terms suitable for BM25/keyword matching (`keyword_query`).
 - **Entity Expansion (Bi-lingual)**:
   - Identify core entities: Product names, Program names, Technical terms (e.g., "雲合作夥伴計劃", "Azure", "Copilot").
@@ -73,13 +66,13 @@ Construct a concise string of key terms suitable for BM25/keyword matching (`key
   - **KEEP** high-discrimination intent words if they modify the entity: "Pricing" (價格), "Security" (安全性/資安), "Compliance" (合規), "Error" (錯誤).
 - **Format**: Space-separated string for `keyword_query`. List of strings for `must_have_keywords`.
 
-## 5. Semantic Query Strategy (Vector Search)
+## 4. Semantic Query Strategy (Vector Search)
 Construct a natural language sentence for vector embedding (`semantic_query`).
 - **Language**: Traditional Chinese.
 - **Entities**: Keep Proper Nouns/Entities in their original form (usually English, e.g., "Azure", "Windows", "Copilot") or common localized form.
 - **Structure**: A grammatically correct sentence describing the search intent.
 
-## 6. Multi-Query Generation (Sub-Queries)
+## 5. Multi-Query Generation (Sub-Queries)
 Generate 3 distinct sub-queries (`sub_queries`) to improve search recall.
 - **Strategy**: Break down complex or ambiguous queries into specific aspects.
 - **Format**: List of strings (Natural Language).
@@ -93,11 +86,11 @@ Generate 3 distinct sub-queries (`sub_queries`) to improve search recall.
         2. "specific pricing announcements"
         3. "related program updates"
 
-## 7. Limit Extraction
+## 6. Limit Extraction
 - Parse explicit numerical requests (e.g., "top 5", "3 articles", "請給我一篇", "給我三篇").
 - Output as an `integer`. If unspecified, use `null`.
 
-## 8. Semantic Ratio Strategy (Dynamic Weight Adjustment)
+## 7. Semantic Ratio Strategy (Dynamic Weight Adjustment)
 Determine the optimal balance between keyword and semantic search based on query characteristics.
 - **0.2-0.3 (Keyword-Heavy)**: Exact error codes, SKUs, or specific IDs.
 - **0.3-0.5 (Balanced with Keyword Preference)**: Specific products/features + descriptive intent (e.g., "Azure pricing").

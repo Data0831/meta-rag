@@ -36,16 +36,16 @@ MEILISEARCH_TIMEOUT = int(os.getenv("MEILISEARCH_TIMEOUT", 25))
 # ============================================================================
 # Frontend Configurable Variables (exposed via /api/config)
 # ============================================================================
-DEFAULT_SEARCH_LIMIT = 5 # 默認的搜索數量
-MAX_SEARCH_LIMIT = 50 # 最大搜索數量
-SCORE_PASS_THRESHOLD = 0.81
+DEFAULT_SEARCH_LIMIT = 5  # 默認的搜索數量
+MAX_SEARCH_LIMIT = 50  # 最大搜索數量
+SCORE_PASS_THRESHOLD = 0.81  # 相關性門檻 (左側)
 DEFAULT_SEMANTIC_RATIO = 0.5
 ENABLE_LLM = True
 MANUAL_SEMANTIC_RATIO = False
 MAX_SEARCH_INPUT_LENGTH = 100
 MAX_CHAT_INPUT_LENGTH = 500
 LLM_TOKEN_LIMIT = 100000
-SUMMARIZE_TOKEN_LIMIT = 80000 # 總結的 token 限制量，會影響總結使用的篇數
+SUMMARIZE_TOKEN_LIMIT = 80000  # 總結的 token 限制量，會影響總結使用的篇數
 
 AVAILABLE_SOURCES = [
     {
@@ -64,13 +64,19 @@ AVAILABLE_SOURCES = [
     {"value": "MSRC_blog", "label": "MSRC Blog", "default_checked": True},
 ]
 
+
 # ============================================================================
 # Backend-only Configuration (not exposed to frontend)
 # ============================================================================
 def get_pre_search_limit(limit):
-    return max(50, int(limit * 1.5 + 20)) # 根據使用者選擇的篇數動態返回 > 的數量並進行現有演算法處理 (merge,key_alg, sort, multi_search) 
+    return max(
+        50, int(limit * 1.5 + 20)
+    )  # 根據使用者選擇的篇數動態返回 > 的數量並進行現有演算法處理 (merge,key_alg, sort, multi_search)
 
-RETRY_SEARCH_LIMIT_MULTIPLIER = 1.5 # 重試後的擴大範圍，也會影響上面的，假設 is_retry_search 為 true
+
+RETRY_SEARCH_LIMIT_MULTIPLIER = (
+    1.5  # 重試後的擴大範圍，也會影響上面的，假設 is_retry_search 為 true
+)
 NO_HIT_PENALTY_FACTOR = 0.15
 KEYWORD_HIT_BOOST_FACTOR = 0.60
-SEARCH_MAX_RETRIES = 1 # 重搜索的次數
+SEARCH_MAX_RETRIES = 1  # 重搜索的次數

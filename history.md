@@ -78,3 +78,7 @@
 ### 2026-01-08 11:22 移除 SCORE_PASS_THRESHOLD 無效邏輯 (Remove Ineffective SCORE_PASS_THRESHOLD Logic)
 - **問題分析**：經檢查發現 `SCORE_PASS_THRESHOLD` 在 `srhSumAgent.py` 中雖有 6 處引用，但僅用於：1) 為結果添加 `score_pass` 標記（未實際過濾），2) 計算 `filtered` 列表用於顯示訊息，3) 在訊息中顯示門檻值。這些邏輯對程式沒有實際過濾作用，LLM 評估與最終總結均使用完整結果集。
 - **程式碼清理**：移除 `_add_results` 方法中的 `SCORE_PASS_THRESHOLD` 導入與 `score_pass` 標記邏輯；移除 `run` 方法中的門檻導入、`threshold_info` 變數、兩處 `filtered` 列表計算及相關顯示訊息（共約 50 行），使程式碼更簡潔且邏輯更清晰。
+### 2026-01-08 14:40 搜尋流程文件模組化拆解 (Search Flow Documentation Modularization)
+- **文件拆分與重構**：將原有的 `docs/graph/02_1_query_preparation.md` 拆分為 `02_1_query_rewrite.md` (意圖解析) 與 `02_2_parallel_query.md` (平行查詢) 兩個獨立模組。
+- **流程銜接優化**：在「平行查詢」圖表中，以「承接自階段 1 的意圖解析結果」作為起點，優化了文件間的邏輯遞進感。
+- **編號與同步更新**：同步將後續的「重排與輸出」文件更名為 `02_3_ranking_and_output.md`，並更新其內部描述以正確銜接階段 2 的結果，使整體搜尋流程圖表 (02_0 ~ 02_3) 架構更為清晰且易於維護。
