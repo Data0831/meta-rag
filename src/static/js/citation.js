@@ -21,7 +21,7 @@ export function renderStructuredSummary(summary, linkMapping) {
 
     const { brief_answer, detailed_answer, general_summary } = summary;
 
-    const isNoResults = brief_answer === '沒有參考資料' || brief_answer === '從內容 search 不到';
+    const isNoResults = brief_answer === '沒有參考資料' || brief_answer === '從內容搜索不到';
 
     let html = '';
 

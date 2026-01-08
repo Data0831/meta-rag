@@ -6,13 +6,21 @@ load_dotenv()
 # Application Version
 APP_VERSION = "v0.0.2"
 
+# API Password
+ADMIN_TOKEN = "msanmsan001"
+
 # Date Range Configuration
 DATE_RANGE_MIN = "2023-01"
 
 # Base directories
 DATA_DIR = "data_update"
 DATABASE_DIR = "database"
-LOG_BASE_DIR = os.getenv("LOG_BASE_DIR", "data_logs")
+LOG_BASE_DIR = os.getenv("LOG_BASE_DIR")
+if not LOG_BASE_DIR:
+    if os.environ.get("WEBSITE_INSTANCE_ID"):
+        LOG_BASE_DIR = "/home/LogFiles"
+    else:
+        LOG_BASE_DIR = "data_logs"
 
 # Data subdirectories
 DATA_JSON = os.path.join(DATA_DIR, "data.json")
@@ -22,9 +30,8 @@ WEBSITE_JSON = os.path.join("src", "datas", "website.json")
 # Meilisearch Settings
 MEILISEARCH_HOST = os.getenv("MEILISEARCH_HOST", "http://localhost:7700")
 MEILISEARCH_API_KEY = os.getenv("MEILISEARCH_API_KEY", "masterKey")
-# MEILISEARCH_INDEX = "announcements_v4"
-MEILISEARCH_INDEX = "announcements_test"
-MEILISEARCH_TIMEOUT = int(os.getenv("MEILISEARCH_TIMEOUT", 15))
+MEILISEARCH_INDEX = "announcements_2026_01_07"
+MEILISEARCH_TIMEOUT = int(os.getenv("MEILISEARCH_TIMEOUT", 25))
 
 # ============================================================================
 # Frontend Configurable Variables (exposed via /api/config)
@@ -35,25 +42,24 @@ SCORE_PASS_THRESHOLD = 0.81
 DEFAULT_SEMANTIC_RATIO = 0.5
 ENABLE_LLM = True
 MANUAL_SEMANTIC_RATIO = False
-ENABLE_KEYWORD_WEIGHT_RERANK = True
 MAX_SEARCH_INPUT_LENGTH = 100
 MAX_CHAT_INPUT_LENGTH = 500
 
 AVAILABLE_SOURCES = [
     {
-        "value": "partner_center",
+        "value": "partner_center_announcements",
         "label": "Microsoft 合作夥伴中心公告",
         "default_checked": True,
     },
-    {"value": "azure_update", "label": "Azure 更新", "default_checked": True},
-    {"value": "m365_roadmap", "label": "Microsoft 365 藍圖", "default_checked": True},
+    {"value": "Azure Updates", "label": "Azure 更新", "default_checked": True},
+    {"value": "M365 Roadmap", "label": "Microsoft 365 藍圖", "default_checked": True},
     {
-        "value": "windows_message_center",
+        "value": "windows message center",
         "label": "Windows 訊息中心",
         "default_checked": True,
     },
-    {"value": "powerbi_blog", "label": "Power BI 部落格", "default_checked": True},
-    {"value": "msrc_blog", "label": "MSRC Blog", "default_checked": True},
+    {"value": "PowerBI Blog", "label": "Power BI 部落格", "default_checked": True},
+    {"value": "MSRC_blog", "label": "MSRC Blog", "default_checked": True},
 ]
 
 # ============================================================================

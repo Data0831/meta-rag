@@ -2,18 +2,28 @@ import requests
 import re
 from typing import Any, Dict, List, Optional, Tuple
 
+import os
+import sys
+
+root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.append(root_dir)
+from config.config import WebsiteKey
+
 # 引入父類別，若找不到則使用 dummy object (測試用)
 try:
     from .base import BaseCrawler
 except ImportError:
+
     class BaseCrawler:
         def __init__(self):
             # 假設 utils 在同層或子目錄
             try:
-                from core.shared_splitter import UnifiedTokenSplitter 
+                from core.shared_splitter import UnifiedTokenSplitter
+
                 self.token_splitter = UnifiedTokenSplitter()
             except ImportError:
                 print("Warning: Shared Splitter not found.")
+
 
 class M365RoadmapCrawler(BaseCrawler):
     """
@@ -28,8 +38,10 @@ class M365RoadmapCrawler(BaseCrawler):
         # 設定
         self.roadmap_page = "https://www.microsoft.com/zh-tw/microsoft-365/roadmap"
         self.api_url = "https://www.microsoft.com/releasecommunications/api/v1/m365"
-        self.card_link_template = "https://www.microsoft.com/zh-tw/microsoft-365/roadmap?id={id}"
-        
+        self.card_link_template = (
+            "https://www.microsoft.com/zh-tw/microsoft-365/roadmap?id={id}"
+        )
+
         self.website_name = "M365 Roadmap"
 
         self.headers = {
@@ -41,9 +53,18 @@ class M365RoadmapCrawler(BaseCrawler):
         }
 
         self.month_map = {
-            "January": "01", "February": "02", "March": "03", "April": "04",
-            "May": "05", "June": "06", "July": "07", "August": "08",
-            "September": "09", "October": "10", "November": "11", "December": "12",
+            "January": "01",
+            "February": "02",
+            "March": "03",
+            "April": "04",
+            "May": "05",
+            "June": "06",
+            "July": "07",
+            "August": "08",
+            "September": "09",
+            "October": "10",
+            "November": "11",
+            "December": "12",
         }
 
         # 狀態映射
@@ -52,7 +73,7 @@ class M365RoadmapCrawler(BaseCrawler):
             "rolling out": "rolling_out",
             "launched": "launched",
         }
-        
+
         # 標題顯示名稱 (這裡保留 map 但主要邏輯會改用 item title)
         self.status_title_map = {
             "in_development": "In development",
@@ -67,7 +88,7 @@ class M365RoadmapCrawler(BaseCrawler):
 
     def run(self) -> List[Dict]:
         print(f"🚀 [{self.source_name}] Starting M365 Roadmap Scraper (Integrated)...")
-        
+
         try:
             # 1. 抓取原始資料
             raw_data = self._fetch_all()
@@ -90,7 +111,7 @@ class M365RoadmapCrawler(BaseCrawler):
 
             # 3. 扁平化 (Flatten) 為系統標準格式
             final_chunks = self._export_flat_list(grouped_data)
-            
+
             print(f"✅ [{self.source_name}] Processed {len(final_chunks)} chunks.")
             return final_chunks
 
@@ -105,8 +126,9 @@ class M365RoadmapCrawler(BaseCrawler):
         session = requests.Session()
         session.headers.update(self.headers)
         try:
-            session.get(self.roadmap_page, timeout=10) # warm-up
-        except: pass
+            session.get(self.roadmap_page, timeout=10)  # warm-up
+        except:
+            pass
 
         r = session.get(self.api_url, timeout=30)
         r.raise_for_status()
@@ -119,21 +141,29 @@ class M365RoadmapCrawler(BaseCrawler):
         return str(s or "").strip().lower()
 
     def _parse_month_key(self, s: str) -> Optional[str]:
-        if not s: return None
+        if not s:
+            return None
         m = re.match(
             r"^(January|February|March|April|May|June|July|August|September|October|November|December)\s+CY(\d{4})$",
-            str(s).strip()
+            str(s).strip(),
         )
-        if not m: return None
+        if not m:
+            return None
         return f"{m.group(2)}-{self.month_map[m.group(1)]}"
 
     def _pick_tag_names(self, item: Dict[str, Any], path: Tuple[str, ...]) -> List[str]:
         cur: Any = item
         for p in path:
-            if not isinstance(cur, dict) or p not in cur: return []
+            if not isinstance(cur, dict) or p not in cur:
+                return []
             cur = cur[p]
-        if not isinstance(cur, list): return []
-        return [x.get("tagName", "") for x in cur if isinstance(x, dict) and x.get("tagName")]
+        if not isinstance(cur, list):
+            return []
+        return [
+            x.get("tagName", "")
+            for x in cur
+            if isinstance(x, dict) and x.get("tagName")
+        ]
 
     def _to_card(self, item: Dict[str, Any]) -> Dict[str, Any]:
         card_id = item.get("id")
@@ -149,13 +179,19 @@ class M365RoadmapCrawler(BaseCrawler):
             "moreInfoLink": item.get("moreInfoLink"),
             "products": self._pick_tag_names(item, ("tagsContainer", "products")),
             "platforms": self._pick_tag_names(item, ("tagsContainer", "platforms")),
-            "cloud_instances": self._pick_tag_names(item, ("tagsContainer", "cloudInstances")),
-            "release_phases": self._pick_tag_names(item, ("tagsContainer", "releasePhase")),
+            "cloud_instances": self._pick_tag_names(
+                item, ("tagsContainer", "cloudInstances")
+            ),
+            "release_phases": self._pick_tag_names(
+                item, ("tagsContainer", "releasePhase")
+            ),
             "added_to_roadmap": item.get("created", ""),
             "last_modified": item.get("modified", ""),
         }
 
-    def _group_by_month(self, cards: List[Dict[str, Any]]) -> Dict[str, List[Dict[str, Any]]]:
+    def _group_by_month(
+        self, cards: List[Dict[str, Any]]
+    ) -> Dict[str, List[Dict[str, Any]]]:
         grouped: Dict[str, List[Dict[str, Any]]] = {}
         for c in cards:
             key = (
@@ -164,13 +200,17 @@ class M365RoadmapCrawler(BaseCrawler):
                 or "unknown"
             )
             grouped.setdefault(key, []).append(c)
-        
+
         for k in grouped:
-            grouped[k].sort(key=lambda x: (x.get("preview_available", ""), x.get("title", "")))
-        
+            grouped[k].sort(
+                key=lambda x: (x.get("preview_available", ""), x.get("title", ""))
+            )
+
         return dict(sorted(grouped.items(), key=lambda x: (x[0] == "unknown", x[0])))
 
-    def _export_flat_list(self, data: Dict[str, Dict[str, List[Dict[str, Any]]]]) -> List[Dict[str, Any]]:
+    def _export_flat_list(
+        self, data: Dict[str, Dict[str, List[Dict[str, Any]]]]
+    ) -> List[Dict[str, Any]]:
         """
         將分組資料轉為 DiffEngine 可吃的 Flat List (含切塊邏輯)
         """
@@ -185,34 +225,47 @@ class M365RoadmapCrawler(BaseCrawler):
                     parts: List[str] = []
 
                     # 內文組合
-                    if it.get("description"): parts.append(it["description"].strip())
-                    if it.get("status"): parts.append(f"Status: {it['status']}")
-                    if it.get("preview_available"): parts.append(f"Preview available: {it['preview_available']}")
-                    if it.get("rollout_start"): parts.append(f"Rollout start: {it['rollout_start']}")
-                    
+                    if it.get("description"):
+                        parts.append(it["description"].strip())
+                    if it.get("status"):
+                        parts.append(f"Status: {it['status']}")
+                    if it.get("preview_available"):
+                        parts.append(f"Preview available: {it['preview_available']}")
+                    if it.get("rollout_start"):
+                        parts.append(f"Rollout start: {it['rollout_start']}")
+
                     # 標籤類
-                    if it.get("cloud_instances"): parts.append(f"Cloud instances: {', '.join(it['cloud_instances'])}")
-                    if it.get("release_phases"): parts.append(f"Release phases: {', '.join(it['release_phases'])}")
-                    if it.get("products"): parts.append(f"Products: {', '.join(it['products'])}")
-                    if it.get("platforms"): parts.append(f"Platforms: {', '.join(it['platforms'])}")
-                    
-                    if it.get("moreInfoLink"): parts.append(f"More info: {it['moreInfoLink']}")
-                    
+                    if it.get("cloud_instances"):
+                        parts.append(
+                            f"Cloud instances: {', '.join(it['cloud_instances'])}"
+                        )
+                    if it.get("release_phases"):
+                        parts.append(
+                            f"Release phases: {', '.join(it['release_phases'])}"
+                        )
+                    if it.get("products"):
+                        parts.append(f"Products: {', '.join(it['products'])}")
+                    if it.get("platforms"):
+                        parts.append(f"Platforms: {', '.join(it['platforms'])}")
+
+                    if it.get("moreInfoLink"):
+                        parts.append(f"More info: {it['moreInfoLink']}")
+
                     content_str = "\n".join([p for p in parts if p]).strip()
                     link = it.get("link", "") or ""
-                    
+
                     # 取得標題
                     title = it.get("title", "") or ""
-                    
+
                     # 🔥 [修改 2] main_title 比照 title
-                    main_title = title 
+                    main_title = title
 
                     # 🔥 [修改 3] 使用 token_splitter 進行切塊
                     split_texts = self.token_splitter.split_text(content_str)
 
                     for text_part in split_texts:
                         chunk = {
-                            "website": self.website_name, # 🔥 [修改 4] 統一為 website
+                            "website": WebsiteKey.M365_ROADMAP,
                             "title": title,
                             "link": link,
                             "heading_link": link,

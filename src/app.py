@@ -24,6 +24,7 @@ from src.database.db_adapter_meili import MeiliAdapter
 from src.agents.srhSumAgent import SrhSumAgent
 from src.config import (
     APP_VERSION,
+    ADMIN_TOKEN,
     ANNOUNCEMENT_JSON,
     DATE_RANGE_MIN,
     MEILISEARCH_HOST,
@@ -35,7 +36,6 @@ from src.config import (
     DEFAULT_SEMANTIC_RATIO,
     ENABLE_LLM,
     MANUAL_SEMANTIC_RATIO,
-    ENABLE_KEYWORD_WEIGHT_RERANK,
     MAX_SEARCH_INPUT_LENGTH,
     MAX_CHAT_INPUT_LENGTH,
     WEBSITE_JSON,
@@ -121,7 +121,6 @@ def get_config():
             "default_semantic_ratio": DEFAULT_SEMANTIC_RATIO,
             "enable_llm": ENABLE_LLM,
             "manual_semantic_ratio": MANUAL_SEMANTIC_RATIO,
-            "enable_rerank": ENABLE_KEYWORD_WEIGHT_RERANK,
             "announcements": announcements,
             "websites": websites,
             "sources": AVAILABLE_SOURCES,
@@ -221,9 +220,6 @@ def search_endpoint():
         semantic_ratio = data.get("semantic_ratio", DEFAULT_SEMANTIC_RATIO)
         enable_llm = data.get("enable_llm", ENABLE_LLM)
         manual_semantic_ratio = data.get("manual_semantic_ratio", MANUAL_SEMANTIC_RATIO)
-        enable_keyword_weight_rerank = data.get(
-            "enable_keyword_weight_rerank", ENABLE_KEYWORD_WEIGHT_RERANK
-        )
         start_date = data.get("start_date")
         end_date = data.get("end_date")
         selected_website = data.get("selected_website", [])
@@ -249,7 +245,6 @@ def search_endpoint():
         print(f"  Semantic Ratio: {semantic_ratio}")
         print(f"  Enable LLM: {enable_llm}")
         print(f"  Manual Semantic Ratio: {manual_semantic_ratio}")
-        print(f"  Enable Rerank: {enable_keyword_weight_rerank}")
         print(f"  Start Date: {start_date}")
         print(f"  End Date: {end_date}")
         print(f"  Selected website: {selected_website}")
@@ -291,7 +286,6 @@ def search_endpoint():
                 semantic_ratio=semantic_ratio,
                 enable_llm=enable_llm,
                 manual_semantic_ratio=manual_semantic_ratio,
-                enable_keyword_weight_rerank=enable_keyword_weight_rerank,
                 start_date=start_date,
                 end_date=end_date,
                 website=selected_website,
@@ -413,6 +407,48 @@ def internal_error(e):
 
 
 # ============================================================================
+# Data Update API (Supports website and announcement)
+# ============================================================================
+
+
+@app.route("/api/admin/update-json/<target>", methods=["POST"])
+def update_json_data(target):
+    """
+    通用遠端更新 API
+    URL 範例: /api/admin/update-json/website 或 /api/admin/update-json/announcement
+    """
+    try:
+        # 1. 驗證權限
+        token = request.headers.get("X-Admin-Token")
+        if token != ADMIN_TOKEN:
+            return jsonify({"error": "Unauthorized"}), 401
+
+        # 2. 決定目標檔案路徑
+        if target == "website":
+            file_path = os.path.join(str(project_root), WEBSITE_JSON)
+        elif target == "announcement":
+            file_path = os.path.join(str(project_root), ANNOUNCEMENT_JSON)
+        else:
+            return jsonify({"error": f"Invalid target: {target}"}), 400
+
+        # 3. 獲取 JSON 資料並驗證
+        new_data = request.get_json()
+        if not isinstance(new_data, list):
+            return jsonify({"error": "Invalid format, must be a list"}), 400
+
+        # 4. 寫入檔案
+        with open(file_path, "w", encoding="utf-8") as f:
+            json.dump(new_data, f, ensure_ascii=False, indent=4)
+
+        print(f"Successfully updated {target}.json via API")
+        return jsonify({"status": "success", "message": f"{target}.json updated."})
+
+    except Exception as e:
+        print_red(f"Update API Error ({target}): {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+# ============================================================================
 # Main Entry Point
 # ============================================================================
 
@@ -426,4 +462,5 @@ if __name__ == "__main__":
     print(f"Server will run on: http://0.0.0.0:{port}")
     print("=" * 60)
 
+    # app.run(debug=False, host="0.0.0.0", port=5000)
     app.run(debug=True, host="0.0.0.0", port=5000)

@@ -11,7 +11,6 @@ DEFAULT_LIMIT = 5
 SEMANTIC_RATIO = 0.5
 ENABLE_LLM = True
 MANUAL_SEMANTIC_RATIO = False
-ENABLE_KEYWORD_WEIGHT_RERANK = True
 
 
 def test_api_search(query: str):
@@ -25,7 +24,6 @@ def test_api_search(query: str):
         "semantic_ratio": SEMANTIC_RATIO,
         "enable_llm": ENABLE_LLM,
         "manual_semantic_ratio": MANUAL_SEMANTIC_RATIO,
-        "enable_keyword_weight_rerank": ENABLE_KEYWORD_WEIGHT_RERANK,
     }
 
     try:

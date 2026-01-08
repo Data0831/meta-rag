@@ -8,7 +8,6 @@ export const searchConfig = {
     similarityThreshold: 0,
     enableLlm: true,
     manualSemanticRatio: false,
-    enableKeywordWeightRerank: true,
     startDate: null,
     endDate: null
 };
@@ -86,13 +85,6 @@ export async function loadBackendConfig() {
             searchConfig.manualSemanticRatio = config.manual_semantic_ratio;
             const manualCheckbox = document.getElementById('manualRatioCheckbox');
             if (manualCheckbox) manualCheckbox.checked = config.manual_semantic_ratio;
-        }
-
-        // Update Enable Rerank
-        if (config.enable_rerank !== undefined) {
-            searchConfig.enableKeywordWeightRerank = config.enable_rerank;
-            const rerankCheckbox = document.getElementById('enableKeywordWeightRerankCheckbox');
-            if (rerankCheckbox) rerankCheckbox.checked = config.enable_rerank;
         }
 
         // Update App Config (sources, announcements, websites)

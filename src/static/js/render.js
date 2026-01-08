@@ -35,7 +35,6 @@ export function renderResults(data, duration, query) {
         semantic_ratio: searchConfig.semanticRatio,
         enable_llm: searchConfig.enableLlm,
         manual_semantic_ratio: searchConfig.manualSemanticRatio,
-        enable_keyword_weight_rerank: searchConfig.enableKeywordWeightRerank,
         start_date: searchConfig.startDate,
         end_date: searchConfig.endDate
     };
@@ -201,16 +200,21 @@ function updateIntentDisplay(data) {
     // Update Filters
     DOM.intentFilters.innerHTML = '';
 
+    const hasYearMonth = intent.year_month && intent.year_month.length > 0;
+    const dateBadgeStyle = hasYearMonth
+        ? "background: linear-gradient(135deg, #94a3b8 0%, #64748b 100%); opacity: 0.5; font-size: 0.75rem;"
+        : "background: linear-gradient(135deg, #14b8a6 0%, #0d9488 100%); font-size: 0.75rem;";
+
     if (searchConfig.startDate) {
-        DOM.intentFilters.innerHTML += 
-            `<span class="px-2 py-0.5 rounded border text-xs bg-teal-100 dark:bg-teal-900 text-teal-800 dark:text-teal-300 border-teal-200 dark:border-teal-700">
+        DOM.intentFilters.innerHTML +=
+            `<span class="intent-badge" style="${dateBadgeStyle}">
                 開始: ${searchConfig.startDate}
             </span>`;
     }
 
     if (searchConfig.endDate) {
-        DOM.intentFilters.innerHTML += 
-            `<span class="px-2 py-0.5 rounded border text-xs bg-teal-100 dark:bg-teal-900 text-teal-800 dark:text-teal-300 border-teal-200 dark:border-teal-700">
+        DOM.intentFilters.innerHTML +=
+            `<span class="intent-badge" style="${dateBadgeStyle}">
                 結束: ${searchConfig.endDate}
             </span>`;
     }

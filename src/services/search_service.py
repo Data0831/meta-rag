@@ -231,9 +231,8 @@ class SearchService:
             traces.append(f"Applied manual website filter: {manual_website}")
 
         if exclude_ids:
-            exclude_filter_safe = (
-                f"id NOT IN [{', '.join([f'\"{eid}\"' for eid in exclude_ids])}]"
-            )
+            exclude_ids_str = ", ".join([f'"{eid}"' for eid in exclude_ids])
+            exclude_filter_safe = f"id NOT IN [{exclude_ids_str}]"
 
             if meili_filter:
                 meili_filter = f"({meili_filter}) AND ({exclude_filter_safe})"
@@ -306,14 +305,14 @@ class SearchService:
         all_hits: List[Dict[str, Any]],
         intent: SearchIntent,
         limit: int,
-        enable_keyword_weight_rerank: bool,
+        enable_llm: bool,
     ) -> List[Dict[str, Any]]:
         pre_merge_limit = round(limit * 2.5)
 
         reranker = ResultReranker(all_hits, intent.must_have_keywords)
         reranked_results = reranker.rerank(
             top_k=pre_merge_limit,
-            enable_keyword_weight_rerank=enable_keyword_weight_rerank,
+            enable_llm=enable_llm,
         )
 
         if reranked_results and "_rerank_score" in reranked_results[0]:

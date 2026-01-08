@@ -119,13 +119,6 @@ export function setupSearchConfig() {
         });
     }
 
-    const enableKeywordWeightRerankCheckbox = document.getElementById('enableKeywordWeightRerankCheckbox');
-    if (enableKeywordWeightRerankCheckbox) {
-        enableKeywordWeightRerankCheckbox.addEventListener('change', (e) => {
-            searchConfig.enableKeywordWeightRerank = e.target.checked;
-        });
-    }
-
     // 5. Date Range
     const startDateInput = document.getElementById('startDateInput');
     if (startDateInput) {

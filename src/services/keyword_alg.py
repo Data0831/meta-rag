@@ -5,7 +5,6 @@ from src.config import (
     KEYWORD_HIT_BOOST_FACTOR,
 )
 
-
 class ResultReranker:
     def __init__(
         self, search_results: List[Dict[str, Any]], target_keywords: Optional[List[str]]
@@ -47,7 +46,7 @@ class ResultReranker:
         return min(max(final_score, 0.0), 1.0)
 
     def rerank(
-        self, top_k: Optional[int] = None, enable_keyword_weight_rerank: bool = True
+        self, top_k: Optional[int] = None, enable_llm: bool = True
     ) -> List[Dict[str, Any]]:
         if not self.results:
             return self.results
@@ -60,7 +59,7 @@ class ResultReranker:
                 doc["_hit_ratio"] = 0.0
                 doc["has_keyword"] = "0/0"
 
-        if not enable_keyword_weight_rerank:
+        if not enable_llm:
             for doc in self.results:
                 original_score = doc.get("_rankingScore", 1.0)
                 doc["_rerank_score"] = original_score

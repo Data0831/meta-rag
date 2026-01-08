@@ -3,8 +3,10 @@ import logging
 import re
 from pathlib import Path
 from typing import Any, Dict, List
+from datetime import datetime
 import markdown
 from bs4 import BeautifulSoup
+import tiktoken
 
 # Configure logging
 logging.basicConfig(
@@ -22,6 +24,10 @@ class DataParser:
         self.files_to_process = files_to_process
         self.output_file = output_file
         self.base_dir = Path(__file__).parent
+        try:
+            self.enc = tiktoken.encoding_for_model("gpt-4o-mini")
+        except Exception:
+            self.enc = tiktoken.get_encoding("cl100k_base")
 
     def clean_content(self, content: str) -> str:
         if not content:
@@ -56,15 +62,15 @@ class DataParser:
         text = re.sub(r"^(\*{3,}|-{3,}|_{3,})\s*$", "", text, flags=re.MULTILINE)
 
         # 6. Convert markdown to HTML, then extract plain text
-        html = markdown.markdown(text, extensions=['tables'])
-        soup = BeautifulSoup(html, 'html.parser')
+        html = markdown.markdown(text, extensions=["tables"])
+        soup = BeautifulSoup(html, "html.parser")
         plain_text = soup.get_text()
 
         # 7. Clean up whitespace: replace multiple spaces with single space
-        plain_text = re.sub(r' +', ' ', plain_text)
+        plain_text = re.sub(r" +", " ", plain_text)
 
         # 8. Replace newlines with space (preserve semantic separation)
-        plain_text = re.sub(r'\n+', ' ', plain_text)
+        plain_text = re.sub(r"\n+", " ", plain_text)
 
         # 9. Final cleanup: remove leading/trailing whitespace
         plain_text = plain_text.strip()
@@ -98,7 +104,6 @@ class DataParser:
                 logger.warning(f"Data in {filename} is not a list. Skipping.")
                 continue
 
-
             for item in data:
                 # Helper to check required fields
                 if not all(
@@ -107,26 +112,9 @@ class DataParser:
                     # Skip items missing required fields
                     continue
 
-                # Process Content
-                raw_content = item["content"]
-
-                # 1. Truncate if > 3000
-                if len(raw_content) > 3000:
-                    raw_content = raw_content[:3000]
-
-                # 2. Clean content
-                cleaned_content = self.clean_content(raw_content)
-
-                # Extract Year from year_month (assuming YYYY-MM format)
-                year_month = item["year_month"]
-                year = year_month.split("-")[0] if "-" in year_month else year_month[:4]
-
-                # Update existing item to preserve other keys
-                item["year"] = year
-                item["content"] = raw_content
-                item["cleaned_content"] = cleaned_content
-
-                aggregated_data.append(item)
+                # Use process_item to clean and supplement fields
+                processed_item = self.process_item(item)
+                aggregated_data.append(processed_item)
 
         # Save aggregated data
         try:
@@ -137,14 +125,14 @@ class DataParser:
             )
         except Exception as e:
             logger.error(f"Error saving output file: {e}")
-    
+
     def process_item(self, item: Dict[str, Any]) -> Dict[str, Any]:
         """供外部呼叫：清洗單筆資料並補齊欄位"""
         raw_content = item.get("content", "")
-        
-        # 1. 截斷
-        if len(raw_content) > 3000:
-            raw_content = raw_content[:3000]
+
+        # # 1. 截斷
+        # if len(raw_content) > 3000:
+        #     raw_content = raw_content[:3000]
 
         # 2. 清洗 (呼叫既有的 clean_content)
         cleaned_content = self.clean_content(raw_content)
@@ -156,17 +144,21 @@ class DataParser:
         # 更新欄位
         item["year"] = year
         item["content"] = raw_content
-        item["cleaned_content"] = cleaned_content
-        
+        item["cleaned_content"] = json.dumps(cleaned_content, ensure_ascii=False)
+        item["token"] = len(self.enc.encode(raw_content))
+        item["update_time"] = datetime.now().strftime("%Y-%m-%d-%H-%M")
+
         return item
 
 
 if __name__ == "__main__":
     FILES_TO_PROCESS = [
-        "fetch_result/partner_center_announcements.json",
-        "fetch_result/windows_message_center.json",
-        "fetch_result/m365_roadmap.json",
-        "fetch_result/powerbi_blog.json",
+        # "fetch_result/partner_center_announcements.json",
+        # "fetch_result/windows_message_center.json",
+        # "fetch_result/m365_roadmap.json",
+        # "fetch_result/powerbi_blog.json",
+        # "sync_output/data.json"
+        "data.json"
     ]
     OUTPUT_FILE = "data.json"
 
