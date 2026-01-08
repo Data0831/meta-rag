@@ -6,6 +6,7 @@ ollama==0.6.1
 meilisearch==0.31.0
 gunicorn==22.0.0
 grpcio>=1.62,<1.64
+tiktoken==0.12.0
 # google-generativeai==1.43.0
 # sqlite-utils==3.36
 # jieba==0.42.1
