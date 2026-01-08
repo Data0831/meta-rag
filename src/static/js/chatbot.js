@@ -351,7 +351,12 @@ export function setupChatbot() {
         }
 
         if (!currentResults || currentResults.length === 0) {
-            headerStatus.innerHTML = `<span class="text-slate-400 text-xs">(等待搜尋...)</span>`;
+            headerStatus.innerHTML = `
+                <div class="inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-primary/20 border border-primary/40">
+                    <span class="material-icons-round text-white text-base">smart_toy</span>
+                    <span class="text-base text-white font-bold">問答機器人</span>
+                </div>
+            `;
             return;
         }
 
@@ -378,38 +383,67 @@ export function setupChatbot() {
         const tokenLimit = appConfig.llmTokenLimit;
         const tokenPercentage = (estimatedTotal / tokenLimit) * 100;
 
-        let statusColor = "#ffffff";
-        let statusText = "";
+        let tokenBgColor = "bg-slate-700";
+        let tokenBorderColor = "border-slate-600";
+        let tokenIconColor = "text-white";
+        let tokenTextColor = "text-white";
+        let tokenIcon = "data_usage";
+        let tokenPrefix = "~";
 
         if (currentTokenUsage && currentTokenUsage.total) {
             const actualTotal = currentTokenUsage.total;
             const actualPercentage = (actualTotal / tokenLimit) * 100;
+            tokenPrefix = "";
 
             if (actualPercentage >= 90) {
-                statusColor = "#ef4444";
+                tokenBgColor = "bg-red-900/50";
+                tokenBorderColor = "border-red-600";
+                tokenIconColor = "text-red-400";
+                tokenTextColor = "text-red-300";
+                tokenIcon = "warning";
             } else if (actualPercentage >= 70) {
-                statusColor = "#f59e0b";
+                tokenBgColor = "bg-amber-900/50";
+                tokenBorderColor = "border-amber-600";
+                tokenIconColor = "text-amber-400";
+                tokenTextColor = "text-amber-300";
+                tokenIcon = "data_usage";
             }
-
-            statusText = `(已使用 ${actualTotal.toLocaleString()} / ${tokenLimit.toLocaleString()} token)`;
         } else {
             if (tokenPercentage >= 90) {
-                statusColor = "#ef4444";
+                tokenBgColor = "bg-red-900/50";
+                tokenBorderColor = "border-red-600";
+                tokenIconColor = "text-red-400";
+                tokenTextColor = "text-red-300";
+                tokenIcon = "warning";
             } else if (tokenPercentage >= 70) {
-                statusColor = "#f59e0b";
+                tokenBgColor = "bg-amber-900/50";
+                tokenBorderColor = "border-amber-600";
+                tokenIconColor = "text-amber-400";
+                tokenTextColor = "text-amber-300";
+                tokenIcon = "data_usage";
             }
-
-            statusText = `(已使用 ~${estimatedTotal.toLocaleString()} / ${tokenLimit.toLocaleString()} token)`;
         }
 
+        const actualOrEstimated = currentTokenUsage ? currentTokenUsage.total : estimatedTotal;
+
         if (validCount === 0) {
-            headerStatus.innerHTML = `<span style="color: #ef4444; font-size: 13px; font-weight: bold;">(未符合門檻)</span>`;
-        } else {
-            const articleInfo = `已載入 ${validCount}/${totalScanned} 篇`;
             headerStatus.innerHTML = `
-                <div style="display: flex; flex-direction: column; gap: 2px; align-items: flex-end;">
-                    <span style="color: #ffffff; font-size: 13px; font-weight: bold;">(${articleInfo})</span>
-                    <span style="color: ${statusColor}; font-size: 11px; font-weight: bold;">${statusText}</span>
+                <div class="inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-red-900/50 border border-red-600">
+                    <span class="material-icons-round text-red-400" style="font-size: 14px;">block</span>
+                    <span class="text-xs text-red-300 font-medium">未符合門檻</span>
+                </div>
+            `;
+        } else {
+            headerStatus.innerHTML = `
+                <div class="inline-flex items-center gap-2">
+                    <div class="inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-blue-900/50 border border-blue-600">
+                        <span class="material-icons-round text-blue-400" style="font-size: 14px;">description</span>
+                        <span class="text-xs text-blue-300 font-medium">${validCount}/${totalScanned} 篇</span>
+                    </div>
+                    <div class="inline-flex items-center gap-1.5 px-2 py-1 rounded-md ${tokenBgColor} border ${tokenBorderColor}">
+                        <span class="material-icons-round ${tokenIconColor}" style="font-size: 14px;">${tokenIcon}</span>
+                        <span class="text-xs ${tokenTextColor} font-medium">${tokenPrefix}${actualOrEstimated.toLocaleString()}</span>
+                    </div>
                 </div>
             `;
         }

@@ -382,3 +382,7 @@ body {
     display: inline-block;
     margin-bottom: 5px;
 }
+
+#clearChatBtn .material-icons-round{
+    font-size: 1.5em;
+}
