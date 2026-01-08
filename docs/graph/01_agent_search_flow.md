@@ -13,7 +13,7 @@ sequenceDiagram
         Agent->>SVC: search(query, history, website...)
         SVC->>LLM: Intent Parsing (關鍵字/子查詢/日期)<br>+ QueryRewrite (模糊 + 語義 + 子查詢)
         SVC-->>Agent: 回傳初篩結果 (Raw Hits)
-        Agent->>LLM: _check_retry_search (評估相關性)
+        Agent->>LLM: _check_retry_search (評估相關性 prompt)
         LLM->>Agent: LLM 決定始否需要繼續查詢，回傳優化後新查詢方向
         alt 資訊有缺或相關度不足可重試
             Agent->>Agent: 記錄 exclude_ids(排除之前查詢) & 取得優化方向
