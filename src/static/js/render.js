@@ -35,7 +35,6 @@ export function renderResults(data, duration, query) {
         semantic_ratio: searchConfig.semanticRatio,
         enable_llm: searchConfig.enableLlm,
         manual_semantic_ratio: searchConfig.manualSemanticRatio,
-        enable_keyword_weight_rerank: searchConfig.enableKeywordWeightRerank,
         start_date: searchConfig.startDate,
         end_date: searchConfig.endDate
     };

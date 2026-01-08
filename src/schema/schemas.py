@@ -24,9 +24,12 @@ class AnnouncementDoc(BaseModel):
         ..., description="Cleaned content for search and embedding"
     )
     website: str = Field(..., min_length=1, description="Website source description")
+    update_time: str = Field(..., description="Last update time (YYYY-MM-DD-HH-MM)")
+    token: int = Field(..., description="Token count of content")
 
     class Config:
         populate_by_name = True
+        extra = "allow"  # Allow additional fields beyond schema definition
 
 
 class SearchIntent(BaseModel):
@@ -99,7 +102,7 @@ class StructuredSummary(BaseModel):
 
     brief_answer: str = Field(
         ...,
-        description="Brief answer to the query (max 20 characters). Return '沒有參考資料' if no results, or '從內容搜索不到' if results exist but are irrelevant.",
+        description="Brief answer to the query (max 40 characters). Return '沒有參考資料' if no results, or '從內容搜索不到' if results exist but are irrelevant.",
     )
     detailed_answer: str = Field(
         default="",
@@ -107,5 +110,25 @@ class StructuredSummary(BaseModel):
     )
     general_summary: str = Field(
         default="",
-        description="General summary of all search results (max 500 characters), independent of the query. Empty if no results.",
+        description="General summary of all search results (max 1000 characters), independent of the query. Empty if no results.",
     )
+
+
+class SummaryResponse(BaseModel):
+    """Complete summary response including metadata"""
+
+    status: str = Field(..., description="Response status: 'success' or 'failed'")
+    summary: StructuredSummary = Field(..., description="Structured summary content")
+    link_mapping: dict = Field(
+        default_factory=dict, description="Mapping of citation indices to URLs"
+    )
+    summarized_count: int = Field(
+        default=0, description="Number of documents actually summarized"
+    )
+    total_tokens: int = Field(
+        default=0, description="Total token count of all summarized documents"
+    )
+    error: Optional[str] = Field(
+        None, description="Error message if status is 'failed'"
+    )
+

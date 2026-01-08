@@ -219,16 +219,8 @@ def transform_doc_for_meilisearch(
 
 
 def transform_doc_metadata_only(doc: AnnouncementDoc) -> Dict[str, Any]:
-    return {
-        "id": doc.id,
-        "link": doc.link,
-        "year_month": doc.year_month,
-        "year": doc.year,
-        "workspace": doc.workspace,
-        "title": doc.title,
-        "main_title": doc.main_title,
-        "heading_link": doc.heading_link,
-        "content": doc.content,
-        "cleaned_content": doc.cleaned_content,
-        "website": doc.website,
-    }
+    """
+    Convert AnnouncementDoc to dictionary for Meilisearch.
+    Uses model_dump() to preserve all fields including extra fields.
+    """
+    return doc.model_dump(by_alias=True, exclude_none=False)

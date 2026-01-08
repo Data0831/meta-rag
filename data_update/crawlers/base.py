@@ -9,6 +9,7 @@ except ImportError:
     # 備用路徑 (如果放在 utils 資料夾下)
     from core.shared_splitter import UnifiedTokenSplitter
 
+
 class BaseCrawler(ABC):
     """所有爬蟲的父類別"""
 
@@ -19,7 +20,8 @@ class BaseCrawler(ABC):
         # 在這裡實例化一次，所有子類別都能透過 self.token_splitter 使用
         # 統一設定：Token 上限 1500，重疊 300
         print(f"🔧 [BaseCrawler] 初始化共用 Token 切塊工具...")
-        self.token_splitter = UnifiedTokenSplitter(chunk_size=1500, overlap=300)
+        # self.token_splitter = UnifiedTokenSplitter(chunk_size=1500, overlap=300)
+        self.token_splitter = UnifiedTokenSplitter()
 
     @property
     @abstractmethod

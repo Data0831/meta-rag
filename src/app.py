@@ -36,7 +36,6 @@ from src.config import (
     DEFAULT_SEMANTIC_RATIO,
     ENABLE_LLM,
     MANUAL_SEMANTIC_RATIO,
-    ENABLE_KEYWORD_WEIGHT_RERANK,
     MAX_SEARCH_INPUT_LENGTH,
     MAX_CHAT_INPUT_LENGTH,
     WEBSITE_JSON,
@@ -122,7 +121,6 @@ def get_config():
             "default_semantic_ratio": DEFAULT_SEMANTIC_RATIO,
             "enable_llm": ENABLE_LLM,
             "manual_semantic_ratio": MANUAL_SEMANTIC_RATIO,
-            "enable_rerank": ENABLE_KEYWORD_WEIGHT_RERANK,
             "announcements": announcements,
             "websites": websites,
             "sources": AVAILABLE_SOURCES,
@@ -222,9 +220,6 @@ def search_endpoint():
         semantic_ratio = data.get("semantic_ratio", DEFAULT_SEMANTIC_RATIO)
         enable_llm = data.get("enable_llm", ENABLE_LLM)
         manual_semantic_ratio = data.get("manual_semantic_ratio", MANUAL_SEMANTIC_RATIO)
-        enable_keyword_weight_rerank = data.get(
-            "enable_keyword_weight_rerank", ENABLE_KEYWORD_WEIGHT_RERANK
-        )
         start_date = data.get("start_date")
         end_date = data.get("end_date")
         selected_website = data.get("selected_website", [])
@@ -250,7 +245,6 @@ def search_endpoint():
         print(f"  Semantic Ratio: {semantic_ratio}")
         print(f"  Enable LLM: {enable_llm}")
         print(f"  Manual Semantic Ratio: {manual_semantic_ratio}")
-        print(f"  Enable Rerank: {enable_keyword_weight_rerank}")
         print(f"  Start Date: {start_date}")
         print(f"  End Date: {end_date}")
         print(f"  Selected website: {selected_website}")
@@ -292,7 +286,6 @@ def search_endpoint():
                 semantic_ratio=semantic_ratio,
                 enable_llm=enable_llm,
                 manual_semantic_ratio=manual_semantic_ratio,
-                enable_keyword_weight_rerank=enable_keyword_weight_rerank,
                 start_date=start_date,
                 end_date=end_date,
                 website=selected_website,

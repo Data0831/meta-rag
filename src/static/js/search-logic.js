@@ -186,7 +186,12 @@ export async function performSearch() {
                         summaryTitle.innerHTML = `以下為「<span class="text-primary">${query}</span>」的相關公告總結：`;
 
                         if (data.summary) {
-                            summaryContent.innerHTML = renderStructuredSummary(data.summary, data.link_mapping || {});
+                            summaryContent.innerHTML = renderStructuredSummary(
+                                data.summary,
+                                data.link_mapping || {},
+                                data.summarized_count || 0,
+                                data.total_tokens || 0
+                            );
                         } else {
                             summaryContent.innerHTML = "<p>無相關總結。</p>";
                         }

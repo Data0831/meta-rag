@@ -105,63 +105,45 @@ def save_audit_files(source_name, diff_result):
 # ==========================================
 
 def job():
-    logger.info(f"\n⏰ [排程啟動] {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-    active_crawlers = load_crawlers()
+    logger.info(f"\n⏰ [本地同步模式啟動] {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     
-    if not active_crawlers:
-        logger.warning("⚠️ 未偵測到任何有效的爬蟲模組。")
+    # 指定要掃描的資料夾
+    DATA_SOURCE_DIR = "test_sync"  # 如果您的檔案在其他地方，請修改這裡
+    
+    if not os.path.exists(DATA_SOURCE_DIR):
+        logger.error(f"❌ 找不到資料夾: {DATA_SOURCE_DIR}")
         return
 
     valid_diff_reports = []
-    summary_logs = []
-
-    for crawler in active_crawlers:
-        source_name = getattr(crawler, 'source_name', 'Unknown')
-        print(f"=== 任務啟動: {source_name} ===") 
-        
-        try:
-            start_time = time.time()
-            final_chunks = crawler.run()
-            duration = time.time() - start_time
+    
+    # 遍歷資料夾中的所有 JSON 檔案
+    for filename in os.listdir(DATA_SOURCE_DIR):
+        if filename.endswith(".json"):
+            file_path = os.path.join(DATA_SOURCE_DIR, filename)
+            logger.info(f"📂 正在處理本地檔案: {filename}")
             
-            # 🛡️ [防呆 1] 空資料保護
-            if not final_chunks:
-                msg = f"⚠️ [異常] {source_name}: 爬蟲回傳 0 筆資料 (耗時 {duration:.1f}s)。已跳過比對。"
-                logger.warning(msg)
-                summary_logs.append(msg)
-                continue
-
-            # 2. 執行 Diff Engine
-            diff_result = process_diff_and_save(source_name, final_chunks)
-            
-            if diff_result:
-                status = diff_result.get("status")
-                add_count = len(diff_result.get("added", []))
-                del_count = len(diff_result.get("deleted", []))
-
-                # 🛡️ [防呆 2] 熔斷檢查
-                if status == "CIRCUIT_BREAKER_TRIGGERED":
-                    msg = f"🚫 [熔斷] {source_name}: 試圖刪除 {del_count} 筆 (超過 1/3)。更新已攔截。"
-                    logger.warning(msg)
-                    summary_logs.append(msg)
-                    continue
-                
-                elif status == "SUCCESS":
-                    save_audit_files(source_name, diff_result)
+            try:
+                with open(file_path, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                    
+                    # 模擬 diff_result 格式
+                    # 本地同步模式我們假設全部都是 'added'
+                    diff_result = {
+                        "source": filename,
+                        "added": data if isinstance(data, list) else [data],
+                        "deleted": [],
+                        "status": "SUCCESS"
+                    }
                     valid_diff_reports.append(diff_result)
-                    msg = f"✅ [成功] {source_name}: 新增 {add_count}, 刪除 {del_count} (耗時 {duration:.1f}s)"
-                    logger.info(msg)
-                    summary_logs.append(msg)
-            else:
-                msg = f"💤 [無變動] {source_name} (耗時 {duration:.1f}s)"
-                logger.info(f"    {msg}")
-                summary_logs.append(msg)
-                
-        except Exception as e:
-            error_msg = f"❌ [錯誤] {source_name}: {str(e)}"
-            logger.error(error_msg)
-            logger.error(traceback.format_exc())
-            summary_logs.append(error_msg)
+                    
+            except Exception as e:
+                logger.error(f"❌ 讀取檔案 {filename} 失敗: {e}")
+
+    if not valid_diff_reports:
+        logger.warning(f"⚠️ 在 {DATA_SOURCE_DIR} 中未找到任何可處理的 JSON 檔案。")
+        return
+
+    # --- 以下進入 RAG Sync 階段 ---
 
     # 3. 彙整輸出給 RAG
     if valid_diff_reports:

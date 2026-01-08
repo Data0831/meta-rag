@@ -67,7 +67,11 @@ class RAGService:
             try:
                 # 1. 擴大搜尋範圍 (limit=10)，確保過濾後還有剩
                 search_data = self.search_service.search(
-                    user_query=user_query, limit=10, semantic_ratio=0.5, enable_llm=True
+                    user_query=user_query,
+                    limit=10,
+                    semantic_ratio=0.5,
+                    enable_llm=True,
+                    is_retry_search=False,
                 )
                 raw_results = search_data.get("results", [])
                 

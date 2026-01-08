@@ -15,7 +15,12 @@ DATE_RANGE_MIN = "2023-01"
 # Base directories
 DATA_DIR = "data_update"
 DATABASE_DIR = "database"
-LOG_BASE_DIR = os.getenv("LOG_BASE_DIR", "data_logs")
+LOG_BASE_DIR = os.getenv("LOG_BASE_DIR")
+if not LOG_BASE_DIR:
+    if os.environ.get("WEBSITE_INSTANCE_ID"):
+        LOG_BASE_DIR = "/home/LogFiles"
+    else:
+        LOG_BASE_DIR = "data_logs"
 
 # Data subdirectories
 DATA_JSON = os.path.join(DATA_DIR, "data.json")
@@ -25,20 +30,18 @@ WEBSITE_JSON = os.path.join("src", "datas", "website.json")
 # Meilisearch Settings
 MEILISEARCH_HOST = os.getenv("MEILISEARCH_HOST", "http://localhost:7700")
 MEILISEARCH_API_KEY = os.getenv("MEILISEARCH_API_KEY", "masterKey")
-# MEILISEARCH_INDEX = "announcements_v4"
-MEILISEARCH_INDEX = "announcements_deploy"
+MEILISEARCH_INDEX = "announcements_2026_01_07"
 MEILISEARCH_TIMEOUT = int(os.getenv("MEILISEARCH_TIMEOUT", 25))
 
 # ============================================================================
 # Frontend Configurable Variables (exposed via /api/config)
 # ============================================================================
-DEFAULT_SEARCH_LIMIT = 5
-MAX_SEARCH_LIMIT = 20
+DEFAULT_SEARCH_LIMIT = 5 # 默認的搜索數量
+MAX_SEARCH_LIMIT = 50 # 最大搜索數量
 SCORE_PASS_THRESHOLD = 0.81
 DEFAULT_SEMANTIC_RATIO = 0.5
 ENABLE_LLM = True
 MANUAL_SEMANTIC_RATIO = False
-ENABLE_KEYWORD_WEIGHT_RERANK = True
 MAX_SEARCH_INPUT_LENGTH = 100
 MAX_CHAT_INPUT_LENGTH = 500
 
@@ -62,13 +65,12 @@ AVAILABLE_SOURCES = [
 # ============================================================================
 # Backend-only Configuration (not exposed to frontend)
 # ============================================================================
-PRE_SEARCH_LIMIT = 50
+def get_pre_search_limit(limit):
+    return max(50, int(limit * 1.5 + 20)) # 根據使用者選擇的篇數動態返回 > 的數量並進行現有演算法處理 (merge,key_alg, sort, multi_search) 
+
+RETRY_SEARCH_LIMIT_MULTIPLIER = 1.5 # 重試後的擴大範圍，也會影響上面的，假設 is_retry_search 為 true
 NO_HIT_PENALTY_FACTOR = 0.15
 KEYWORD_HIT_BOOST_FACTOR = 0.60
 
-FALLBACK_RESULT_COUNT = 2
-SEARCH_MAX_RETRIES = 1
-
-
-def get_score_min_threshold():
-    return max(0, SCORE_PASS_THRESHOLD - 0.2)
+SEARCH_MAX_RETRIES = 1 # 重搜索的次數
+SUMMARIZE_TOKEN_LIMIT = 80000 # 總結的 token 限制量，會影響總結使用的篇數

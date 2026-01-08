@@ -11,13 +11,13 @@ project_root = os.path.abspath(os.path.join(current_dir, ".."))
 if project_root not in sys.path:
     sys.path.append(project_root)
 try:
+    root_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    sys.path.append(root_dir)
+    from config.config import MEILISEARCH_INDEX, HARDWARE_CONFIG
     from parser import DataParser
     from vectorPreprocessing import VectorPreProcessor
-
-    # 這裡請確認您的 config 位置是否正確
-    from src.database.vector_config import RTX_4050_6G
-except ImportError:
-    print("⚠️ 模組引用失敗，將只執行存檔，跳過清洗與資料庫同步。")
+except ImportError as e:
+    print("⚠️ 模組引用失敗，將只執行存檔，跳過清洗與資料庫同步。", e)
     DataParser = None
     VectorPreProcessor = None
 
@@ -25,7 +25,7 @@ SYNC_OUTPUT_DIR = "sync_output"
 
 
 def notify_rag_system(diff_reports: list):
-    """
+    """`
     RAG 檔案生成器
     功能：將 diff_reports 中的新增與刪除資料，分別彙整並輸出成兩個獨立的 JSON 檔案。
 
@@ -98,9 +98,9 @@ def notify_rag_system(diff_reports: list):
     if VectorPreProcessor and (upsert_filename or delete_filename):
         print("\n⚡ [Auto Sync] 呼叫向量處理器...")
         try:
-            # 這裡使用 RTX_4050_6G，請依實際硬體調整
+            # 這裡使用 HARDWARE_CONFIG 調整
             processor = VectorPreProcessor(
-                index_name="announcements_test", **RTX_4050_6G
+                index_name=MEILISEARCH_INDEX, **HARDWARE_CONFIG
             )
             processor.run_dynamic_sync(
                 upsert_path=upsert_filename, delete_path=delete_filename

@@ -65,8 +65,6 @@ class SrhSumAgent:
         all_seen_ids: set,
         new_results: List[Dict],
     ):
-        from src.config import SCORE_PASS_THRESHOLD
-
         for r in new_results:
             # 1. 記錄所有看到的片段 ID，用於下一次搜尋的 exclude_ids
             ids_to_record = (
@@ -105,6 +103,11 @@ class SrhSumAgent:
                     existing["content"] = (
                         f"{existing_content}\n\n --- \n\n{new_content}"
                     )
+                    
+                    # 合併 token 計數
+                    existing_token = existing.get("token", 0)
+                    new_token = r.get("token", 0)
+                    existing["token"] = existing_token + new_token
 
                 # 保留最高分
                 new_score = r.get("_rankingScore", 0)
@@ -116,8 +119,6 @@ class SrhSumAgent:
                 # 新結果：初始化
                 if "all_ids" not in r:
                     r["all_ids"] = ids_to_record
-                score = r.get("_rankingScore", 0)
-                r["score_pass"] = score >= SCORE_PASS_THRESHOLD
                 collected_results[key] = r
 
     def run(
@@ -127,21 +128,13 @@ class SrhSumAgent:
         semantic_ratio: float = 0.5,
         enable_llm: bool = True,
         manual_semantic_ratio: bool = False,
-        enable_keyword_weight_rerank: bool = True,
         start_date: str = None,
         end_date: str = None,
         website: List[str] = None,
+        is_retry_search: bool = False,
     ):
 
-        from src.config import (
-            SCORE_PASS_THRESHOLD,
-            get_score_min_threshold,
-            FALLBACK_RESULT_COUNT,
-            MAX_SEARCH_LIMIT,
-        )
-
-        score_min = get_score_min_threshold()
-        threshold_info = f"，Pass: {SCORE_PASS_THRESHOLD:.2f}, Min: {score_min:.2f}"
+        from src.config import MAX_SEARCH_LIMIT
 
         collected_results = {}
         all_seen_ids = set()
@@ -158,10 +151,13 @@ class SrhSumAgent:
             semantic_ratio=semantic_ratio,
             enable_llm=enable_llm,
             manual_semantic_ratio=manual_semantic_ratio,
-            enable_keyword_weight_rerank=enable_keyword_weight_rerank,
+            exclude_ids=None,
+            history=None,
+            direction=None,
             start_date=start_date,
             end_date=end_date,
             website=website,
+            is_retry_search=is_retry_search,
         )
         if search_response.get("status") == "failed":
             yield {
@@ -206,35 +202,6 @@ class SrhSumAgent:
         if collected_results:
             results_list = list(collected_results.values())
 
-            filtered = [
-                r
-                for r in results_list
-                if r.get("_rankingScore", 0) >= SCORE_PASS_THRESHOLD
-            ]
-            if not filtered:
-                sorted_all = sorted(
-                    results_list,
-                    key=lambda x: x.get("_rerank_score", x.get("_rankingScore", 0)),
-                    reverse=True,
-                )
-                filtered = [
-                    r
-                    for r in sorted_all[:FALLBACK_RESULT_COUNT]
-                    if r.get("_rankingScore", 0) >= score_min
-                ]
-
-            if filtered:
-                scores = [r.get("_rankingScore", 0) for r in filtered]
-                score_range_str = f"{min(scores):.2f}-{max(scores):.2f}"
-                titles_str = "\n".join(
-                    [f"  - {r.get('title', 'Unknown')}" for r in filtered[:3]]
-                )
-                yield {
-                    "status": "success",
-                    "stage": "filtered",
-                    "message": f"找到 {len(filtered)} 筆相關資料（分數：{score_range_str}{threshold_info}）\n{titles_str}",
-                }
-
             relevance_result = self._check_retry_search(query, results_list)
             search_direction = relevance_result.get("search_direction", "")
 
@@ -256,6 +223,8 @@ class SrhSumAgent:
                         "stage": "complete",
                         "summary": summary_response.get("summary"),
                         "link_mapping": summary_response.get("link_mapping"),
+                        "summarized_count": summary_response.get("summarized_count", 0),
+                        "total_tokens": summary_response.get("total_tokens", 0),
                         "results": final_results,
                         "intent": final_intent,
                     }
@@ -278,12 +247,6 @@ class SrhSumAgent:
         else:
             yield {
                 "status": "success",
-                "stage": "checking",
-                "message": f"初始結果未達關聯度門檻（{threshold_info.strip('， ')}）...",
-            }
-
-            yield {
-                "status": "success",
                 "stage": "rewriting",
                 "message": "無符合條件的搜尋結果，AI 正在嘗試重寫查詢語句...",
                 "original_query": query,
@@ -298,13 +261,13 @@ class SrhSumAgent:
                 semantic_ratio=semantic_ratio,
                 enable_llm=enable_llm,
                 manual_semantic_ratio=manual_semantic_ratio,
-                enable_keyword_weight_rerank=enable_keyword_weight_rerank,
                 exclude_ids=list(all_seen_ids),
                 history=query_history,
                 direction=search_direction,
                 start_date=start_date,
                 end_date=end_date,
                 website=website,
+                is_retry_search=True,
             )
 
             if search_response.get("status") == "success":
@@ -360,35 +323,6 @@ class SrhSumAgent:
             if collected_results:
                 results_list = list(collected_results.values())
 
-                filtered = [
-                    r
-                    for r in results_list
-                    if r.get("_rankingScore", 0) >= SCORE_PASS_THRESHOLD
-                ]
-                if not filtered:
-                    sorted_all = sorted(
-                        results_list,
-                        key=lambda x: x.get("_rerank_score", x.get("_rankingScore", 0)),
-                        reverse=True,
-                    )
-                    filtered = [
-                        r
-                        for r in sorted_all[:FALLBACK_RESULT_COUNT]
-                        if r.get("_rankingScore", 0) >= score_min
-                    ]
-
-                if filtered:
-                    scores = [r.get("_rankingScore", 0) for r in filtered]
-                    score_range_str = f"{min(scores):.2f}-{max(scores):.2f}"
-                    titles_str = "\n".join(
-                        [f"  - {r.get('title', 'Unknown')}" for r in filtered[:3]]
-                    )
-                    yield {
-                        "status": "success",
-                        "stage": "filtered",
-                        "message": f"找到 {len(filtered)} 筆相關資料（分數：{score_range_str}{threshold_info}）\n{titles_str}",
-                    }
-
                 relevance_result = self._check_retry_search(query, results_list)
             else:
                 relevance_result = {
@@ -417,6 +351,8 @@ class SrhSumAgent:
                         "stage": "complete",
                         "summary": summary_response.get("summary"),
                         "link_mapping": summary_response.get("link_mapping"),
+                        "summarized_count": summary_response.get("summarized_count", 0),
+                        "total_tokens": summary_response.get("total_tokens", 0),
                         "results": final_results,
                         "intent": final_intent,
                     }
@@ -448,6 +384,8 @@ class SrhSumAgent:
                     "stage": "complete",
                     "summary": summary_response.get("summary"),
                     "link_mapping": summary_response.get("link_mapping"),
+                    "summarized_count": summary_response.get("summarized_count", 0),
+                    "total_tokens": summary_response.get("total_tokens", 0),
                     "results": final_results,
                     "intent": final_intent,
                 }

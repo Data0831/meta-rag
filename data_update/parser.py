@@ -3,8 +3,10 @@ import logging
 import re
 from pathlib import Path
 from typing import Any, Dict, List
+from datetime import datetime
 import markdown
 from bs4 import BeautifulSoup
+import tiktoken
 
 # Configure logging
 logging.basicConfig(
@@ -22,6 +24,10 @@ class DataParser:
         self.files_to_process = files_to_process
         self.output_file = output_file
         self.base_dir = Path(__file__).parent
+        try:
+            self.enc = tiktoken.encoding_for_model("gpt-4o-mini")
+        except Exception:
+            self.enc = tiktoken.get_encoding("cl100k_base")
 
     def clean_content(self, content: str) -> str:
         if not content:
@@ -106,28 +112,9 @@ class DataParser:
                     # Skip items missing required fields
                     continue
 
-                # Process Content
-                raw_content = item["content"]
-
-                # # 1. Truncate if > 3000
-                # if len(raw_content) > 3000:
-                #     raw_content = raw_content[:3000]
-
-                # 2. Clean content
-                cleaned_content = self.clean_content(raw_content)
-
-                # Extract Year from year_month (assuming YYYY-MM format)
-                year_month = item["year_month"]
-                year = year_month.split("-")[0] if "-" in year_month else year_month[:4]
-
-                # Update existing item to preserve other keys
-                item["year"] = year
-                item["content"] = raw_content
-                item["cleaned_content"] = json.dumps(
-                    cleaned_content, ensure_ascii=False
-                )
-
-                aggregated_data.append(item)
+                # Use process_item to clean and supplement fields
+                processed_item = self.process_item(item)
+                aggregated_data.append(processed_item)
 
         # Save aggregated data
         try:
@@ -158,6 +145,8 @@ class DataParser:
         item["year"] = year
         item["content"] = raw_content
         item["cleaned_content"] = json.dumps(cleaned_content, ensure_ascii=False)
+        item["token"] = len(self.enc.encode(raw_content))
+        item["update_time"] = datetime.now().strftime("%Y-%m-%d-%H-%M")
 
         return item
 

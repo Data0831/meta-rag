@@ -70,3 +70,11 @@
 ### 2026-01-05 版本號與日期範圍配置動態化 (Version & Date Range Configuration Dynamization)
 - **版本號動態化**：於 `config.py` 新增 `APP_VERSION` 常數，透過 `/api/config` 端點傳送至前端，`config.js` 自動更新 `index.html` 側邊欄版本顯示，實現版本號統一管理。
 - **日期範圍配置**：新增 `DATE_RANGE_MIN` 配置項控制最小可選月份，後端 `app.py` 動態計算當前年月作為 `date_range_max`，前端 `config.js` 接收後自動設置日期輸入框的 `min`/`max` 屬性，移除 `index.html` 硬編碼值。兩項配置均實現集中管理，未來僅需修改 `config.py` 即可全系統同步。
+
+### 2026-01-08 搜尋結果過濾邏輯簡化 (Search Result Filtering Logic Simplification)
+- **移除無效 Fallback 機制**：刪除 `FALLBACK_RESULT_COUNT` 常數與 `get_score_min_threshold()` 函數,該機制原設計為「無高分結果時取前 N 筆」,但實際上 `filtered` 變數僅用於顯示訊息,LLM 評估與最終總結均使用完整的 `results_list` 或 `collected_results`,導致 fallback 邏輯完全不影響決策流程。
+- **程式碼清理**：從 `srhSumAgent.py` 移除初始搜尋與 retry 階段的兩處 fallback 過濾邏輯（共 22 行）,簡化 `threshold_info` 訊息僅顯示 Pass 門檻。現在 `filtered` 變數明確定義為「僅包含達到 `SCORE_PASS_THRESHOLD` 的結果」,用於前端訊息顯示,而 LLM 始終評估所有去重後結果,邏輯更清晰且易於維護。
+
+### 2026-01-08 11:22 移除 SCORE_PASS_THRESHOLD 無效邏輯 (Remove Ineffective SCORE_PASS_THRESHOLD Logic)
+- **問題分析**：經檢查發現 `SCORE_PASS_THRESHOLD` 在 `srhSumAgent.py` 中雖有 6 處引用，但僅用於：1) 為結果添加 `score_pass` 標記（未實際過濾），2) 計算 `filtered` 列表用於顯示訊息，3) 在訊息中顯示門檻值。這些邏輯對程式沒有實際過濾作用，LLM 評估與最終總結均使用完整結果集。
+- **程式碼清理**：移除 `_add_results` 方法中的 `SCORE_PASS_THRESHOLD` 導入與 `score_pass` 標記邏輯；移除 `run` 方法中的門檻導入、`threshold_info` 變數、兩處 `filtered` 列表計算及相關顯示訊息（共約 50 行），使程式碼更簡潔且邏輯更清晰。
