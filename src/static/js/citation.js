@@ -13,7 +13,7 @@ export function convertCitationsToLinks(text, linkMapping) {
     });
 }
 
-export function renderStructuredSummary(summary, linkMapping) {
+export function renderStructuredSummary(summary, linkMapping, summarizedCount = 0, totalTokens = 0) {
 
     if (typeof summary === 'string') {
         return marked.parse(summary);
@@ -82,6 +82,31 @@ export function renderStructuredSummary(summary, linkMapping) {
             <div class="mb-4">
                 <h4 class="font-bold text-slate-700 dark:text-slate-300 mb-2">內容總結</h4>
                 <p class="text-slate-400 dark:text-slate-500 text-sm italic">無總結內容</p>
+            </div>
+        `;
+    }
+
+    const isNoReference = summarizedCount === 0 && totalTokens === 0;
+
+    if (isNoReference) {
+        html += `
+            <div class="flex items-center gap-2 mt-4 px-4 py-2.5 rounded-lg bg-slate-100 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600">
+                <span class="material-icons-round text-amber-600 dark:text-amber-400 text-lg">info</span>
+                <span class="text-sm font-medium text-slate-600 dark:text-slate-300">此摘要並未參考任何資料</span>
+            </div>
+        `;
+    } else {
+        html += `
+            <div class="flex items-center gap-3 mt-4 px-4 py-2.5 rounded-lg bg-slate-100 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600">
+                <div class="flex items-center gap-1.5">
+                    <span class="material-icons-round text-primary text-base">description</span>
+                    <span class="text-xs font-semibold text-slate-600 dark:text-slate-300">參考前 ${summarizedCount} 篇</span>
+                </div>
+                <div class="h-4 w-px bg-slate-300 dark:bg-slate-500"></div>
+                <div class="flex items-center gap-1.5">
+                    <span class="material-icons-round text-primary text-base">data_usage</span>
+                    <span class="text-xs font-semibold text-slate-600 dark:text-slate-300">約耗費 ${totalTokens} token</span>
+                </div>
             </div>
         `;
     }

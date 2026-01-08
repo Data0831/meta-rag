@@ -36,8 +36,8 @@ MEILISEARCH_TIMEOUT = int(os.getenv("MEILISEARCH_TIMEOUT", 25))
 # ============================================================================
 # Frontend Configurable Variables (exposed via /api/config)
 # ============================================================================
-DEFAULT_SEARCH_LIMIT = 5
-MAX_SEARCH_LIMIT = 50
+DEFAULT_SEARCH_LIMIT = 5 # 默認的搜索數量
+MAX_SEARCH_LIMIT = 50 # 最大搜索數量
 SCORE_PASS_THRESHOLD = 0.81
 DEFAULT_SEMANTIC_RATIO = 0.5
 ENABLE_LLM = True

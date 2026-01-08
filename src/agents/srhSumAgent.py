@@ -65,8 +65,6 @@ class SrhSumAgent:
         all_seen_ids: set,
         new_results: List[Dict],
     ):
-        from src.config import SCORE_PASS_THRESHOLD
-
         for r in new_results:
             # 1. 記錄所有看到的片段 ID，用於下一次搜尋的 exclude_ids
             ids_to_record = (
@@ -121,8 +119,6 @@ class SrhSumAgent:
                 # 新結果：初始化
                 if "all_ids" not in r:
                     r["all_ids"] = ids_to_record
-                score = r.get("_rankingScore", 0)
-                r["score_pass"] = score >= SCORE_PASS_THRESHOLD
                 collected_results[key] = r
 
     def run(
@@ -138,12 +134,7 @@ class SrhSumAgent:
         is_retry_search: bool = False,
     ):
 
-        from src.config import (
-            SCORE_PASS_THRESHOLD,
-            MAX_SEARCH_LIMIT,
-        )
-
-        threshold_info = f"，Pass: {SCORE_PASS_THRESHOLD:.2f}"
+        from src.config import MAX_SEARCH_LIMIT
 
         collected_results = {}
         all_seen_ids = set()
@@ -211,24 +202,6 @@ class SrhSumAgent:
         if collected_results:
             results_list = list(collected_results.values())
 
-            filtered = [
-                r
-                for r in results_list
-                if r.get("_rankingScore", 0) >= SCORE_PASS_THRESHOLD
-            ]
-
-            if filtered:
-                scores = [r.get("_rankingScore", 0) for r in filtered]
-                score_range_str = f"{min(scores):.2f}-{max(scores):.2f}"
-                titles_str = "\n".join(
-                    [f"  - {r.get('title', 'Unknown')}" for r in filtered[:3]]
-                )
-                yield {
-                    "status": "success",
-                    "stage": "filtered",
-                    "message": f"找到 {len(filtered)} 筆相關資料（分數：{score_range_str}{threshold_info}）\n{titles_str}",
-                }
-
             relevance_result = self._check_retry_search(query, results_list)
             search_direction = relevance_result.get("search_direction", "")
 
@@ -250,6 +223,8 @@ class SrhSumAgent:
                         "stage": "complete",
                         "summary": summary_response.get("summary"),
                         "link_mapping": summary_response.get("link_mapping"),
+                        "summarized_count": summary_response.get("summarized_count", 0),
+                        "total_tokens": summary_response.get("total_tokens", 0),
                         "results": final_results,
                         "intent": final_intent,
                     }
@@ -270,12 +245,6 @@ class SrhSumAgent:
                     "direction": search_direction,
                 }
         else:
-            yield {
-                "status": "success",
-                "stage": "checking",
-                "message": f"初始結果未達關聯度門檻（{threshold_info.strip('， ')}）...",
-            }
-
             yield {
                 "status": "success",
                 "stage": "rewriting",
@@ -354,24 +323,6 @@ class SrhSumAgent:
             if collected_results:
                 results_list = list(collected_results.values())
 
-                filtered = [
-                    r
-                    for r in results_list
-                    if r.get("_rankingScore", 0) >= SCORE_PASS_THRESHOLD
-                ]
-
-                if filtered:
-                    scores = [r.get("_rankingScore", 0) for r in filtered]
-                    score_range_str = f"{min(scores):.2f}-{max(scores):.2f}"
-                    titles_str = "\n".join(
-                        [f"  - {r.get('title', 'Unknown')}" for r in filtered[:3]]
-                    )
-                    yield {
-                        "status": "success",
-                        "stage": "filtered",
-                        "message": f"找到 {len(filtered)} 筆相關資料（分數：{score_range_str}{threshold_info}）\n{titles_str}",
-                    }
-
                 relevance_result = self._check_retry_search(query, results_list)
             else:
                 relevance_result = {
@@ -400,6 +351,8 @@ class SrhSumAgent:
                         "stage": "complete",
                         "summary": summary_response.get("summary"),
                         "link_mapping": summary_response.get("link_mapping"),
+                        "summarized_count": summary_response.get("summarized_count", 0),
+                        "total_tokens": summary_response.get("total_tokens", 0),
                         "results": final_results,
                         "intent": final_intent,
                     }
@@ -431,6 +384,8 @@ class SrhSumAgent:
                     "stage": "complete",
                     "summary": summary_response.get("summary"),
                     "link_mapping": summary_response.get("link_mapping"),
+                    "summarized_count": summary_response.get("summarized_count", 0),
+                    "total_tokens": summary_response.get("total_tokens", 0),
                     "results": final_results,
                     "intent": final_intent,
                 }
