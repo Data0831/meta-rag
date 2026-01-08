@@ -24,9 +24,12 @@ class AnnouncementDoc(BaseModel):
         ..., description="Cleaned content for search and embedding"
     )
     website: str = Field(..., min_length=1, description="Website source description")
+    update_time: str = Field(..., description="Last update time (YYYY-MM-DD-HH-MM)")
+    token: int = Field(..., description="Token count of content")
 
     class Config:
         populate_by_name = True
+        extra = "allow"  # Allow additional fields beyond schema definition
 
 
 class SearchIntent(BaseModel):

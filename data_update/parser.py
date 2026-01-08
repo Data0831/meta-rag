@@ -146,7 +146,7 @@ class DataParser:
         item["content"] = raw_content
         item["cleaned_content"] = json.dumps(cleaned_content, ensure_ascii=False)
         item["token"] = len(self.enc.encode(raw_content))
-        item["update_time"] = datetime.now().strftime("%y-%m-%d-%H-%M")
+        item["update_time"] = datetime.now().strftime("%Y-%m-%d-%H-%M")
 
         return item
 
