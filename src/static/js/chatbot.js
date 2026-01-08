@@ -2,6 +2,15 @@ import { currentResults, activeResults, applyThresholdToResults } from './render
 import { searchConfig, appConfig } from './config.js';
 import { showAlert } from './alert.js';
 
+let currentTokenUsage = null;
+
+function estimateTokens(text) {
+    if (!text) return 0;
+    const chineseChars = (text.match(/[\u4e00-\u9fa5]/g) || []).length;
+    const otherChars = text.length - chineseChars;
+    return Math.ceil(chineseChars * 2.5 + otherChars / 4);
+}
+
 export function setupChatbot() {
     const container = document.getElementById('chatbotContainer');
     const triggerBtn = document.getElementById('chatTriggerBtn');
@@ -88,6 +97,7 @@ export function setupChatbot() {
         clearBtn.addEventListener('click', () => {
             chatHistory = [];
             messagesDiv.innerHTML = '';
+            currentTokenUsage = null;
 
             if (suggestionsContainer) suggestionsContainer.innerHTML = '';
             if (headerStatus) headerStatus.innerHTML = '';
@@ -104,7 +114,7 @@ export function setupChatbot() {
             `;
             messagesDiv.appendChild(welcomeDiv);
 
-            // fetchInitialSuggestions();
+            updateHeaderStatus();
         });
     }
 
@@ -130,6 +140,26 @@ export function setupChatbot() {
 
         if (text.length > appConfig.maxChatInputLength) {
             showAlert(`訊息字數超過 ${appConfig.maxChatInputLength} 字限制，請縮短內容`, 'warning');
+            return;
+        }
+
+        const validResults = (activeResults && activeResults.length > 0) ? activeResults : currentResults || [];
+        let estimatedContextTokens = 0;
+        validResults.forEach(item => {
+            const content = item.content || item.cleaned_content || item.body || "";
+            estimatedContextTokens += estimateTokens(content);
+        });
+
+        const historyTokens = chatHistory.reduce((sum, msg) => {
+            return sum + estimateTokens(msg.content || "");
+        }, 0);
+        const userTokens = estimateTokens(text);
+
+        const estimatedTotal = estimatedContextTokens + historyTokens + userTokens;
+        const tokenLimit = appConfig.llmTokenLimit;
+
+        if (estimatedTotal > tokenLimit) {
+            showAlert(`預估 Token 使用量 (${estimatedTotal.toLocaleString()}) 超過限制 (${tokenLimit.toLocaleString()})，請清除對話歷史或降低相似度閾值`, 'warning');
             return;
         }
 
@@ -204,11 +234,20 @@ export function setupChatbot() {
             removeMessage(loadingId);
 
             if (data.error) {
-                // --- [修改] 針對字數過長顯示友善訊息 ---
                 if (data.error.includes("Input length exceeds")) {
                     appendMessage('bot', '**輸入的字數過多**，請精簡您的問題後再試一次。');
+                } else if (data.error.includes("Token 使用量")) {
+                    appendMessage('bot', `**Token 超限錯誤**\n\n${data.error}`);
+                    if (data.suggestions && data.suggestions.length > 0) {
+                        renderSuggestions(data.suggestions);
+                    }
                 } else {
                     appendMessage('bot', '系統錯誤：' + data.error);
+                }
+
+                if (data.token_usage) {
+                    currentTokenUsage = data.token_usage;
+                    updateHeaderStatus();
                 }
             } else {
                 appendMessage('bot', data.answer);
@@ -221,6 +260,11 @@ export function setupChatbot() {
                 chatHistory.push({ role: 'model', content: data.answer });
 
                 if (chatHistory.length > 10) chatHistory = chatHistory.slice(-10);
+
+                if (data.token_usage) {
+                    currentTokenUsage = data.token_usage;
+                    updateHeaderStatus();
+                }
             }
 
         } catch (error) {
@@ -299,43 +343,75 @@ export function setupChatbot() {
     function updateHeaderStatus() {
         if (!headerStatus) return;
 
-        // 1. 嘗試抓取滑桿 DOM 元素 (為了做到拖拉時即時變動)
-        // 這裡預設 ID 為 'similarity-slider'，如果你的 HTML ID 不同請在此修改
         const sliderEl = document.getElementById('similarity-slider') || document.querySelector('input[type="range"]');
-
-        // 2. 決定當下的門檻值
         let thresholdPercent = searchConfig.similarityThreshold || 0;
 
-        // 如果抓得到滑桿，就直接用滑桿的值 (這樣拖曳時才會即時反應)
         if (sliderEl) {
             thresholdPercent = parseInt(sliderEl.value);
         }
 
-        // 3. 檢查是否有資料
         if (!currentResults || currentResults.length === 0) {
-            headerStatus.innerHTML = `<span class="text-slate-400">(等待搜尋...)</span>`;
+            headerStatus.innerHTML = `<span class="text-slate-400 text-xs">(等待搜尋...)</span>`;
             return;
         }
 
         const totalScanned = currentResults.length;
 
-        // 4. 計算符合門檻的數量
         const validResults = currentResults.filter(item => {
             const rawScore = item._rerank_score !== undefined ? item._rerank_score : (item._rankingScore || 0);
-
             const scorePercent = Math.round(rawScore * 100);
-
             return scorePercent >= thresholdPercent;
         });
         const validCount = validResults.length;
 
-        // 5. 根據結果顯示不同顏色與文字
-        if (validCount === 0) {
-            // [紅色] 全部反灰
-            headerStatus.innerHTML = `<span style="color: #ffffff; font-size: 15px; font-weight: bold;">(未符合門檻)</span>`;
+        let estimatedContextTokens = 0;
+        validResults.forEach(item => {
+            const content = item.content || item.cleaned_content || item.body || "";
+            estimatedContextTokens += estimateTokens(content);
+        });
+
+        const historyTokens = chatHistory.reduce((sum, msg) => {
+            return sum + estimateTokens(msg.content || "");
+        }, 0);
+
+        const estimatedTotal = estimatedContextTokens + historyTokens;
+        const tokenLimit = appConfig.llmTokenLimit;
+        const tokenPercentage = (estimatedTotal / tokenLimit) * 100;
+
+        let statusColor = "#ffffff";
+        let statusText = "";
+
+        if (currentTokenUsage && currentTokenUsage.total) {
+            const actualTotal = currentTokenUsage.total;
+            const actualPercentage = (actualTotal / tokenLimit) * 100;
+
+            if (actualPercentage >= 90) {
+                statusColor = "#ef4444";
+            } else if (actualPercentage >= 70) {
+                statusColor = "#f59e0b";
+            }
+
+            statusText = `(已使用 ${actualTotal.toLocaleString()} / ${tokenLimit.toLocaleString()} token)`;
         } else {
-            // [綠色] 有資料 (字體顏色依照你原本設定的 #ffffff 或 #10b981 調整)
-            headerStatus.innerHTML = `<span style="color: #ffffff; font-size: 15px; font-weight: bold;">(已載入 ${validCount}/${totalScanned} 篇)</span>`;
+            if (tokenPercentage >= 90) {
+                statusColor = "#ef4444";
+            } else if (tokenPercentage >= 70) {
+                statusColor = "#f59e0b";
+            }
+
+            statusText = `(已使用 ~${estimatedTotal.toLocaleString()} / ${tokenLimit.toLocaleString()} token)`;
+        }
+
+        if (validCount === 0) {
+            headerStatus.innerHTML = `<span style="color: #ef4444; font-size: 13px; font-weight: bold;">(未符合門檻)</span>`;
+        } else {
+            const articleInfo = `已載入 ${validCount}/${totalScanned} 篇`;
+            headerStatus.innerHTML = `
+                <div style="display: flex; flex-direction: column; gap: 2px; align-items: flex-end;">
+                    <span style="color: #ffffff; font-size: 13px; font-weight: bold;">(${articleInfo})</span>
+                    <span style="color: ${statusColor}; font-size: 11px; font-weight: bold;">${statusText}</span>
+                </div>
+            `;
         }
     }
 

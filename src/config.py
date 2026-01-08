@@ -44,6 +44,8 @@ ENABLE_LLM = True
 MANUAL_SEMANTIC_RATIO = False
 MAX_SEARCH_INPUT_LENGTH = 100
 MAX_CHAT_INPUT_LENGTH = 500
+LLM_TOKEN_LIMIT = 100000
+SUMMARIZE_TOKEN_LIMIT = 80000 # 總結的 token 限制量，會影響總結使用的篇數
 
 AVAILABLE_SOURCES = [
     {
@@ -71,6 +73,4 @@ def get_pre_search_limit(limit):
 RETRY_SEARCH_LIMIT_MULTIPLIER = 1.5 # 重試後的擴大範圍，也會影響上面的，假設 is_retry_search 為 true
 NO_HIT_PENALTY_FACTOR = 0.15
 KEYWORD_HIT_BOOST_FACTOR = 0.60
-
 SEARCH_MAX_RETRIES = 1 # 重搜索的次數
-SUMMARIZE_TOKEN_LIMIT = 80000 # 總結的 token 限制量，會影響總結使用的篇數

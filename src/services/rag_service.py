@@ -4,6 +4,8 @@ import json
 from typing import Dict, Any, List, Optional
 from src.services.search_service import SearchService
 from src.llm.client import LLMClient
+from src.tool.token_counter import count_tokens
+from src.config import LLM_TOKEN_LIMIT
 
 # --- Prompt 設定 (修正版：補回來源引用指令) ---
 DEFAULT_ANSWER_ONLY_PROMPT = """
@@ -118,15 +120,46 @@ class RAGService:
             content = str(raw_content)
             date = doc.get("year_month", "N/A")
 
-            if len(content) > 10000: 
+            if len(content) > 10000:
                 content = content[:10000] + "..."
             context_text += f"Document {idx}:\nTitle: {title}\nDate: {date}\nContent: {content}\n\n"
 
+        # --- 步驟 3.5: Token 統計與超限檢查 ---
+        system_content = DEFAULT_ANSWER_ONLY_PROMPT.format(context=context_text)
+
+        token_system = count_tokens(system_content)
+        token_context = count_tokens(context_text)
+        token_user = count_tokens(user_query)
+
+        token_history = 0
+        if history:
+            for msg in history:
+                content = msg.get("content", "")
+                if content:
+                    token_history += count_tokens(content)
+
+        total_tokens = token_system + token_user + token_history
+
+        print(f"   Token Usage: system={token_system}, context={token_context}, user={token_user}, history={token_history}, total={total_tokens}")
+
+        if total_tokens > LLM_TOKEN_LIMIT:
+            print(f"   Token limit exceeded: {total_tokens} > {LLM_TOKEN_LIMIT}")
+            return {
+                "error": f"Token 使用量 ({total_tokens:,}) 超過限制 ({LLM_TOKEN_LIMIT:,})，請清除對話歷史或降低相似度閾值",
+                "token_usage": {
+                    "total": total_tokens,
+                    "system": token_system,
+                    "context": token_context,
+                    "history": token_history,
+                    "user": token_user,
+                },
+                "suggestions": ["清除對話歷史", "降低相似度閾值", "減少參考文章數量"],
+            }
+
         # --- 步驟 4: 第一次呼叫 (生成回答 - Answer Only) ---
         print("   Calling LLM for Answer...")
-        
+
         # 組裝 Prompt (已包含引用指令)
-        system_content = DEFAULT_ANSWER_ONLY_PROMPT.format(context=context_text)
         answer_messages = [{"role": "system", "content": system_content}]
 
         if history:
@@ -186,5 +219,12 @@ class RAGService:
         return {
             "answer": answer_text,
             "suggestions": suggestions,
-            "references": final_results 
+            "references": final_results,
+            "token_usage": {
+                "total": total_tokens,
+                "system": token_system,
+                "context": token_context,
+                "history": token_history,
+                "user": token_user,
+            }
         }
