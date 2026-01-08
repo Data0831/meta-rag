@@ -31,6 +31,7 @@ class SearchTool:
         start_date: str = None,
         end_date: str = None,
         website: List[str] = None,
+        is_retry_search: bool = False,
     ) -> Dict[str, Any]:
         """
         Executes a search using the SearchService.
@@ -47,6 +48,7 @@ class SearchTool:
             start_date=start_date,
             end_date=end_date,
             website=website,
+            is_retry_search=is_retry_search,
         )
 
     def summarize(self, user_query: str, search_results: List[Dict]) -> Dict[str, Any]:
@@ -56,6 +58,7 @@ class SearchTool:
         """
         from src.schema.schemas import StructuredSummary
         from src.tool.ANSI import print_red
+        from src.config import SUMMARIZE_TOKEN_LIMIT
 
         if not search_results:
             return {
@@ -66,13 +69,35 @@ class SearchTool:
                     "general_summary": "",
                 },
                 "link_mapping": {},
+                "summarized_count": 0,
+                "total_tokens": 0,
             }
 
-        # 1. Prepare Context with XML tags (Take top 5)
+        # 1. 根據 token 限制選擇要摘要的文檔
+        selected_docs = []
+        cumulative_tokens = 0
+        
+        for doc in search_results:
+            doc_tokens = doc.get("token", 0)
+            if cumulative_tokens + doc_tokens <= SUMMARIZE_TOKEN_LIMIT:
+                selected_docs.append(doc)
+                cumulative_tokens += doc_tokens
+            else:
+                # 已達到 token 限制，停止添加
+                break
+        
+        # 如果沒有任何文檔符合條件，至少取第一篇
+        if not selected_docs and search_results:
+            selected_docs = [search_results[0]]
+            cumulative_tokens = search_results[0].get("token", 0)
+        
+        summarized_count = len(selected_docs)
+
+        # 2. Prepare Context with XML tags
         context_text = ""
         link_mapping = {}
 
-        for idx, doc in enumerate(search_results[:5], 1):
+        for idx, doc in enumerate(selected_docs, 1):
             title = doc.get("title", "No Title")
             link = doc.get("heading_link") or doc.get("link", "")
             content = doc.get("content") or doc.get("cleaned_content") or ""
@@ -92,7 +117,7 @@ class SearchTool:
             context_text += f"</document>\n\n"
             link_mapping[str(idx)] = link
 
-        # 2. Build Prompt
+        # 3. Build Prompt
         system_msg = SUMMARY_SYSTEM_INSTRUCTION
         user_msg = SUMMARY_USER_TEMPLATE.format(context=context_text, query=user_query)
         messages = [
@@ -100,7 +125,7 @@ class SearchTool:
             {"role": "user", "content": user_msg},
         ]
 
-        # 3. Call LLM with schema
+        # 4. Call LLM with schema
         llm_response = self.llm_client.call_with_schema(
             messages=messages,
             response_model=StructuredSummary,
@@ -123,6 +148,8 @@ class SearchTool:
                     ),
                 },
                 "link_mapping": link_mapping,
+                "summarized_count": summarized_count,
+                "total_tokens": cumulative_tokens,
             }
         else:
             print_red(f"Summary generation failed: {llm_response.get('error')}")
@@ -135,4 +162,6 @@ class SearchTool:
                     "general_summary": "",
                 },
                 "link_mapping": {},
+                "summarized_count": 0,
+                "total_tokens": 0,
             }

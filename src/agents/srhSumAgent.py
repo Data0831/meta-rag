@@ -105,6 +105,11 @@ class SrhSumAgent:
                     existing["content"] = (
                         f"{existing_content}\n\n --- \n\n{new_content}"
                     )
+                    
+                    # 合併 token 計數
+                    existing_token = existing.get("token", 0)
+                    new_token = r.get("token", 0)
+                    existing["token"] = existing_token + new_token
 
                 # 保留最高分
                 new_score = r.get("_rankingScore", 0)
@@ -130,17 +135,15 @@ class SrhSumAgent:
         start_date: str = None,
         end_date: str = None,
         website: List[str] = None,
+        is_retry_search: bool = False,
     ):
 
         from src.config import (
             SCORE_PASS_THRESHOLD,
-            get_score_min_threshold,
-            FALLBACK_RESULT_COUNT,
             MAX_SEARCH_LIMIT,
         )
 
-        score_min = get_score_min_threshold()
-        threshold_info = f"，Pass: {SCORE_PASS_THRESHOLD:.2f}, Min: {score_min:.2f}"
+        threshold_info = f"，Pass: {SCORE_PASS_THRESHOLD:.2f}"
 
         collected_results = {}
         all_seen_ids = set()
@@ -157,9 +160,13 @@ class SrhSumAgent:
             semantic_ratio=semantic_ratio,
             enable_llm=enable_llm,
             manual_semantic_ratio=manual_semantic_ratio,
+            exclude_ids=None,
+            history=None,
+            direction=None,
             start_date=start_date,
             end_date=end_date,
             website=website,
+            is_retry_search=is_retry_search,
         )
         if search_response.get("status") == "failed":
             yield {
@@ -209,17 +216,6 @@ class SrhSumAgent:
                 for r in results_list
                 if r.get("_rankingScore", 0) >= SCORE_PASS_THRESHOLD
             ]
-            if not filtered:
-                sorted_all = sorted(
-                    results_list,
-                    key=lambda x: x.get("_rerank_score", x.get("_rankingScore", 0)),
-                    reverse=True,
-                )
-                filtered = [
-                    r
-                    for r in sorted_all[:FALLBACK_RESULT_COUNT]
-                    if r.get("_rankingScore", 0) >= score_min
-                ]
 
             if filtered:
                 scores = [r.get("_rankingScore", 0) for r in filtered]
@@ -302,6 +298,7 @@ class SrhSumAgent:
                 start_date=start_date,
                 end_date=end_date,
                 website=website,
+                is_retry_search=True,
             )
 
             if search_response.get("status") == "success":
@@ -362,17 +359,6 @@ class SrhSumAgent:
                     for r in results_list
                     if r.get("_rankingScore", 0) >= SCORE_PASS_THRESHOLD
                 ]
-                if not filtered:
-                    sorted_all = sorted(
-                        results_list,
-                        key=lambda x: x.get("_rerank_score", x.get("_rankingScore", 0)),
-                        reverse=True,
-                    )
-                    filtered = [
-                        r
-                        for r in sorted_all[:FALLBACK_RESULT_COUNT]
-                        if r.get("_rankingScore", 0) >= score_min
-                    ]
 
                 if filtered:
                     scores = [r.get("_rankingScore", 0) for r in filtered]

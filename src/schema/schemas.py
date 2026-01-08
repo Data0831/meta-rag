@@ -112,3 +112,23 @@ class StructuredSummary(BaseModel):
         default="",
         description="General summary of all search results (max 1000 characters), independent of the query. Empty if no results.",
     )
+
+
+class SummaryResponse(BaseModel):
+    """Complete summary response including metadata"""
+
+    status: str = Field(..., description="Response status: 'success' or 'failed'")
+    summary: StructuredSummary = Field(..., description="Structured summary content")
+    link_mapping: dict = Field(
+        default_factory=dict, description="Mapping of citation indices to URLs"
+    )
+    summarized_count: int = Field(
+        default=0, description="Number of documents actually summarized"
+    )
+    total_tokens: int = Field(
+        default=0, description="Total token count of all summarized documents"
+    )
+    error: Optional[str] = Field(
+        None, description="Error message if status is 'failed'"
+    )
+

@@ -37,7 +37,7 @@ MEILISEARCH_TIMEOUT = int(os.getenv("MEILISEARCH_TIMEOUT", 25))
 # Frontend Configurable Variables (exposed via /api/config)
 # ============================================================================
 DEFAULT_SEARCH_LIMIT = 5
-MAX_SEARCH_LIMIT = 20
+MAX_SEARCH_LIMIT = 50
 SCORE_PASS_THRESHOLD = 0.81
 DEFAULT_SEMANTIC_RATIO = 0.5
 ENABLE_LLM = True
@@ -65,13 +65,12 @@ AVAILABLE_SOURCES = [
 # ============================================================================
 # Backend-only Configuration (not exposed to frontend)
 # ============================================================================
-PRE_SEARCH_LIMIT = 50
+def get_pre_search_limit(limit):
+    return max(50, int(limit * 1.5 + 20)) # 根據使用者選擇的篇數動態返回 > 的數量並進行現有演算法處理 (merge,key_alg, sort, multi_search) 
+
+RETRY_SEARCH_LIMIT_MULTIPLIER = 1.5 # 重試後的擴大範圍，也會影響上面的，假設 is_retry_search 為 true
 NO_HIT_PENALTY_FACTOR = 0.15
 KEYWORD_HIT_BOOST_FACTOR = 0.60
 
-FALLBACK_RESULT_COUNT = 2
-SEARCH_MAX_RETRIES = 1
-
-
-def get_score_min_threshold():
-    return max(0, SCORE_PASS_THRESHOLD - 0.2)
+SEARCH_MAX_RETRIES = 1 # 重搜索的次數
+SUMMARIZE_TOKEN_LIMIT = 80000 # 總結的 token 限制量，會影響總結使用的篇數

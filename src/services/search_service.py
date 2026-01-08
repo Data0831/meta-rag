@@ -8,7 +8,8 @@ from src.config import (
     MEILISEARCH_HOST,
     MEILISEARCH_API_KEY,
     MEILISEARCH_INDEX,
-    PRE_SEARCH_LIMIT,
+    get_pre_search_limit,
+    RETRY_SEARCH_LIMIT_MULTIPLIER,
     MAX_SEARCH_LIMIT,
     MEILISEARCH_TIMEOUT,
 )
@@ -244,10 +245,12 @@ class SearchService:
 
     def _build_single_query_params(
         self,
+        current_limit: int,
         query_text: str,
         intent: SearchIntent,
         semantic_ratio: float,
         meili_filter: Optional[str],
+        is_retry_search: bool = False,
     ) -> Dict[str, Any]:
         final_kw_query = query_text
         vector = None
@@ -265,10 +268,14 @@ class SearchService:
                     f"Embedding failed for '{query_text}': {embedding_result.get('error')}"
                 )
 
+        # Calculate limit based on retry status
+        base_limit = get_pre_search_limit(current_limit)
+        final_limit = int(base_limit * RETRY_SEARCH_LIMIT_MULTIPLIER) if is_retry_search else base_limit
+
         search_params = {
             "indexUid": MEILISEARCH_INDEX,
             "q": final_kw_query,
-            "limit": PRE_SEARCH_LIMIT,
+            "limit": final_limit,
             "attributesToRetrieve": ["*"],
             "showRankingScore": True,
             "showRankingScoreDetails": True,
@@ -382,6 +389,11 @@ class SearchService:
                     existing_doc["content"] = (
                         f"{existing_content}\n\n --- \n\n{new_content}"
                     )
+                    
+                    # 合併 token 計數
+                    existing_token = existing_doc.get("token", 0)
+                    new_token = doc.get("token", 0)
+                    existing_doc["token"] = existing_token + new_token
         return merged_results
 
     def search(
@@ -391,7 +403,6 @@ class SearchService:
         semantic_ratio: float = DEFAULT_SEMANTIC_RATIO,
         enable_llm: bool = True,
         manual_semantic_ratio: bool = False,
-        enable_keyword_weight_rerank: bool = True,
         fall_back: bool = False,
         exclude_ids: List[str] = None,
         history: List[str] = None,
@@ -399,6 +410,7 @@ class SearchService:
         start_date: Optional[str] = None,
         end_date: Optional[str] = None,
         website: List[str] = None,
+        is_retry_search: bool = False,
     ) -> Dict[str, Any]:
 
         limit = min(limit, MAX_SEARCH_LIMIT)
@@ -438,7 +450,7 @@ class SearchService:
             )
 
             multi_search_queries = [
-                self._build_single_query_params(q, intent, semantic_ratio, meili_filter)
+                self._build_single_query_params(limit, q, intent, semantic_ratio, meili_filter, is_retry_search)
                 for q in query_candidates
             ]
 
@@ -454,7 +466,7 @@ class SearchService:
             raw_hits_batch = batch_result.get("result", {}).get("results", [])
             all_hits = self._deduplicate_hits(raw_hits_batch)
             final_results = self._rerank_and_merge_results(
-                all_hits, intent, limit, enable_keyword_weight_rerank
+                all_hits, intent, limit, enable_llm
             )
 
             return self._build_response(
