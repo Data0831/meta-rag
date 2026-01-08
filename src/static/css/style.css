@@ -137,19 +137,10 @@ table {
     box-shadow: 0 2px 6px rgba(251, 191, 36, 0.15);
 }
 
-.dark .llm-warning-banner {
-    background: linear-gradient(135deg, #78350f 0%, #92400e 100%);
-    border-color: #f59e0b;
-}
-
 .llm-warning-banner .material-icons-round {
     color: #d97706;
     font-size: 1.25rem;
     flex-shrink: 0;
-}
-
-.dark .llm-warning-banner .material-icons-round {
-    color: #fbbf24;
 }
 
 .llm-warning-banner p {
@@ -159,25 +150,15 @@ table {
     color: #92400e;
 }
 
-.dark .llm-warning-banner p {
-    color: #fde68a;
-}
-
 /* Intent Container Styles */
 .intent-details-grid {
     display: grid;
     grid-template-columns: 1fr;
     gap: 1.25rem;
-    padding: 1.25rem;
     background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
     border-radius: 1rem;
     border: 1px solid #e2e8f0;
     animation: fadeInUp 0.3s ease-out forwards;
-}
-
-.dark .intent-details-grid {
-    background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
-    border-color: #334155;
 }
 
 @media (min-width: 768px) {
@@ -195,19 +176,9 @@ table {
     transition: all 0.2s ease;
 }
 
-.dark .intent-card {
-    background: #1e293b;
-    border-color: #334155;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-}
-
 .intent-card:hover {
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
     transform: translateY(-1px);
-}
-
-.dark .intent-card:hover {
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 }
 
 .intent-section-title {
@@ -222,11 +193,6 @@ table {
     border-bottom: 2px solid #e2e8f0;
     text-transform: uppercase;
     letter-spacing: 0.05em;
-}
-
-.dark .intent-section-title {
-    color: #cbd5e1;
-    border-bottom-color: #334155;
 }
 
 .intent-field {
@@ -245,10 +211,6 @@ table {
     margin-bottom: 0.5rem;
     text-transform: uppercase;
     letter-spacing: 0.03em;
-}
-
-.dark .intent-label {
-    color: #94a3b8;
 }
 
 .intent-badge-container {
@@ -274,11 +236,6 @@ table {
     box-shadow: 0 4px 8px rgba(127, 172, 182, 0.3);
 }
 
-.dark .intent-badge {
-    background: linear-gradient(135deg, #5f8595 0%, #4a6a78 100%);
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-}
-
 .weight-display {
     display: flex;
     align-items: center;
@@ -287,11 +244,6 @@ table {
     background: #f1f5f9;
     border-radius: 0.5rem;
     border: 1px solid #e2e8f0;
-}
-
-.dark .weight-display {
-    background: #0f172a;
-    border-color: #334155;
 }
 
 .weight-item {
@@ -312,10 +264,6 @@ table {
     font-weight: 500;
 }
 
-.dark .weight-text {
-    color: #94a3b8;
-}
-
 .weight-value {
     font-size: 0.9375rem;
     font-weight: 700;
@@ -323,20 +271,11 @@ table {
     font-family: 'Courier New', monospace;
 }
 
-.dark .weight-value {
-    color: #e2e8f0;
-}
-
 .weight-divider {
     width: 1px;
     height: 1.5rem;
     background: #cbd5e1;
 }
-
-.dark .weight-divider {
-    background: #475569;
-}
-
 /* Brief Answer - Option 2: Minimalist Gradient Bar */
 .brief-answer-gradient-bar {
     display: flex;
@@ -408,10 +347,6 @@ body {
     background: #7facb6;
     cursor: pointer;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-.dark .range-slider::-webkit-slider-thumb {
-    border-color: #2d3748;
 }
 
 .dimmed-result {

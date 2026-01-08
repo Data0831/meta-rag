@@ -1,4 +1,3 @@
-```mermaid
 sequenceDiagram
     participant Agent as srhSumAgent.py
     participant SVC as SearchService
@@ -131,7 +130,7 @@ sequenceDiagram
     style Meili fill:#e1f5fe,stroke:#01579b,stroke-width:2px
     style Reranker fill:#fff4dd,stroke:#d4a017,stroke-width:2px
     style LLM fill:#fce4ec,stroke:#880e4f,stroke-width:2px
-```
+
 
 ---
 
