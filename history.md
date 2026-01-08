@@ -88,3 +88,10 @@
 - **反饋系統整合**：將 Chatbot 的讚/倒讚功能與後端 `/api/feedback` 端點整合，並在點擊後顯示即時提示，提升用戶互動體驗與資料收集效率。
 
 - **代碼整合優化**：統一使用 `appendMessage` 處理所有機器人訊息（包括歡迎訊息與錯誤提示），確保所有回覆皆具備一致的功能按鈕。
+
+### 2026-01-08 代理模型名稱 UI 顯示 (Proxy Model Name UI Display)
+
+- **後端配置同步**：確保 `/api/config` 回傳 `proxy_model_name` 配置項。
+- **前端配置接收**：更新 `config.js` 的 `appConfig` 支援 `proxyModelName` 欄位，並在 `loadBackendConfig()` 時自動同步後端回傳的模型名稱。
+- **UI 標籤實作**：在問答機器人輸入框下方新增一個 Badge 區塊（`modelBadgeContainer`），包含 `psychology` 圖標與模型名稱文字。
+- **動態渲染邏輯**：於 `chatbot.js` 實作 `renderChatbotModelBadge()` 函式，確保在配置載入或 UI 初始化時自動將模型名稱（如 "gemini-2.0-flash"）渲染至標籤中，提升系統透明度。

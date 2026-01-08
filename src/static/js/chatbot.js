@@ -1,6 +1,7 @@
 import { currentResults, activeResults, applyThresholdToResults } from './render.js';
 import { searchConfig, appConfig } from './config.js';
 import { showAlert } from './alert.js';
+import { sendFeedback } from './api.js';
 
 let currentTokenUsage = null;
 
@@ -23,14 +24,9 @@ export function setupChatbot() {
 
     if (!container || !triggerBtn) return;
 
-    const inputArea = chatInput.parentElement.parentElement;
-    let suggestionsContainer = document.getElementById('chatSuggestions');
-    if (!suggestionsContainer) {
-        suggestionsContainer = document.createElement('div');
-        suggestionsContainer.id = 'chatSuggestions';
-        suggestionsContainer.className = 'px-4 pb-2 flex flex-wrap gap-2 justify-end';
-        inputArea.insertBefore(suggestionsContainer, inputArea.firstChild);
-    }
+    // 初始化歡迎訊息
+    messagesDiv.innerHTML = '';
+    appendMessage('bot', '您好！我是您的搜尋助手。關於目前的搜尋結果，有什麼想問的嗎？');
 
     let isOpen = false;
     let chatHistory = [];
@@ -73,8 +69,10 @@ export function setupChatbot() {
     }
 
     function renderSuggestions(list) {
-        suggestionsContainer.innerHTML = '';
         if (!list || list.length === 0) return;
+
+        const containerDiv = document.createElement('div');
+        containerDiv.className = 'flex flex-wrap gap-2 justify-start animate-fade-in-up mb-4 w-full suggestion-group';
 
         list.forEach(text => {
             const btn = document.createElement('button');
@@ -83,14 +81,18 @@ export function setupChatbot() {
                 text-xs px-3 py-1.5 rounded-full border border-slate-300 dark:border-slate-600
                 bg-white dark:bg-slate-700 text-slate-600 dark:text-slate-300
                 hover:bg-slate-100 dark:hover:bg-slate-600 hover:text-primary dark:hover:text-primary
-                transition-colors cursor-pointer whitespace-nowrap shadow-sm animate-fade-in-up
+                transition-colors cursor-pointer whitespace-nowrap shadow-sm
             `;
             btn.addEventListener('click', () => {
+                containerDiv.remove();
                 chatInput.value = text;
                 sendMessage();
             });
-            suggestionsContainer.appendChild(btn);
+            containerDiv.appendChild(btn);
         });
+
+        messagesDiv.appendChild(containerDiv);
+        messagesDiv.scrollTop = messagesDiv.scrollHeight;
     }
 
     if (clearBtn) {
@@ -99,20 +101,9 @@ export function setupChatbot() {
             messagesDiv.innerHTML = '';
             currentTokenUsage = null;
 
-            if (suggestionsContainer) suggestionsContainer.innerHTML = '';
             if (headerStatus) headerStatus.innerHTML = '';
 
-            const welcomeDiv = document.createElement('div');
-            welcomeDiv.className = 'flex items-start gap-2 animate-fade-in-up';
-            welcomeDiv.innerHTML = `
-                <div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-white flex-shrink-0">
-                    <span class="material-icons-round text-sm">smart_toy</span>
-                </div>
-                <div class="bg-white dark:bg-slate-700 p-3 rounded-2xl rounded-tl-none shadow-sm text-sm text-slate-700 dark:text-slate-200 border border-slate-100 dark:border-slate-600">
-                    您好！我是您的搜尋助手。關於目前的搜尋結果，有什麼想問的嗎？
-                </div>
-            `;
-            messagesDiv.appendChild(welcomeDiv);
+            appendMessage('bot', '您好！我是您的搜尋助手。關於目前的搜尋結果，有什麼想問的嗎？');
 
             updateHeaderStatus();
         });
@@ -163,12 +154,14 @@ export function setupChatbot() {
             return;
         }
 
-        suggestionsContainer.innerHTML = '';
+        // 清除之前的建議按鈕
+        const existingSuggestions = messagesDiv.querySelectorAll('.suggestion-group');
+        existingSuggestions.forEach(el => el.remove());
 
         if (!currentResults || currentResults.length === 0) {
             appendMessage('user', text);
             setTimeout(() => {
-                appendMessage('bot', '請先在左側搜尋欄輸入關鍵字查詢公告，我才能根據搜尋結果回答您的問題喔！');
+                appendMessage('bot', '請先在左側搜尋欄輸入關鍵字查詢公告，我才能根據搜尋結果回答您的問題喔！', text);
                 renderSuggestions(["如何搜尋公告？", "Copilot 是什麼？", "搜尋最新價格"]);
             }, 500);
             chatInput.value = '';
@@ -193,7 +186,7 @@ export function setupChatbot() {
                 removeMessage(loadingId);
 
                 // [修改] 這裡換成你截圖中要求的 "未符合" 提示文字
-                appendMessage('bot', `機器人提示：發現資料並未符合相似度，參考前 ${totalScanned} 篇，如果要參考更多篇請調低 相似閾值`);
+                appendMessage('bot', `機器人提示：發現資料並未符合相似度，參考前 ${totalScanned} 篇，如果要參考更多篇請調低 相似閾值`, text);
                 return;
             }
             // [新增] 這裡插入你截圖中要求的 "已載入" 提示文字
@@ -235,14 +228,14 @@ export function setupChatbot() {
 
             if (data.error) {
                 if (data.error.includes("Input length exceeds")) {
-                    appendMessage('bot', '**輸入的字數過多**，請精簡您的問題後再試一次。');
+                    appendMessage('bot', '**輸入的字數過多**，請精簡您的問題後再試一次。', text);
                 } else if (data.error.includes("Token 使用量")) {
-                    appendMessage('bot', `**Token 超限錯誤**\n\n${data.error}`);
+                    appendMessage('bot', `**Token 超限錯誤**\n\n${data.error}`, text);
                     if (data.suggestions && data.suggestions.length > 0) {
                         renderSuggestions(data.suggestions);
                     }
                 } else {
-                    appendMessage('bot', '系統錯誤：' + data.error);
+                    appendMessage('bot', '系統錯誤：' + data.error, text);
                 }
 
                 if (data.token_usage) {
@@ -250,7 +243,7 @@ export function setupChatbot() {
                     updateHeaderStatus();
                 }
             } else {
-                appendMessage('bot', data.answer);
+                appendMessage('bot', data.answer, text);
 
                 if (data.suggestions && data.suggestions.length > 0) {
                     renderSuggestions(data.suggestions);
@@ -269,7 +262,7 @@ export function setupChatbot() {
 
         } catch (error) {
             removeMessage(loadingId);
-            appendMessage('bot', '網路連線錯誤，請檢查後端是否啟動。');
+            appendMessage('bot', '網路連線錯誤，請檢查後端是否啟動。', text);
             console.error(error);
         }
     }
@@ -279,35 +272,66 @@ export function setupChatbot() {
         if (e.key === 'Enter') sendMessage();
     });
 
-    function appendMessage(role, text) {
+    function appendMessage(role, text, userQuery = null) {
         const div = document.createElement('div');
         const isBot = role === 'bot';
 
-        div.className = `flex flex-col gap-1 animate-fade-in-up ${isBot ? 'items-start' : 'items-end'}`;
-        const icon = isBot ? 'smart_toy' : 'person';
-        const bgClass = isBot ? 'bg-white dark:bg-slate-700 text-slate-700 dark:text-slate-200' : 'bg-primary text-white';
-        const iconBg = isBot ? 'bg-primary' : 'bg-slate-400';
-        const roundedClass = isBot ? 'rounded-tl-none' : 'rounded-tr-none';
+        div.className = `flex flex-col gap-1 animate-fade-in-up ${isBot ? 'items-start group' : 'items-end'} w-full mb-4`;
 
-        let messageContent = '';
         if (isBot) {
-            messageContent = `<div class="prose prose-sm dark:prose-invert max-w-none leading-relaxed">
-                                ${marked.parse(text)}
-                              </div>`;
-        } else {
-            messageContent = text.replace(/\n/g, '<br>');
-        }
-
-        div.innerHTML = `
-            <div class="flex items-start gap-2 ${isBot ? '' : 'flex-row-reverse'}">
-                <div class="w-8 h-8 rounded-full ${iconBg} flex items-center justify-center text-white flex-shrink-0">
-                    <span class="material-icons-round text-sm">${icon}</span>
+            div.innerHTML = `
+                <div class="prose prose-sm max-w-none leading-relaxed bot-message-text">
+                    ${marked.parse(text)}
                 </div>
-                <div class="${bgClass} p-3 rounded-2xl ${roundedClass} shadow-sm text-sm border border-slate-100 dark:border-slate-600 max-w-[90%] overflow-hidden">
+                <div class="flex items-center gap-1 mt-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button class="chat-copy-btn p-1 hover:bg-slate-200 dark:hover:bg-slate-700 rounded text-slate-400 hover:text-primary transition-colors" title="複製回覆">
+                        <span class="material-icons-round" style="font-size: 16px;">content_copy</span>
+                    </button>
+                    <button class="chat-good-btn p-1 hover:bg-slate-200 dark:hover:bg-slate-700 rounded text-slate-400 hover:text-green-600 transition-colors" title="有幫助">
+                        <span class="material-icons-round" style="font-size: 16px;">thumb_up</span>
+                    </button>
+                    <button class="chat-bad-btn p-1 hover:bg-slate-200 dark:hover:bg-slate-700 rounded text-slate-400 hover:text-red-500 transition-colors" title="沒幫助">
+                        <span class="material-icons-round" style="font-size: 16px;">thumb_down</span>
+                    </button>
+                </div>
+            `;
+
+            // 綁定事件
+            const copyBtn = div.querySelector('.chat-copy-btn');
+            copyBtn.addEventListener('click', () => {
+                navigator.clipboard.writeText(text).then(() => {
+                    const icon = copyBtn.querySelector('.material-icons-round');
+                    icon.textContent = 'check';
+                    setTimeout(() => icon.textContent = 'content_copy', 2000);
+                });
+            });
+
+            const goodBtn = div.querySelector('.chat-good-btn');
+            goodBtn.addEventListener('click', async () => {
+                try {
+                    await sendFeedback('positive', userQuery || "Chatbot Response", { ...searchConfig, source: 'chatbot' });
+                    goodBtn.classList.add('text-green-600');
+                    showAlert('感謝您的肯定！', 'success');
+                } catch (e) { console.error(e); }
+            });
+
+            const badBtn = div.querySelector('.chat-bad-btn');
+            badBtn.addEventListener('click', async () => {
+                try {
+                    await sendFeedback('negative', userQuery || "Chatbot Response", { ...searchConfig, source: 'chatbot' });
+                    badBtn.classList.add('text-red-500');
+                    showAlert('感謝您的意見，我們會持續改進！', 'info');
+                } catch (e) { console.error(e); }
+            });
+        } else {
+            const messageContent = text.replace(/\n/g, '<br>');
+            div.innerHTML = `
+                <div class="bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 p-3 rounded-2xl shadow-sm text-sm border border-slate-200 dark:border-slate-700 max-w-[85%]">
                     ${messageContent}
                 </div>
-            </div>
-        `;
+            `;
+        }
+
         messagesDiv.appendChild(div);
         messagesDiv.scrollTop = messagesDiv.scrollHeight;
         return div.id;
@@ -317,17 +341,12 @@ export function setupChatbot() {
         const id = 'msg-' + Date.now();
         const div = document.createElement('div');
         div.id = id;
-        div.className = 'flex items-start gap-2';
+        div.className = 'flex items-start w-full animate-fade-in-up mb-4';
         div.innerHTML = `
-             <div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-white flex-shrink-0">
-                <span class="material-icons-round text-sm">smart_toy</span>
-            </div>
-            <div class="bg-white dark:bg-slate-700 p-4 rounded-2xl rounded-tl-none shadow-sm border border-slate-100 dark:border-slate-600">
-                 <div class="flex space-x-1">
-                    <div class="w-2 h-2 bg-slate-400 rounded-full animate-bounce"></div>
-                    <div class="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style="animation-delay: 0.1s"></div>
-                    <div class="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style="animation-delay: 0.2s"></div>
-                </div>
+             <div class="flex space-x-1 p-2">
+                <div class="w-2 h-2 bg-slate-400 rounded-full animate-bounce"></div>
+                <div class="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style="animation-delay: 0.1s"></div>
+                <div class="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style="animation-delay: 0.2s"></div>
             </div>
         `;
         messagesDiv.appendChild(div);
@@ -436,9 +455,9 @@ export function setupChatbot() {
         } else {
             headerStatus.innerHTML = `
                 <div class="inline-flex items-center gap-2">
-                    <div class="inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-blue-900/50 border border-blue-600">
-                        <span class="material-icons-round text-blue-400" style="font-size: 14px;">description</span>
-                        <span class="text-xs text-blue-300 font-medium">${validCount}/${totalScanned} 篇</span>
+                    <div class="inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-slate-700 border border-slate-600">
+                        <span class="material-icons-round text-white" style="font-size: 14px;">description</span>
+                        <span class="text-xs text-white font-medium">${validCount}/${totalScanned} 篇</span>
                     </div>
                     <div class="inline-flex items-center gap-1.5 px-2 py-1 rounded-md ${tokenBgColor} border ${tokenBorderColor}">
                         <span class="material-icons-round ${tokenIconColor}" style="font-size: 14px;">${tokenIcon}</span>
@@ -449,8 +468,22 @@ export function setupChatbot() {
         }
     }
 
-    // --- [新增] 將函式公開到全域，讓搜尋結束後 (main.js) 可以呼叫 ---
+    // --- [新增] 即時更新 Header UI (視覺回饋) ---
+    function updateChatHeaderImmediate() {
+        updateHeaderStatus();
+    }
+
+    // --- [新增] 渲染模型 Badge ---
+    function renderChatbotModelBadge() {
+        const badgeEl = document.getElementById('modelNameBadge');
+        if (badgeEl && appConfig.proxyModelName) {
+            badgeEl.textContent = appConfig.proxyModelName;
+        }
+    }
+
+    // 公開到全域
     window.updateChatHeader = updateHeaderStatus;
+    window.renderChatbotModelBadge = renderChatbotModelBadge;
 
     // --- [新增] 綁定滑桿事件：一拉動就更新 Header ---
     const sliderInput = document.getElementById('similarity-slider') || document.querySelector('input[type="range"]');
@@ -461,11 +494,14 @@ export function setupChatbot() {
             // 2. 呼叫 render.js 的函式，讓卡片變灰，並更新 activeResults
             applyThresholdToResults();
             // 3. 即時更新 Header UI (視覺回饋)
-            updateHeaderStatus();
+            updateChatHeaderImmediate();
         });
     }
 
     // 初始化時先執行一次，確保狀態正確
     // (稍微延遲一下確保 currentResults 已經載入)
-    setTimeout(updateHeaderStatus, 500);
+    setTimeout(() => {
+        updateHeaderStatus();
+        renderChatbotModelBadge();
+    }, 500);
 }

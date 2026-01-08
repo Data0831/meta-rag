@@ -386,3 +386,38 @@ body {
 #clearChatBtn .material-icons-round{
     font-size: 1.5em;
 }
+
+/* Chatbot Message Text Style */
+.bot-message-text {
+    color: #1e293b; /* Deep Slate Blue */
+}
+
+/* Enhanced Chat Input Styles */
+.chat-input-box {
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+    /* Softer, spread out shadow */
+}
+
+.dark .chat-input-box {
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    /* Dark mode shadow */
+}
+
+/* Custom animation for send button */
+#sendChatBtn:active {
+    transform: scale(0.92);
+}
+
+/* Ensure the input doesn't have the default yellow autofill background in some browsers if it happens */
+#chatInput:-webkit-autofill,
+#chatInput:-webkit-autofill:hover,
+#chatInput:-webkit-autofill:focus,
+#chatInput:-webkit-autofill:active {
+    -webkit-box-shadow: 0 0 0 30px white inset !important;
+    transition: background-color 5000s ease-in-out 0s;
+}
+
+.dark #chatInput:-webkit-autofill {
+    -webkit-box-shadow: 0 0 0 30px #1e293b inset !important;
+    -webkit-text-fill-color: white !important;
+}

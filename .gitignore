@@ -10,7 +10,7 @@ src/src/logs/*
 task/*
 docs/vault
 .venv
-GEMINI.md
+# GEMINI.md
 CLAUDE.md
 
 !src/datas/*.json

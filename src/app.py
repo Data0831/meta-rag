@@ -42,6 +42,7 @@ from src.config import (
     WEBSITE_JSON,
     AVAILABLE_SOURCES,
     MEILISEARCH_TIMEOUT,
+    PROXY_MODEL_NAME
 )
 from src.tool.ANSI import print_red
 from src.services.rag_service import RAGService
@@ -130,6 +131,7 @@ def get_config():
             "llm_token_limit": LLM_TOKEN_LIMIT,
             "date_range_min": DATE_RANGE_MIN,
             "date_range_max": date_range_max,
+            "proxy_model_name": PROXY_MODEL_NAME,
         }
     )
 

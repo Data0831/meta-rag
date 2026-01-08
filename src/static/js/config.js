@@ -21,7 +21,8 @@ export const appConfig = {
     maxChatInputLength: 500,
     llmTokenLimit: 100000,
     dateRangeMin: "2023-01",
-    dateRangeMax: null
+    dateRangeMax: null,
+    proxyModelName: ""
 };
 
 /**
@@ -32,6 +33,14 @@ export async function loadBackendConfig() {
         const response = await fetch('/api/config');
         const config = await response.json();
         console.log('Backend Config:', config);
+
+        // Update Proxy Model Name
+        if (config.proxy_model_name !== undefined) {
+            appConfig.proxyModelName = config.proxy_model_name;
+            if (window.renderChatbotModelBadge) {
+                window.renderChatbotModelBadge();
+            }
+        }
 
         // Update Version
         if (config.version !== undefined) {
