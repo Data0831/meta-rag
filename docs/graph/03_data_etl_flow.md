@@ -1,57 +1,60 @@
-# 資料預處理與同步流程 (Data ETL Pipeline)
-
-本圖表描述資料從「原始網站」獲取、清洗、差異偵測，直到「向量化」並寫入 Meilisearch 的完整自動化路徑。
-
-```mermaid
 sequenceDiagram
-    participant Web as Microsoft Sites
-    participant CRAW as crawlers/*.py
-    participant SCHED as main_scheduler.py
-    participant DIFF as diff_engine.py
-    participant SYNC as rag_sync.py
-    participant PS as parser.py
-    participant VP as vectorPreprocessing.py
-    participant DB as Meilisearch
+    autonumber
+    
+    participant Web as Data Sources<br/>(Microsoft Sites)
+    participant CRAW as Crawlers<br/>(crawlers/*.py)
+    participant SCHED as Scheduler<br/>(main_scheduler.py)
+    participant DIFF as Diff Engine<br/>(diff_engine.py)
+    participant SYNC as RAG Syncer<br/>(rag_sync.py)
+    participant PS as Data Parser<br/>(parser.py)
+    participant VP as Vector Processor<br/>(vectorPreprocessing.py)
+    participant DB as Meilisearch DB<br/>(Meilisearch)
 
-    Note over Web,CRAW: 1. 爬蟲階段 (Crawling)
-    loop 定期排程執行
-        CRAW->>Web: 抓取 HTML / JSON 原始資料
-        Web-->>CRAW: 回傳產品公告原始內容
+    rect rgb(255, 250, 240)
+        Note over Web,CRAW: 階段一：自動化數據抓取 (Data Acquisition)
+        loop 定期排程任務 (Scheduled Jobs)
+            CRAW->>Web: 抓取 HTML / JSON 原始數據
+            Web-->>CRAW: 返回產品公告與技術內容
+        end
     end
 
-    Note over CRAW,SCHED: 2. 差異偵測與熔斷 (Diff & Circuit Breaker)
-    CRAW->>SCHED: 傳回本次抓取的 Raw Chunks (List)
-    SCHED->>DIFF: process_diff_and_save (與本地舊資料比對)
-    
-    alt 刪除筆數 > 33% 總量
-        DIFF-->>SCHED: 觸發熔斷 (Circuit Breaker Triggered)
-        Note over SCHED: 停止更新，發出警告日誌以防止誤刪
-    else 比對通過
-        DIFF-->>SCHED: 回傳新增 (Added) 與 刪除 (Deleted) 列表
-    end
-
-    Note over SCHED,SYNC: 3. 資料彙整與清洗 (Data Cleaning)
-    SCHED->>SYNC: notify_rag_system(valid_diff_reports)
-    
-    loop 每一筆新增文檔
-        SYNC->>PS: process_item(chunk)
-        PS->>PS: HTML 轉 Markdown、移除雜訊、<br/>計算 Token、產生 Hash ID
-    end
-    
-    SYNC->>SYNC: 產出動態同步檔 (upsert_*.json, delete_*.json)
-
-    Note over SYNC,VP: 4. 向量生成與資料庫寫入 (Vectorization & Indexing)
-    SYNC->>VP: run_dynamic_sync (動態感知同步)
-    
-    rect rgb(240, 248, 255)
-        Note over VP: 根據硬體 Profile 自動調整並發：<br/>- RTX 4050 (GPU 加速)<br/>- 16C CPU (多執行緒)<br/>- 2C4T (低能耗模式)
+    rect rgb(245, 250, 255)
+        Note over CRAW,SCHED: 階段二：穩定性偵測與熔斷 (Diff & Quality Control)
+        CRAW->>SCHED: 提交原始分塊數據 (Raw Chunks)
+        SCHED->>DIFF: 執行差異偵測 (process_diff_and_save)
         
-        VP->>VP: 批次生成向量 (Batch Embedding)
-        VP->>DB: upsert_documents / delete_documents
+        alt 刪除異常 (Delete Limit > 33%)
+            DIFF-->>SCHED: 觸發熔斷保護 (Circuit Breaker)
+            Note over SCHED: 停止更新流程，發送系統警告通知
+        else 驗證通過
+            DIFF-->>SCHED: 返回變動清單 (Added / Deleted List)
+        end
     end
 
-    Note over DB: 資料同步完成，可用於檢索
-```
+    rect rgb(255, 250, 245)
+        Note over SCHED,SYNC: 階段三：資料清洗與結構化 (Data Cleaning & Parsing)
+        SCHED->>SYNC: 啟動同步程序 (notify_rag_system)
+        
+        loop 增量內容處理 (Item Processing)
+            SYNC->>PS: 執行文本清洗 (process_item)
+            Note over PS: 清洗邏輯：<br/>■ HTML 轉 Markdown<br/>■ 移除廣告與社群雜訊<br/>■ 計算 Token 並生成 Hash ID
+        end
+        
+        SYNC->>SYNC: 產出動態同步文件 (Upsert/Delete JSON)
+    end
+
+    rect rgb(240, 248, 255)
+        Note over SYNC,DB: 階段四：向量化與入庫 (Hardware-Aware Indexing)
+        SYNC->>VP: 執行向量處理器 (run_dynamic_sync)
+        
+        Note over VP: 硬體感知調優 (Auto-Scaling)：<br/>■ GPU 加速 (RTX 4050/3060)<br/>■ 高併發 (16C+ CPU)<br/>■ 節能模式 (Low-End Hardware)
+        
+        VP->>VP: 非同步批次生成向量 (Batch Embedding)
+        VP->>DB: 執行資料庫原子更新 (Atomic Upsert/Delete)
+    end
+
+    Note over DB: 索引同步完成，數據即時可用
+
 
 ## 核心組件說明
 

@@ -46,7 +46,7 @@
 
 ### 2026-01-05 公告資料 API 集中化 (Announcement Data API Centralization)
 - **前端資料來源遷移**：重構 `announcement.js` 的 `loadData()` 函數，從原本直接 fetch 靜態 JSON 檔案改為統一從 `/api/config` 端點獲取 `announcements` 與 `websites` 資料，實現前後端資料流一致性。
-- **後端讀取邏輯整合**：於 `app.py` 的 `/api/config` 路由中新增讀取 `announcement.json` 和 `website.json` 的邏輯，使用 `os.path.join` 構建跨平台路徑，檔案不存在或讀取失敗時回傳空陣列並透過 `print_red` 記錄錯誤。
+- **後端讀取邏輯整合**：於 `app.py` 的 `/api/config` 路由中新增讀取 `announcement.json`和 `website.json` 的邏輯，使用 `os.path.join` 構建跨平台路徑，檔案不存在或讀取失敗時回傳空陣列並透過 `print_red` 記錄錯誤。
 - **配置集中管理**：在 `config.py` 新增 `ANNOUNCEMENT_JSON` 與 `WEBSITE_JSON` 路徑常數（指向 `src/datas/`），並於 `app.py` import 使用，確保所有資料來源路徑統一由配置檔管理，提升系統可維護性與配置一致性。
 
 ### 2026-01-05 關鍵字重排演算法優化 (Keyword Reranking Algorithm Optimization)
@@ -78,3 +78,13 @@
 ### 2026-01-08 11:22 移除 SCORE_PASS_THRESHOLD 無效邏輯 (Remove Ineffective SCORE_PASS_THRESHOLD Logic)
 - **問題分析**：經檢查發現 `SCORE_PASS_THRESHOLD` 在 `srhSumAgent.py` 中雖有 6 處引用，但僅用於：1) 為結果添加 `score_pass` 標記（未實際過濾），2) 計算 `filtered` 列表用於顯示訊息，3) 在訊息中顯示門檻值。這些邏輯對程式沒有實際過濾作用，LLM 評估與最終總結均使用完整結果集。
 - **程式碼清理**：移除 `_add_results` 方法中的 `SCORE_PASS_THRESHOLD` 導入與 `score_pass` 標記邏輯；移除 `run` 方法中的門檻導入、`threshold_info` 變數、兩處 `filtered` 列表計算及相關顯示訊息（共約 50 行），使程式碼更簡潔且邏輯更清晰。
+
+### 2026-01-08 Chatbot UI 體驗優化 (Chatbot UI Experience Optimization)
+
+- **建議按鈕整合與自動清除**：優化 `chatbot.js` 的建議問題顯示邏輯，建議按鈕現在直接追加至機器人回應訊息底部。點擊建議按鈕後，該組按鈕會自動從對話中移除；手動輸入新問題時也會清除舊有的建議按鈕，確保對話界面整潔。
+
+- **機器人訊息功能擴充**：為每一個機器人回應訊息新增功能按鈕列。包含「複製內容」(content_copy)、「有幫助」(thumb_up) 以及「沒幫助」(thumb_down)。
+
+- **反饋系統整合**：將 Chatbot 的讚/倒讚功能與後端 `/api/feedback` 端點整合，並在點擊後顯示即時提示，提升用戶互動體驗與資料收集效率。
+
+- **代碼整合優化**：統一使用 `appendMessage` 處理所有機器人訊息（包括歡迎訊息與錯誤提示），確保所有回覆皆具備一致的功能按鈕。

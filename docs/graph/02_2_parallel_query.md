@@ -1,24 +1,28 @@
 sequenceDiagram
-    participant SVC as search_service.py
-    participant VU as vector_utils.py (ollama)
-    participant Meili as db_adapter_meili.py (Meilisearch)
+    autonumber
+    
+    participant SVC as Search Service<br/>(search_service.py)
+    participant VU as Vector Engine<br/>(vector_utils.py)
+    participant Meili as Meilisearch Engine<br/>(db_adapter_meili.py)
 
-    Note over SVC: 承接自階段 1 的意圖解析結果 (SearchIntent)
+    Note over SVC: 承接意圖解析結果 (Receive SearchIntent)
 
     rect rgb(245, 250, 255)
-        Note over SVC,Meili: 2. 平行查詢執行 (Multi-Search)
+        Note over SVC,Meili: 平行查詢執行 (Parallel Multi-Search)
         
-        loop 建構查詢參數 (對應 N 個子查詢)
-            SVC->>VU: get_embedding(query_text) (若啟用語義檢索)
-            VU-->>SVC: 返回向量表示
-            SVC->>SVC: 封裝為 Meilisearch 檢索請求
+        loop 參數預處理 (Query Preprocessing)
+            opt 語義向量化 (Semantic Search Only)
+                SVC->>VU: 針對子查詢生成 Embedding
+                VU-->>SVC: 返回語義向量 (Vector)
+            end
+            SVC->>SVC: 封裝檢索參數 (Build Params)
         end
         
-        SVC->>Meili: multi_search (批次發送所有查詢請求)
+        SVC->>Meili: 批次發送請求 (Multi-Search Batch)
         
-        Note over Meili: Meilisearch 混合檢索引擎：<br>■ 檢索機制：模糊匹配 + 向量相似度<br>■ 過濾器：套用日期/網站來源/排除 ID<br>■ 混合排序：Score = (1-ratio)*keyword + ratio*semantic
+        Note over Meili: Meilisearch 混合檢索引擎空間：<br/>■ 檢索機制：模糊匹配 + 向量相似度<br/>■ 過濾引擎：套用日期 / 網站來源 / 排除 ID<br/>■ 混合排序：Hybrid Score Calculation
         
-        Meili-->>SVC: 返回所有查詢之批次結果 (Search Results Batch)
+        Meili-->>SVC: 返回批次結果 (Raw Results Batch)
     end
 
-    Note over SVC: 階段 2 完成，準備進入重排流程
+    Note over SVC: 階段二完成，準備進入結果重排 (Ready for Ranking)

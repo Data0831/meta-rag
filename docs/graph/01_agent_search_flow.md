@@ -1,26 +1,38 @@
 sequenceDiagram
-    participant FE as Frontend (Browser)
-    participant API as app.py (/api/search)
-    participant Agent as 搜索工作流控制<br>srhSumAgent.py (Agent)
-    participant SVC as 搜索主邏輯<br>search_service.py (Search)
-    participant LLM as clinet.py <br>LLM (gpt-4o-mini)
+    participant FE as Frontend (UI)
+    participant API as app.py (API)
+    participant AGT as srhSumAgent.py (Agent)
+    participant SVC as search_service.py (Search)
+    participant LLM as client.py (LLM)
 
-    FE->>API: POST { query, limit, semantic_ratio, start_date, website... }
-    Note over API: 驗證參數與字數限制
-    API->>Agent: Agent.run(query, limit, website, date_range...)
-    rect rgb(240, 240, 240)
-        Note right of Agent: 進入搜尋循環
-        Agent->>SVC: search(query, history, website...)
-        SVC->>LLM: Intent Parsing (關鍵字/子查詢/日期)<br>+ QueryRewrite (模糊 + 語義 + 子查詢)
-        SVC-->>Agent: 回傳初篩結果 (Raw Hits)
-        Agent->>LLM: _check_retry_search (評估相關性 prompt)
-        LLM->>Agent: LLM 決定始否需要繼續查詢，回傳優化後新查詢方向
-        alt 資訊有缺或相關度不足可重試
-            Agent->>Agent: 記錄 exclude_ids(排除之前查詢) & 取得優化方向
-            Agent->>SVC: 重新執行 search (帶入方向與排除項)
+    rect rgb(255, 250, 240)
+        Note over FE,API: 1. 請求發起與預處理
+        FE->>API: 傳送搜尋請求
+        Note right of API: 驗證參數：<br/>■ 語義比例與日期<br/>■ 字數限制與過濾項
+        API->>AGT: 啟動 Agent 工作流
+    end
+
+    rect rgb(245, 250, 255)
+        Note over AGT,LLM: 2. 深度搜尋循環 (Search Loop)
+        loop 檢索與品質驗證
+            AGT->>SVC: 執行混合檢索
+            SVC->>LLM: 意圖解析 (Intent Parsing)<br/>與查詢改寫 (Query Rewrite)
+            SVC-->>AGT: 回傳初始檢索結果 (Raw Hits)
+            
+            Note over AGT,LLM: 相關性驗證：<br/>■ 評估檢索結果與問題匹配度<br/>■ 判定是否需要補充資訊
+            AGT->>LLM: 檢查是否需重試 (_check_retry_search)
+            LLM-->>AGT: 回傳決策 (重試標記 + 優化方向)
+            
+            opt 資訊不足且未達重試上限
+                AGT->>AGT: 記錄 exclude_ids 並整合優化方向
+            end
         end
     end
 
-    Agent->>LLM: summarize (針對 搜索倒的所有內容 進行結構化總結)
-    Agent-->>API: yield { stage, message, results, summary... } (Streaming)
-    API-->>FE: Stream NDJSON response
+    rect rgb(245, 255, 250)
+        Note over AGT,LLM: 3. 結果彙整與串流響應
+        AGT->>LLM: 最終摘要生成 (summarize)
+        Note right of LLM: 整合內容：<br/>■ 核心總結<br/>■ 詳細分析<br/>■ 引用來源映射
+        AGT-->>API: 串流回傳狀態與結果 (Streaming)
+        API-->>FE: Stream NDJSON 響應
+    end
