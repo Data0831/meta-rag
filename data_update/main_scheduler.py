@@ -16,6 +16,7 @@ try:
     from crawlers.base import BaseCrawler
     from core.diff_engine import process_diff_and_save
     from core.rag_sync import notify_rag_system
+    from core.auto_update_stats import run_update
 except ImportError as e:
     print(f"❌ [系統錯誤] 模組引用失敗: {e}")
     exit(1)
@@ -169,6 +170,11 @@ def job():
         try:
             notify_rag_system(valid_diff_reports)
             logger.info("🎉 RAG Sync 完成，同步檔案已產出。")
+
+            logger.info("📊 開始更新網站公告統計 (update_date & update_count)...")
+            run_update() 
+            logger.info("✅ 網站公告統計已同步至 Azure。")
+            
         except Exception as e:
             logger.error(f"❌ [RAG Sync] 失敗: {e}")
     else:
@@ -201,3 +207,4 @@ if __name__ == "__main__":
         except Exception as e:
             logger.error(f"❌ 排程迴圈發生致命錯誤: {e}")
             time.sleep(60)
+
