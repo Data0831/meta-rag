@@ -53,22 +53,18 @@ function calculateTokenStatus(total, limit) {
     const actualTotal = isActual ? currentTokenUsage.total : total;
     const actualPercentage = isActual ? (currentTokenUsage.total / limit) * 100 : percentage;
 
-    let bgColor = "bg-slate-700";
-    let borderColor = "border-slate-600";
+    let bgColor = "bg-primary/20";
+    let borderColor = "border-primary/40";
     let iconColor = "text-white";
     let textColor = "text-white";
     let icon = "data_usage";
     const prefix = isActual ? "" : "~";
 
     if (actualPercentage >= 90) {
-        bgColor = "bg-red-900/50";
-        borderColor = "border-red-600";
         iconColor = "text-red-400";
         textColor = "text-red-300";
         icon = "warning";
     } else if (actualPercentage >= 70) {
-        bgColor = "bg-amber-900/50";
-        borderColor = "border-amber-600";
         iconColor = "text-amber-400";
         textColor = "text-amber-300";
     }
@@ -488,11 +484,11 @@ export function setupChatbot() {
         } else {
             headerStatus.innerHTML = `
                 <div class="inline-flex items-center gap-2">
-                    <div class="inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-slate-700 border border-slate-600">
+                    <div class="inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-primary/20 border border-primary/40 outline outline-1 outline-white/30 cursor-help" title="符合門檻的文章數 / 搜尋結果總數">
                         <span class="material-icons-round text-white" style="font-size: 14px;">description</span>
                         <span class="text-xs text-white font-medium">${validCount}/${totalScanned} 篇</span>
                     </div>
-                    <div class="inline-flex items-center gap-1.5 px-2 py-1 rounded-md ${tokenStatus.bgColor} border ${tokenStatus.borderColor}">
+                    <div class="inline-flex items-center gap-1.5 px-2 py-1 rounded-md ${tokenStatus.bgColor} border ${tokenStatus.borderColor} outline outline-1 outline-white/30 cursor-help" title="預估 Token 使用量，用於計算 LLM 輸入成本">
                         <span class="material-icons-round ${tokenStatus.iconColor}" style="font-size: 14px;">${tokenStatus.icon}</span>
                         <span class="text-xs ${tokenStatus.textColor} font-medium">${tokenStatus.prefix}${tokenStatus.actualTotal.toLocaleString()}</span>
                     </div>
