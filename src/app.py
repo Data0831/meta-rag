@@ -42,7 +42,8 @@ from src.config import (
     WEBSITE_JSON,
     AVAILABLE_SOURCES,
     MEILISEARCH_TIMEOUT,
-    PROXY_MODEL_NAME
+    PROXY_MODEL_NAME,
+    MAX_CHAT_HISTORY
 )
 from src.tool.ANSI import print_red
 from src.services.rag_service import RAGService
@@ -132,6 +133,7 @@ def get_config():
             "date_range_min": DATE_RANGE_MIN,
             "date_range_max": date_range_max,
             "proxy_model_name": PROXY_MODEL_NAME,
+            "max_chat_history":MAX_CHAT_HISTORY,
         }
     )
 

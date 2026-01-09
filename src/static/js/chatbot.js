@@ -3,20 +3,13 @@ import { searchConfig, appConfig } from './config.js';
 import { showAlert } from './alert.js';
 import { sendFeedback } from './api.js';
 import { convertCitationsToLinks } from './citation.js';
+import { ChatHistory, estimateTokens, estimateTotalTokens } from './chat-history.js';
 
-const MAX_CHAT_HISTORY = 10;
 const DEBOUNCE_DELAY = 150;
 const HEADER_UPDATE_DELAY = 500;
 
 let currentTokenUsage = null;
 let currentLinkMapping = {};
-
-function estimateTokens(text) {
-    if (!text) return 0;
-    const chineseChars = (text.match(/[\u4e00-\u9fa5]/g) || []).length;
-    const otherChars = text.length - chineseChars;
-    return Math.ceil(chineseChars * 2.5 + otherChars / 4);
-}
 
 function debounce(func, delay) {
     let timeoutId;
@@ -52,20 +45,6 @@ function getValidResults() {
         const scorePercent = Math.round(rawScore * 100);
         return scorePercent >= thresholdPercent;
     });
-}
-
-function estimateTotalTokens(results, history) {
-    let contextTokens = 0;
-    results.forEach(item => {
-        const content = item.content || item.cleaned_content || item.body || "";
-        contextTokens += estimateTokens(content);
-    });
-
-    const historyTokens = history.reduce((sum, msg) => {
-        return sum + estimateTokens(msg.content || "");
-    }, 0);
-
-    return contextTokens + historyTokens;
 }
 
 function calculateTokenStatus(total, limit) {
@@ -113,23 +92,34 @@ export function setupChatbot() {
     appendMessage('bot', '您好！我是您的搜尋助手。關於目前的搜尋結果，有什麼想問的嗎？');
 
     let isOpen = false;
-    let chatHistory = [];
+    const chatHistory = new ChatHistory();
 
     const chatCharCount = document.getElementById('chatCharCount');
-    if (chatCharCount && chatInput) {
-        chatInput.addEventListener('input', () => {
+    if (chatInput) {
+        const updateCharCount = () => {
             const currentLength = chatInput.value.length;
             const maxLength = appConfig.maxChatInputLength;
-
-            chatCharCount.textContent = `${currentLength}/${maxLength}`;
-
-            if (currentLength > maxLength) {
-                chatCharCount.classList.add('text-red-500', 'font-bold');
-                chatCharCount.classList.remove('text-slate-400');
-            } else {
-                chatCharCount.classList.remove('text-red-500', 'font-bold');
-                chatCharCount.classList.add('text-slate-400');
+            if (chatCharCount) {
+                chatCharCount.textContent = `${currentLength}/${maxLength}`;
+                if (currentLength > maxLength) {
+                    chatCharCount.classList.add('text-red-500', 'font-bold');
+                    chatCharCount.classList.remove('text-slate-400');
+                } else {
+                    chatCharCount.classList.remove('text-red-500', 'font-bold');
+                    chatCharCount.classList.add('text-slate-400');
+                }
             }
+        };
+
+        const autoResize = () => {
+            chatInput.style.height = 'auto';
+            const newHeight = Math.min(chatInput.scrollHeight, 120); // 120px is roughly 4-5 lines
+            chatInput.style.height = newHeight + 'px';
+        };
+
+        chatInput.addEventListener('input', () => {
+            updateCharCount();
+            autoResize();
         });
     }
 
@@ -176,7 +166,7 @@ export function setupChatbot() {
 
     if (clearBtn) {
         clearBtn.addEventListener('click', () => {
-            chatHistory = [];
+            chatHistory.clear();
             messagesDiv.innerHTML = '';
             currentTokenUsage = null;
 
@@ -219,7 +209,7 @@ export function setupChatbot() {
 
     function checkTokenLimit(text, validResults, chatHistory) {
         const userTokens = estimateTokens(text);
-        const estimatedTotal = estimateTotalTokens(validResults, chatHistory) + userTokens;
+        const estimatedTotal = estimateTotalTokens(validResults, chatHistory.getHistory()) + userTokens;
         const tokenLimit = appConfig.llmTokenLimit;
 
         if (estimatedTotal > tokenLimit) {
@@ -279,12 +269,8 @@ export function setupChatbot() {
                 renderSuggestions(data.suggestions);
             }
 
-            chatHistory.push({ role: 'user', content: userQuery });
-            chatHistory.push({ role: 'model', content: data.answer });
-
-            if (chatHistory.length > MAX_CHAT_HISTORY) {
-                chatHistory = chatHistory.slice(-MAX_CHAT_HISTORY);
-            }
+            chatHistory.addMessage('user', userQuery);
+            chatHistory.addMessage('model', data.answer);
 
             if (data.token_usage) {
                 currentTokenUsage = data.token_usage;
@@ -313,11 +299,13 @@ export function setupChatbot() {
                 renderSuggestions(["如何搜尋公告？", "Copilot 是什麼？", "搜尋最新價格"]);
             }, 500);
             chatInput.value = '';
+            chatInput.style.height = 'auto';
             return;
         }
 
         appendMessage('user', text);
         chatInput.value = '';
+        chatInput.style.height = 'auto';
 
         const loadingId = appendLoading();
 
@@ -341,7 +329,7 @@ export function setupChatbot() {
                 body: JSON.stringify({
                     message: text,
                     context: currentContext,
-                    history: chatHistory
+                    history: chatHistory.getHistory()
                 })
             });
 
@@ -358,8 +346,11 @@ export function setupChatbot() {
     }
 
     sendBtn.addEventListener('click', sendMessage);
-    chatInput.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') sendMessage();
+    chatInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            sendMessage();
+        }
     });
 
     messagesDiv.addEventListener('click', (e) => {
@@ -482,7 +473,7 @@ export function setupChatbot() {
         });
         const validCount = validResults.length;
 
-        const estimatedTotal = estimateTotalTokens(validResults, chatHistory);
+        const estimatedTotal = estimateTotalTokens(validResults, chatHistory.getHistory());
         const tokenLimit = appConfig.llmTokenLimit;
 
         const tokenStatus = calculateTokenStatus(estimatedTotal, tokenLimit);

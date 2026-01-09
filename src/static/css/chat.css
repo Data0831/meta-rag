@@ -24,6 +24,25 @@
     transition: background-color 5000s ease-in-out 0s;
 }
 
+#chatInput {
+    scrollbar-width: thin;
+    scrollbar-color: #cbd5e1 transparent;
+    line-height: 1.5;
+}
+
+#chatInput::-webkit-scrollbar {
+    width: 4px;
+}
+
+#chatInput::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+#chatInput::-webkit-scrollbar-thumb {
+    background-color: #cbd5e1;
+    border-radius: 20px;
+}
+
 .chat-message {
     display: flex;
     flex-direction: column;

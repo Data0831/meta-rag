@@ -492,23 +492,26 @@
           </div>
 
           <div id="chatInputContainer" class="p-4 bg-slate-50 dark:bg-slate-900/50">
-            <div class="chat-input-box relative flex items-center bg-white dark:bg-slate-800 rounded-3xl shadow-lg border border-slate-100 dark:border-slate-700 p-2 transition-shadow duration-300 hover:shadow-xl">
-              <input id="chatInput" type="text"
-                class="flex-1 bg-transparent border-none text-sm px-4 py-3 text-slate-700 dark:text-white focus:ring-0 placeholder-slate-400 dark:placeholder-slate-500"
-                placeholder="輸入您的問題..." />
+            <div class="chat-input-box relative flex items-end bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-slate-100 dark:border-slate-700 p-1 transition-shadow duration-300 hover:shadow-xl">
+              <textarea id="chatInput"
+                class="flex-1 bg-transparent border-none text-sm px-4 py-3 text-slate-700 dark:text-white focus:ring-0 placeholder-slate-400 dark:placeholder-slate-500 resize-none overflow-y-auto max-h-[120px]"
+                rows="1"
+                placeholder="輸入您的問題..."></textarea>
 
-              <div class="flex items-center gap-2 pr-1">
-                <span id="chatCharCount" class="text-[10px] text-slate-400 dark:text-slate-500 font-mono tracking-wide">0/500</span>
+              <div class="flex items-center gap-2 pr-1 pb-1">
                 <button id="sendChatBtn"
-                  class="flex items-center justify-center w-10 h-10 bg-gradient-to-br from-primary to-secondary text-white rounded-full shadow-md hover:shadow-lg transform hover:scale-105 transition-all duration-200">
-                  <span class="material-icons-round text-lg ml-0.5">send</span>
+                  class="flex items-center justify-center w-10 h-10 text-primary hover:brightness-90 transform hover:scale-110 active:scale-95 transition-all duration-200">
+                  <span class="material-icons-round text-2xl">send</span>
                 </button>
               </div>
             </div>
-            <!-- Model Badge -->
-            <div id="modelBadgeContainer" class="flex items-center gap-1.5 mt-2 px-1 opacity-50 dark:opacity-40">
-              <span class="material-symbols-outlined text-[14px]">psychology</span>
-              <span id="modelNameBadge" class="text-[11px] font-medium tracking-wide text-slate-500 dark:text-slate-400"></span>
+            <!-- Model Badge & Char Count -->
+            <div id="modelBadgeContainer" class="flex items-center justify-between mt-2 px-1 opacity-50 dark:opacity-40">
+              <div class="flex items-center gap-1.5">
+                <span class="material-symbols-outlined text-[14px]">psychology</span>
+                <span id="modelNameBadge" class="text-[11px] font-medium tracking-wide text-slate-500 dark:text-slate-400"></span>
+              </div>
+              <span id="chatCharCount" class="text-[10px] text-slate-400 dark:text-slate-500 font-mono tracking-wide">0/500</span>
             </div>
           </div>
         </div>

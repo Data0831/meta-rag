@@ -20,6 +20,7 @@ export const appConfig = {
     maxSearchInputLength: 100,
     maxChatInputLength: 500,
     llmTokenLimit: 100000,
+    maxChatHistory: 10,
     dateRangeMin: "2023-01",
     dateRangeMax: null,
     proxyModelName: ""
@@ -123,6 +124,11 @@ export async function loadBackendConfig() {
         }
         if (config.date_range_max !== undefined) {
             appConfig.dateRangeMax = config.date_range_max;
+        }
+
+        // update MaxChatHistory
+        if(config.max_chat_history !== undefined){
+            appConfig.maxChatHistory = config.max_chat_history;
         }
 
         // Apply Date Range to Input Elements
