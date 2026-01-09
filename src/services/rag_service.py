@@ -1,6 +1,7 @@
 # src/services/rag_service.py
 import re
 import json
+from datetime import datetime
 from typing import Dict, Any, List, Optional
 from src.services.search_service import SearchService
 from src.llm.client import LLMClient
@@ -86,7 +87,8 @@ class RAGService:
             context_text += f"</document>\n\n"
 
         # --- 步驟 5: Token 統計與超限檢查 ---
-        system_content = RAG_CHAT_PROMPT.format(context=context_text)
+        current_date = datetime.now().strftime("%Y-%m-%d")
+        system_content = RAG_CHAT_PROMPT.format(context=context_text, current_date=current_date)
 
         token_system = count_tokens(system_content)
         token_context = count_tokens(context_text)
@@ -139,7 +141,7 @@ class RAGService:
             response = self.llm_client.call_with_schema(
                 messages=messages,
                 response_model=ChatResponse,
-                temperature=0.5 # 稍微提高溫度以獲得更有創意但合規的建議 (Schema 會限制格式)
+                temperature=0.2 # 稍微提高溫度以獲得更有創意但合規的建議 (Schema 會限制格式)
             )
 
             if response["status"] == "success":

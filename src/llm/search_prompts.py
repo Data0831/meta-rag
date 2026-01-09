@@ -54,16 +54,17 @@ Construct a concise string of key terms suitable for BM25/keyword matching (`key
   - **Requirement**: Output BOTH the English and Traditional Chinese versions of the entity to maximize recall. (e.g., "雲合作夥伴計劃 Cloud Partner Program").
   - Do NOT duplicate words if they are identical in both languages.
 - **Critical Keywords (Must Have)**:
-  - Identify truly unique and essential terms: Product codes, specific years, or highly specific entities (e.g., "KB5044284", "Azure OpenAI", "GEMINI").
-  - **Constraints**: 
+  - Identify ONLY truly unique, distinctive, and essential terms: Product codes, version numbers, specific technical IDs, or highly specific proper nouns (e.g., "KB5044284", "v24H2", "Azure OpenAI", "GEMINI").
+  - **Strict Constraints**: 
     - **Length**: MUST NOT exceed 3 words (English) or 6 characters (Chinese). 
-    - **Core Only**: If a term is too long (e.g. "AI Cloud Partner Program"), extract only the CORE entity (e.g. "AI Cloud").
+    - **Exclusion (FORBIDDEN)**: Do NOT include generic intent words or categories here, even if they are central to the query. Examples: "Pricing" (價格), "Announcement" (公告), "Article" (文章), "Update" (更新), "Security" (安全性), "Summary" (總報).
+    - **Core Only**: If a term is too long (e.g. "AI Cloud Partner Program"), extract only the CORE distinctive entity (e.g. "AI Cloud").
   - **Requirement**: Output BOTH English and Traditional Chinese versions only if localized matching is critical. Otherwise, use the most specific form.
   - Add these to the `must_have_keywords` list.
-  - These will be enforced as exact matches (via boosting). Avoid generic terms here.
+  - These will be enforced as exact matches (via boosting). Avoid any non-unique terms here.
 - **Noise Reduction**:
-  - **REMOVE** generic stop words that dilute search precision on the Microsoft site: "Microsoft", "Announcement" (公告), "Article" (文章), "Data" (資料), "Details" (細節), "Query" (查詢).
-  - **KEEP** high-discrimination intent words if they modify the entity: "Pricing" (價格), "Security" (安全性/資安), "Compliance" (合規), "Error" (錯誤).
+  - **REMOVE** generic stop words that dilute search precision: "Microsoft", "Announcement" (公告), "Article" (文章), "Data" (資料), "Details" (細節), "Query" (查詢).
+  - **KEEP** high-discrimination intent words ONLY in `keyword_query` if they modify the entity: "Pricing" (價格), "Security" (安全性/資安), "Compliance" (合規), "Error" (錯誤).
 - **Format**: Space-separated string for `keyword_query`. List of strings for `must_have_keywords`.
 
 ## 4. Semantic Query Strategy (Vector Search)
@@ -128,7 +129,7 @@ Query: "Show me security announcements from last month"
     "year": [],
     "links": [],
     "keyword_query": "Security 安全性",
-    "must_have_keywords": ["Security"],
+    "must_have_keywords": [],
     "semantic_query": "2025年11月的安全性公告",
     "sub_queries": [
         "security announcements in November 2025",

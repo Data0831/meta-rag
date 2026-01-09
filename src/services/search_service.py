@@ -98,7 +98,7 @@ class SearchService:
             result = self.llm_client.call_with_schema(
                 messages=messages,
                 response_model=SearchIntent,
-                temperature=0.7 if history else 0.0,
+                temperature=0.0,
             )
             return result
         except Exception as e:

@@ -15,3 +15,5 @@ CLAUDE.md
 
 !src/datas/*.json
 *.log
+*.png
+digram.py
