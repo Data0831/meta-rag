@@ -103,7 +103,7 @@ async function loadData() {
 
                         <div class="px-3 py-1 flex-1 min-w-0 text-left">
                             <h4 class="text-[13px] font-bold text-slate-800 dark:text-slate-100 truncate group-hover:text-[#7facb6]">
-                                ${item.website}
+                                ${item.title}
                             </h4>
                             <p class="text-[10px] text-slate-400 truncate">點擊前往查看</p>
                         </div>
