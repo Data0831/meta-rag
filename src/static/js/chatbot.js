@@ -4,6 +4,10 @@ import { showAlert } from './alert.js';
 import { sendFeedback } from './api.js';
 import { convertCitationsToLinks } from './citation.js';
 
+const MAX_CHAT_HISTORY = 10;
+const DEBOUNCE_DELAY = 150;
+const HEADER_UPDATE_DELAY = 500;
+
 let currentTokenUsage = null;
 let currentLinkMapping = {};
 
@@ -12,6 +16,85 @@ function estimateTokens(text) {
     const chineseChars = (text.match(/[\u4e00-\u9fa5]/g) || []).length;
     const otherChars = text.length - chineseChars;
     return Math.ceil(chineseChars * 2.5 + otherChars / 4);
+}
+
+function debounce(func, delay) {
+    let timeoutId;
+    return function (...args) {
+        clearTimeout(timeoutId);
+        timeoutId = setTimeout(() => func.apply(this, args), delay);
+    };
+}
+
+function getCurrentThreshold() {
+    const sliderEl = document.getElementById('similarity-slider') || document.querySelector('input[type="range"]');
+    return sliderEl ? parseInt(sliderEl.value) : (searchConfig.similarityThreshold || 0);
+}
+
+function getValidResults() {
+    const thresholdPercent = getCurrentThreshold();
+
+    if (activeResults && activeResults.length > 0) {
+        return activeResults;
+    }
+
+    if (!currentResults || currentResults.length === 0) {
+        return [];
+    }
+
+    const isAnyDimmed = document.querySelector('.dimmed-result');
+    if (isAnyDimmed) {
+        return [];
+    }
+
+    return currentResults.filter(item => {
+        const rawScore = item._rerank_score !== undefined ? item._rerank_score : (item._rankingScore || 0);
+        const scorePercent = Math.round(rawScore * 100);
+        return scorePercent >= thresholdPercent;
+    });
+}
+
+function estimateTotalTokens(results, history) {
+    let contextTokens = 0;
+    results.forEach(item => {
+        const content = item.content || item.cleaned_content || item.body || "";
+        contextTokens += estimateTokens(content);
+    });
+
+    const historyTokens = history.reduce((sum, msg) => {
+        return sum + estimateTokens(msg.content || "");
+    }, 0);
+
+    return contextTokens + historyTokens;
+}
+
+function calculateTokenStatus(total, limit) {
+    const percentage = (total / limit) * 100;
+    const isActual = currentTokenUsage && currentTokenUsage.total;
+    const actualTotal = isActual ? currentTokenUsage.total : total;
+    const actualPercentage = isActual ? (currentTokenUsage.total / limit) * 100 : percentage;
+
+    let bgColor = "bg-slate-700";
+    let borderColor = "border-slate-600";
+    let iconColor = "text-white";
+    let textColor = "text-white";
+    let icon = "data_usage";
+    const prefix = isActual ? "" : "~";
+
+    if (actualPercentage >= 90) {
+        bgColor = "bg-red-900/50";
+        borderColor = "border-red-600";
+        iconColor = "text-red-400";
+        textColor = "text-red-300";
+        icon = "warning";
+    } else if (actualPercentage >= 70) {
+        bgColor = "bg-amber-900/50";
+        borderColor = "border-amber-600";
+        iconColor = "text-amber-400";
+        textColor = "text-amber-300";
+    }
+
+    return { bgColor, borderColor, iconColor, textColor, icon, prefix, actualTotal };
 }
 
 export function setupChatbot() {
@@ -26,7 +109,6 @@ export function setupChatbot() {
 
     if (!container || !triggerBtn) return;
 
-    // 初始化歡迎訊息
     messagesDiv.innerHTML = '';
     appendMessage('bot', '您好！我是您的搜尋助手。關於目前的搜尋結果，有什麼想問的嗎？');
 
@@ -43,10 +125,10 @@ export function setupChatbot() {
 
             if (currentLength > maxLength) {
                 chatCharCount.classList.add('text-red-500', 'font-bold');
-                chatCharCount.classList.remove('text-slate-400', 'dark:text-slate-500');
+                chatCharCount.classList.remove('text-slate-400');
             } else {
                 chatCharCount.classList.remove('text-red-500', 'font-bold');
-                chatCharCount.classList.add('text-slate-400', 'dark:text-slate-500');
+                chatCharCount.classList.add('text-slate-400');
             }
         });
     }
@@ -74,17 +156,12 @@ export function setupChatbot() {
         if (!list || list.length === 0) return;
 
         const containerDiv = document.createElement('div');
-        containerDiv.className = 'flex flex-wrap gap-2 justify-start animate-fade-in-up mb-4 w-full suggestion-group';
+        containerDiv.className = 'chat-suggestion';
 
         list.forEach(text => {
             const btn = document.createElement('button');
             btn.textContent = text;
-            btn.className = `
-                text-xs px-3 py-1.5 rounded-full border border-slate-300 dark:border-slate-600
-                bg-white dark:bg-slate-700 text-slate-600 dark:text-slate-300
-                hover:bg-slate-100 dark:hover:bg-slate-600 hover:text-primary dark:hover:text-primary
-                transition-colors cursor-pointer whitespace-nowrap shadow-sm
-            `;
+            btn.className = 'chat-suggestion__btn';
             btn.addEventListener('click', () => {
                 containerDiv.remove();
                 chatInput.value = text;
@@ -127,38 +204,107 @@ export function setupChatbot() {
 
     triggerBtn.addEventListener('click', toggleChat);
 
-    async function sendMessage() {
-        const text = chatInput.value.trim();
-        if (!text) return;
+    function validateInput(text) {
+        if (!text) {
+            return { valid: false };
+        }
 
         if (text.length > appConfig.maxChatInputLength) {
             showAlert(`訊息字數超過 ${appConfig.maxChatInputLength} 字限制，請縮短內容`, 'warning');
-            return;
+            return { valid: false };
         }
 
-        const validResults = (activeResults && activeResults.length > 0) ? activeResults : currentResults || [];
-        let estimatedContextTokens = 0;
-        validResults.forEach(item => {
-            const content = item.content || item.cleaned_content || item.body || "";
-            estimatedContextTokens += estimateTokens(content);
-        });
+        return { valid: true };
+    }
 
-        const historyTokens = chatHistory.reduce((sum, msg) => {
-            return sum + estimateTokens(msg.content || "");
-        }, 0);
+    function checkTokenLimit(text, validResults, chatHistory) {
         const userTokens = estimateTokens(text);
-
-        const estimatedTotal = estimatedContextTokens + historyTokens + userTokens;
+        const estimatedTotal = estimateTotalTokens(validResults, chatHistory) + userTokens;
         const tokenLimit = appConfig.llmTokenLimit;
 
         if (estimatedTotal > tokenLimit) {
             showAlert(`預估 Token 使用量 (${estimatedTotal.toLocaleString()}) 超過限制 (${tokenLimit.toLocaleString()})，請清除對話歷史或降低相似度閾值`, 'warning');
+            return false;
+        }
+
+        return true;
+    }
+
+    function clearSuggestions() {
+        const existingSuggestions = messagesDiv.querySelectorAll('.chat-suggestion');
+        existingSuggestions.forEach(el => el.remove());
+    }
+
+    function prepareContext(validResults) {
+        currentLinkMapping = {};
+        return validResults.map((item, idx) => {
+            const originalIndex = currentResults.indexOf(item);
+            const rank = originalIndex + 1;
+            const docIndex = idx + 1;
+
+            currentLinkMapping[String(docIndex)] = item.link || "";
+
+            return {
+                title: `[No.${rank}] ${item.title}`,
+                content: item.content || item.cleaned_content || item.body || item.text || "",
+                link: item.link,
+                year_month: item.year_month,
+                year: item.year || "",
+                website: item.website || ""
+            };
+        });
+    }
+
+    function handleChatResponse(data, userQuery) {
+        if (data.error) {
+            if (data.error.includes("Input length exceeds")) {
+                appendMessage('bot', '**輸入的字數過多**，請精簡您的問題後再試一次。', userQuery);
+            } else if (data.error.includes("Token 使用量")) {
+                appendMessage('bot', `**Token 超限錯誤**\n\n${data.error}`, userQuery);
+                if (data.suggestions && data.suggestions.length > 0) {
+                    renderSuggestions(data.suggestions);
+                }
+            } else {
+                appendMessage('bot', '系統錯誤：' + data.error, userQuery);
+            }
+
+            if (data.token_usage) {
+                currentTokenUsage = data.token_usage;
+                updateHeaderStatus();
+            }
+        } else {
+            appendMessage('bot', data.answer, userQuery);
+
+            if (data.suggestions && data.suggestions.length > 0) {
+                renderSuggestions(data.suggestions);
+            }
+
+            chatHistory.push({ role: 'user', content: userQuery });
+            chatHistory.push({ role: 'model', content: data.answer });
+
+            if (chatHistory.length > MAX_CHAT_HISTORY) {
+                chatHistory = chatHistory.slice(-MAX_CHAT_HISTORY);
+            }
+
+            if (data.token_usage) {
+                currentTokenUsage = data.token_usage;
+                updateHeaderStatus();
+            }
+        }
+    }
+
+    async function sendMessage() {
+        const text = chatInput.value.trim();
+        const validation = validateInput(text);
+        if (!validation.valid) return;
+
+        const validResults = getValidResults();
+
+        if (!checkTokenLimit(text, validResults, chatHistory)) {
             return;
         }
 
-        // 清除之前的建議按鈕
-        const existingSuggestions = messagesDiv.querySelectorAll('.suggestion-group');
-        existingSuggestions.forEach(el => el.remove());
+        clearSuggestions();
 
         if (!currentResults || currentResults.length === 0) {
             appendMessage('user', text);
@@ -176,45 +322,18 @@ export function setupChatbot() {
         const loadingId = appendLoading();
 
         try {
-            const thresholdPercent = searchConfig.similarityThreshold || 0;
-            const isAnyDimmed = document.querySelector('.dimmed-result');
-            const validResults = (activeResults && activeResults.length > 0)
-                ? activeResults
-                : (isAnyDimmed ? [] : currentResults);
-
-            // 1. 取得原始搜尋到的總篇數 (用於顯示 "參考前 ? 篇")
+            const thresholdPercent = getCurrentThreshold();
             const totalScanned = currentResults.length;
+
             if (validResults.length === 0) {
                 removeMessage(loadingId);
-
-                // [修改] 這裡換成你截圖中要求的 "未符合" 提示文字
                 appendMessage('bot', `機器人提示：發現資料並未符合相似度，參考前 ${totalScanned} 篇，如果要參考更多篇請調低 相似閾值`, text);
                 return;
             }
-            // [新增] 這裡插入你截圖中要求的 "已載入" 提示文字
-            const validCount = validResults.length;
-            // appendMessage('bot', `機器人提示：目前已載入 no.1 - ${validCount} 總共 ${validCount} 篇，已隨著 SIMILAR 動態變化。`);
 
-            const finalResults = validResults;
-            console.log(`Chatbot Context: 使用了 ${finalResults.length} 筆資料 (門檻: ${thresholdPercent}%)`);
+            console.log(`Chatbot Context: 使用了 ${validResults.length} 筆資料 (門檻: ${thresholdPercent}%)`);
 
-            currentLinkMapping = {};
-            const currentContext = finalResults.map((item, idx) => {
-                const originalIndex = currentResults.indexOf(item);
-                const rank = originalIndex + 1;
-                const docIndex = idx + 1;
-
-                currentLinkMapping[String(docIndex)] = item.link || "";
-
-                return {
-                    title: `[No.${rank}] ${item.title}`,
-                    content: item.content || item.cleaned_content || item.body || item.text || "",
-                    link: item.link,
-                    year_month: item.year_month,
-                    year: item.year || "",
-                    website: item.website || ""
-                };
-            });
+            const currentContext = prepareContext(validResults);
 
             const response = await fetch('/api/chat', {
                 method: 'POST',
@@ -229,39 +348,7 @@ export function setupChatbot() {
             const data = await response.json();
             removeMessage(loadingId);
 
-            if (data.error) {
-                if (data.error.includes("Input length exceeds")) {
-                    appendMessage('bot', '**輸入的字數過多**，請精簡您的問題後再試一次。', text);
-                } else if (data.error.includes("Token 使用量")) {
-                    appendMessage('bot', `**Token 超限錯誤**\n\n${data.error}`, text);
-                    if (data.suggestions && data.suggestions.length > 0) {
-                        renderSuggestions(data.suggestions);
-                    }
-                } else {
-                    appendMessage('bot', '系統錯誤：' + data.error, text);
-                }
-
-                if (data.token_usage) {
-                    currentTokenUsage = data.token_usage;
-                    updateHeaderStatus();
-                }
-            } else {
-                appendMessage('bot', data.answer, text);
-
-                if (data.suggestions && data.suggestions.length > 0) {
-                    renderSuggestions(data.suggestions);
-                }
-
-                chatHistory.push({ role: 'user', content: text });
-                chatHistory.push({ role: 'model', content: data.answer });
-
-                if (chatHistory.length > 10) chatHistory = chatHistory.slice(-10);
-
-                if (data.token_usage) {
-                    currentTokenUsage = data.token_usage;
-                    updateHeaderStatus();
-                }
-            }
+            handleChatResponse(data, text);
 
         } catch (error) {
             removeMessage(loadingId);
@@ -275,63 +362,70 @@ export function setupChatbot() {
         if (e.key === 'Enter') sendMessage();
     });
 
+    messagesDiv.addEventListener('click', (e) => {
+        const copyBtn = e.target.closest('.chat-message__action-btn--copy');
+        const goodBtn = e.target.closest('.chat-message__action-btn--good');
+        const badBtn = e.target.closest('.chat-message__action-btn--bad');
+
+        if (copyBtn) {
+            const messageText = copyBtn.getAttribute('data-message');
+            navigator.clipboard.writeText(messageText).then(() => {
+                const icon = copyBtn.querySelector('.material-icons-round');
+                icon.textContent = 'check';
+                setTimeout(() => icon.textContent = 'content_copy', 2000);
+            });
+        }
+
+        if (goodBtn) {
+            const userQuery = goodBtn.getAttribute('data-query');
+            sendFeedback('positive', userQuery || "Chatbot Response", { ...searchConfig, source: 'chatbot' })
+                .then(() => {
+                    goodBtn.classList.add('active');
+                    showAlert('感謝您的肯定！', 'success');
+                })
+                .catch(e => console.error(e));
+        }
+
+        if (badBtn) {
+            const userQuery = badBtn.getAttribute('data-query');
+            sendFeedback('negative', userQuery || "Chatbot Response", { ...searchConfig, source: 'chatbot' })
+                .then(() => {
+                    badBtn.classList.add('active');
+                    showAlert('感謝您的意見，我們會持續改進！', 'info');
+                })
+                .catch(e => console.error(e));
+        }
+    });
+
     function appendMessage(role, text, userQuery = null) {
         const div = document.createElement('div');
         const isBot = role === 'bot';
 
-        div.className = `flex flex-col gap-1 animate-fade-in-up ${isBot ? 'items-start group' : 'items-end'} w-full`;
+        div.className = `chat-message chat-message--${role}`;
 
         if (isBot) {
             const parsedHtml = marked.parse(text);
             const htmlWithLinks = convertCitationsToLinks(parsedHtml, currentLinkMapping);
             div.innerHTML = `
-                <div class="prose prose-sm max-w-none leading-relaxed bot-message-text">
+                <div class="prose prose-sm max-w-none leading-relaxed chat-message__bot">
                     ${htmlWithLinks}
                 </div>
-                <div class="flex items-center gap-1 mt-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button class="chat-copy-btn p-1 hover:bg-slate-200 dark:hover:bg-slate-700 rounded text-slate-400 hover:text-primary transition-colors" title="複製回覆">
+                <div class="chat-message__actions">
+                    <button class="chat-message__action-btn chat-message__action-btn--copy" title="複製回覆" data-message="${text.replace(/"/g, '&quot;')}">
                         <span class="material-icons-round" style="font-size: 16px;">content_copy</span>
                     </button>
-                    <button class="chat-good-btn p-1 hover:bg-slate-200 dark:hover:bg-slate-700 rounded text-slate-400 hover:text-green-600 transition-colors" title="有幫助">
+                    <button class="chat-message__action-btn chat-message__action-btn--good" title="有幫助" data-query="${(userQuery || 'Chatbot Response').replace(/"/g, '&quot;')}">
                         <span class="material-icons-round" style="font-size: 16px;">thumb_up</span>
                     </button>
-                    <button class="chat-bad-btn p-1 hover:bg-slate-200 dark:hover:bg-slate-700 rounded text-slate-400 hover:text-red-500 transition-colors" title="沒幫助">
+                    <button class="chat-message__action-btn chat-message__action-btn--bad" title="沒幫助" data-query="${(userQuery || 'Chatbot Response').replace(/"/g, '&quot;')}">
                         <span class="material-icons-round" style="font-size: 16px;">thumb_down</span>
                     </button>
                 </div>
             `;
-
-            // 綁定事件
-            const copyBtn = div.querySelector('.chat-copy-btn');
-            copyBtn.addEventListener('click', () => {
-                navigator.clipboard.writeText(text).then(() => {
-                    const icon = copyBtn.querySelector('.material-icons-round');
-                    icon.textContent = 'check';
-                    setTimeout(() => icon.textContent = 'content_copy', 2000);
-                });
-            });
-
-            const goodBtn = div.querySelector('.chat-good-btn');
-            goodBtn.addEventListener('click', async () => {
-                try {
-                    await sendFeedback('positive', userQuery || "Chatbot Response", { ...searchConfig, source: 'chatbot' });
-                    goodBtn.classList.add('text-green-600');
-                    showAlert('感謝您的肯定！', 'success');
-                } catch (e) { console.error(e); }
-            });
-
-            const badBtn = div.querySelector('.chat-bad-btn');
-            badBtn.addEventListener('click', async () => {
-                try {
-                    await sendFeedback('negative', userQuery || "Chatbot Response", { ...searchConfig, source: 'chatbot' });
-                    badBtn.classList.add('text-red-500');
-                    showAlert('感謝您的意見，我們會持續改進！', 'info');
-                } catch (e) { console.error(e); }
-            });
         } else {
             const messageContent = text.replace(/\n/g, '<br>');
             div.innerHTML = `
-                <div class="bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 p-3 rounded-2xl shadow-sm text-sm border border-slate-200 dark:border-slate-700 max-w-[85%] mb-4">
+                <div class="chat-message__user">
                     ${messageContent}
                 </div>
             `;
@@ -346,12 +440,12 @@ export function setupChatbot() {
         const id = 'msg-' + Date.now();
         const div = document.createElement('div');
         div.id = id;
-        div.className = 'flex items-start w-full animate-fade-in-up mb-4';
+        div.className = 'chat-loading';
         div.innerHTML = `
-             <div class="flex space-x-1 p-2">
-                <div class="w-2 h-2 bg-slate-400 rounded-full animate-bounce"></div>
-                <div class="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style="animation-delay: 0.1s"></div>
-                <div class="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style="animation-delay: 0.2s"></div>
+            <div class="chat-loading__container">
+                <div class="chat-loading__dot"></div>
+                <div class="chat-loading__dot"></div>
+                <div class="chat-loading__dot"></div>
             </div>
         `;
         messagesDiv.appendChild(div);
@@ -367,12 +461,7 @@ export function setupChatbot() {
     function updateHeaderStatus() {
         if (!headerStatus) return;
 
-        const sliderEl = document.getElementById('similarity-slider') || document.querySelector('input[type="range"]');
-        let thresholdPercent = searchConfig.similarityThreshold || 0;
-
-        if (sliderEl) {
-            thresholdPercent = parseInt(sliderEl.value);
-        }
+        const thresholdPercent = getCurrentThreshold();
 
         if (!currentResults || currentResults.length === 0) {
             headerStatus.innerHTML = `
@@ -393,62 +482,10 @@ export function setupChatbot() {
         });
         const validCount = validResults.length;
 
-        let estimatedContextTokens = 0;
-        validResults.forEach(item => {
-            const content = item.content || item.cleaned_content || item.body || "";
-            estimatedContextTokens += estimateTokens(content);
-        });
-
-        const historyTokens = chatHistory.reduce((sum, msg) => {
-            return sum + estimateTokens(msg.content || "");
-        }, 0);
-
-        const estimatedTotal = estimatedContextTokens + historyTokens;
+        const estimatedTotal = estimateTotalTokens(validResults, chatHistory);
         const tokenLimit = appConfig.llmTokenLimit;
-        const tokenPercentage = (estimatedTotal / tokenLimit) * 100;
 
-        let tokenBgColor = "bg-slate-700";
-        let tokenBorderColor = "border-slate-600";
-        let tokenIconColor = "text-white";
-        let tokenTextColor = "text-white";
-        let tokenIcon = "data_usage";
-        let tokenPrefix = "~";
-
-        if (currentTokenUsage && currentTokenUsage.total) {
-            const actualTotal = currentTokenUsage.total;
-            const actualPercentage = (actualTotal / tokenLimit) * 100;
-            tokenPrefix = "";
-
-            if (actualPercentage >= 90) {
-                tokenBgColor = "bg-red-900/50";
-                tokenBorderColor = "border-red-600";
-                tokenIconColor = "text-red-400";
-                tokenTextColor = "text-red-300";
-                tokenIcon = "warning";
-            } else if (actualPercentage >= 70) {
-                tokenBgColor = "bg-amber-900/50";
-                tokenBorderColor = "border-amber-600";
-                tokenIconColor = "text-amber-400";
-                tokenTextColor = "text-amber-300";
-                tokenIcon = "data_usage";
-            }
-        } else {
-            if (tokenPercentage >= 90) {
-                tokenBgColor = "bg-red-900/50";
-                tokenBorderColor = "border-red-600";
-                tokenIconColor = "text-red-400";
-                tokenTextColor = "text-red-300";
-                tokenIcon = "warning";
-            } else if (tokenPercentage >= 70) {
-                tokenBgColor = "bg-amber-900/50";
-                tokenBorderColor = "border-amber-600";
-                tokenIconColor = "text-amber-400";
-                tokenTextColor = "text-amber-300";
-                tokenIcon = "data_usage";
-            }
-        }
-
-        const actualOrEstimated = currentTokenUsage ? currentTokenUsage.total : estimatedTotal;
+        const tokenStatus = calculateTokenStatus(estimatedTotal, tokenLimit);
 
         if (validCount === 0) {
             headerStatus.innerHTML = `
@@ -464,21 +501,15 @@ export function setupChatbot() {
                         <span class="material-icons-round text-white" style="font-size: 14px;">description</span>
                         <span class="text-xs text-white font-medium">${validCount}/${totalScanned} 篇</span>
                     </div>
-                    <div class="inline-flex items-center gap-1.5 px-2 py-1 rounded-md ${tokenBgColor} border ${tokenBorderColor}">
-                        <span class="material-icons-round ${tokenIconColor}" style="font-size: 14px;">${tokenIcon}</span>
-                        <span class="text-xs ${tokenTextColor} font-medium">${tokenPrefix}${actualOrEstimated.toLocaleString()}</span>
+                    <div class="inline-flex items-center gap-1.5 px-2 py-1 rounded-md ${tokenStatus.bgColor} border ${tokenStatus.borderColor}">
+                        <span class="material-icons-round ${tokenStatus.iconColor}" style="font-size: 14px;">${tokenStatus.icon}</span>
+                        <span class="text-xs ${tokenStatus.textColor} font-medium">${tokenStatus.prefix}${tokenStatus.actualTotal.toLocaleString()}</span>
                     </div>
                 </div>
             `;
         }
     }
 
-    // --- [新增] 即時更新 Header UI (視覺回饋) ---
-    function updateChatHeaderImmediate() {
-        updateHeaderStatus();
-    }
-
-    // --- [新增] 渲染模型 Badge ---
     function renderChatbotModelBadge() {
         const badgeEl = document.getElementById('modelNameBadge');
         if (badgeEl && appConfig.proxyModelName) {
@@ -486,27 +517,22 @@ export function setupChatbot() {
         }
     }
 
-    // 公開到全域
     window.updateChatHeader = updateHeaderStatus;
     window.renderChatbotModelBadge = renderChatbotModelBadge;
 
-    // --- [新增] 綁定滑桿事件：一拉動就更新 Header ---
     const sliderInput = document.getElementById('similarity-slider') || document.querySelector('input[type="range"]');
     if (sliderInput) {
-        sliderInput.addEventListener('input', () => {
-            // 1. 同步全域設定 (確保按送出時是對的)
+        const debouncedUpdate = debounce(() => {
             searchConfig.similarityThreshold = parseInt(sliderInput.value);
-            // 2. 呼叫 render.js 的函式，讓卡片變灰，並更新 activeResults
             applyThresholdToResults();
-            // 3. 即時更新 Header UI (視覺回饋)
-            updateChatHeaderImmediate();
-        });
+            updateHeaderStatus();
+        }, DEBOUNCE_DELAY);
+
+        sliderInput.addEventListener('input', debouncedUpdate);
     }
 
-    // 初始化時先執行一次，確保狀態正確
-    // (稍微延遲一下確保 currentResults 已經載入)
     setTimeout(() => {
         updateHeaderStatus();
         renderChatbotModelBadge();
-    }, 500);
+    }, HEADER_UPDATE_DELAY);
 }

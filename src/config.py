@@ -10,7 +10,7 @@ APP_VERSION = "v0.0.2"
 ADMIN_TOKEN = "msanmsan001"
 
 # Date Range Configuration
-DATE_RANGE_MIN = "2023-01"
+DATE_RANGE_MIN = "2013-11" # Azure update 最小從 2013-11 開始
 
 # Base directories
 DATA_DIR = "data_update"
@@ -63,6 +63,7 @@ AVAILABLE_SOURCES = [
     },
     {"value": "PowerBI Blog", "label": "Power BI 部落格", "default_checked": True},
     {"value": "MSRC_blog", "label": "MSRC Blog", "default_checked": True},
+    {"value": "MSRC Update Guide", "label": "MSRC Update Guide", "default_checked": True},
 ]
 
 
