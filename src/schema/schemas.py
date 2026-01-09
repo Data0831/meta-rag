@@ -132,3 +132,17 @@ class SummaryResponse(BaseModel):
         None, description="Error message if status is 'failed'"
     )
 
+
+class ChatResponse(BaseModel):
+    """
+    RAG chat response containing the answer and follow-up suggestions.
+    """
+
+    answer: str = Field(
+        ...,
+        description="The detailed answer to the user's question, based on the provided context. Use Markdown formatting and include citations like [1].",
+    )
+    suggestions: List[str] = Field(
+        default_factory=list,
+        description="A list of 3 follow-up questions that the user might ask next, based on the answer and context. Max 15 chars each.",
+    )

@@ -2,8 +2,10 @@ import { currentResults, activeResults, applyThresholdToResults } from './render
 import { searchConfig, appConfig } from './config.js';
 import { showAlert } from './alert.js';
 import { sendFeedback } from './api.js';
+import { convertCitationsToLinks } from './citation.js';
 
 let currentTokenUsage = null;
+let currentLinkMapping = {};
 
 function estimateTokens(text) {
     if (!text) return 0;
@@ -196,20 +198,21 @@ export function setupChatbot() {
             const finalResults = validResults;
             console.log(`Chatbot Context: 使用了 ${finalResults.length} 筆資料 (門檻: ${thresholdPercent}%)`);
 
-            const currentContext = finalResults.map(item => {
-                // 1. 先做運算邏輯
+            currentLinkMapping = {};
+            const currentContext = finalResults.map((item, idx) => {
                 const originalIndex = currentResults.indexOf(item);
                 const rank = originalIndex + 1;
+                const docIndex = idx + 1;
 
-                // 2. 再明確 return 物件
+                currentLinkMapping[String(docIndex)] = item.link || "";
+
                 return {
-                    // 把編號直接寫進 title 裡
                     title: `[No.${rank}] ${item.title}`,
-
-                    // 確保內容不為空
                     content: item.content || item.cleaned_content || item.body || item.text || "",
                     link: item.link,
-                    year_month: item.year_month
+                    year_month: item.year_month,
+                    year: item.year || "",
+                    website: item.website || ""
                 };
             });
 
@@ -276,12 +279,14 @@ export function setupChatbot() {
         const div = document.createElement('div');
         const isBot = role === 'bot';
 
-        div.className = `flex flex-col gap-1 animate-fade-in-up ${isBot ? 'items-start group' : 'items-end'} w-full mb-4`;
+        div.className = `flex flex-col gap-1 animate-fade-in-up ${isBot ? 'items-start group' : 'items-end'} w-full`;
 
         if (isBot) {
+            const parsedHtml = marked.parse(text);
+            const htmlWithLinks = convertCitationsToLinks(parsedHtml, currentLinkMapping);
             div.innerHTML = `
                 <div class="prose prose-sm max-w-none leading-relaxed bot-message-text">
-                    ${marked.parse(text)}
+                    ${htmlWithLinks}
                 </div>
                 <div class="flex items-center gap-1 mt-1 opacity-0 group-hover:opacity-100 transition-opacity">
                     <button class="chat-copy-btn p-1 hover:bg-slate-200 dark:hover:bg-slate-700 rounded text-slate-400 hover:text-primary transition-colors" title="複製回覆">
@@ -326,7 +331,7 @@ export function setupChatbot() {
         } else {
             const messageContent = text.replace(/\n/g, '<br>');
             div.innerHTML = `
-                <div class="bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 p-3 rounded-2xl shadow-sm text-sm border border-slate-200 dark:border-slate-700 max-w-[85%]">
+                <div class="bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 p-3 rounded-2xl shadow-sm text-sm border border-slate-200 dark:border-slate-700 max-w-[85%] mb-4">
                     ${messageContent}
                 </div>
             `;
